@@ -1,0 +1,5817 @@
+definitions:
+  controller.GetAccountInfoResponse:
+    properties:
+      balance:
+        allOf:
+        - $ref: '#/definitions/controller.GetBalanceInfo'
+        description: 账户余额
+      dynamic_isp:
+        allOf:
+        - $ref: '#/definitions/controller.GetFlowsStruct'
+        description: 动态ISP流量
+      flow_agent:
+        allOf:
+        - $ref: '#/definitions/controller.GetFowAgentResponse'
+        description: 住宅代理 企业余额
+      flow_day:
+        allOf:
+        - $ref: '#/definitions/controller.GetUnlimitedStruct'
+        description: 账户不限量信息
+      flows:
+        allOf:
+        - $ref: '#/definitions/controller.GetFlowsStruct'
+        description: 流量类型信息
+      isp:
+        allOf:
+        - $ref: '#/definitions/controller.GetBalanceResponse'
+        description: ISP流量
+      isp_agent:
+        allOf:
+        - $ref: '#/definitions/controller.GetBalanceResponse'
+        description: ISP代理 企业余额
+      static:
+        description: 静态IP信息
+        items:
+          $ref: '#/definitions/controller.GetStaticResponse'
+        type: array
+    type: object
+  controller.GetBalanceInfo:
+    properties:
+      balance:
+        description: 余额
+        type: string
+      status:
+        description: 状态
+        type: integer
+    type: object
+  controller.GetBalanceResponse:
+    properties:
+      balance:
+        description: 余额
+        type: integer
+    type: object
+  controller.GetFlowsStruct:
+    properties:
+      expire_date:
+        description: 账户流量到期日
+        type: string
+      expired:
+        description: 流量到期时间戳
+        type: integer
+      flow:
+        description: 账户流量
+        type: integer
+      flow_gb:
+        description: 流量单位为GB
+        type: string
+      flow_mb:
+        description: 流量单位为MB
+        type: string
+      send_flow:
+        description: 已发送邮件
+        type: string
+      send_open:
+        description: 是否开通邮件提醒
+        type: integer
+      send_unit:
+        description: 邮件提醒单位
+        type: string
+      status:
+        description: 是否冻结流量
+        type: integer
+      unit_gb:
+        description: 单位为GB
+        type: string
+      unit_mb:
+        description: 单位为MB
+        type: string
+    type: object
+  controller.GetFowAgentResponse:
+    properties:
+      flow:
+        description: 用户剩余流量 GB
+        type: string
+      flow_date:
+        description: 用户剩余流量到期时间
+        type: string
+      flow_expire:
+        description: 用户剩余流量是否到期
+        type: integer
+      flow_mb:
+        description: 用户剩余流量 MB
+        type: string
+      flow_mb_unit:
+        description: 用户剩余流量单位 MB
+        type: string
+      flow_redeem:
+        description: 可兑换 流量余额 GB
+        type: string
+      flow_unit:
+        description: 用户剩余流量单位 GB
+        type: string
+    type: object
+  controller.GetStaticResponse:
+    properties:
+      balance:
+        description: 剩余IP
+        type: integer
+      expire_day:
+        description: 过期时间
+        type: integer
+      id:
+        type: integer
+      pak_name:
+        description: 套餐类型
+        type: string
+    type: object
+  controller.GetUnlimitedStruct:
+    properties:
+      day:
+        description: 不限量时长账户剩余天数
+        type: integer
+      day_expire:
+        description: 不限量到期时间
+        type: string
+      day_status:
+        description: 是否冻结
+        type: integer
+      day_unit:
+        description: 不限量到期时间单位
+        type: string
+      day_use:
+        description: 是否能用不限量时长
+        type: integer
+    type: object
+  controller.ResCouponList:
+    properties:
+      code:
+        description: 优惠券码
+        type: string
+      expire:
+        description: 过期时间
+        type: string
+      expire_time:
+        description: 过期时间
+        type: integer
+      id:
+        type: integer
+      ip:
+        description: 返回值信息 根据不同的类型判断返回
+        type: string
+      ip_ratio:
+        description: + IP比例
+        type: string
+      ip_str:
+        description: 返回值信息 根据不同的类型判断返回
+        type: string
+      meals:
+        description: 标题文案描述
+        type: string
+      money:
+        description: 返回值信息 根据不同的类型判断返回
+        type: string
+      money_ratio:
+        description: '- money比例'
+        type: string
+      money_str:
+        description: 返回值信息 根据不同的类型判断返回
+        type: string
+      pay_type:
+        description: 支付类型
+        type: string
+      title:
+        description: 标题
+        type: string
+      type:
+        description: money：优惠券 ip：赠送IP/流量
+        type: string
+    type: object
+  controller.ResRollOrderList:
+    properties:
+      discount:
+        type: number
+      email:
+        type: string
+      give:
+        type: integer
+      minute:
+        type: integer
+      pak_name:
+        type: string
+    type: object
+  controller.ResRollTxList:
+    properties:
+      email:
+        type: string
+      minute:
+        description: Date  string  `json:"date"`
+        type: integer
+      money:
+        type: number
+    type: object
+  controller.StatsUserExchangeList:
+    properties:
+      balance:
+        description: 用户余额
+        type: string
+      exchange_type:
+        description: 兑换类型
+        type: string
+      id:
+        type: integer
+      last_time:
+        description: 最后兑换时间
+        type: string
+      times:
+        description: 累计兑换次数
+        type: integer
+      value:
+        description: 累计兑换数量
+        type: string
+    type: object
+  ipdat.IpInfoStruct:
+    properties:
+      asn:
+        type: string
+      city:
+        description: 城市
+        type: string
+      city_code:
+        description: |-
+          Version        string `json:"version"`         //版本
+          IsProxy        string `json:"is_proxy"`        //是否代理
+          ProxyType      string `json:"proxy_type"`      //代理类型
+        type: string
+      continent:
+        description: 洲
+        type: string
+      country:
+        description: 国家
+        type: string
+      country_code:
+        description: 国家英文简写
+        type: string
+      country_english:
+        description: 国家英文
+        type: string
+      district:
+        description: 区县
+        type: string
+      hosting:
+        description: |-
+          Domain         string `json:"domain"`     //领域
+          UsageType      string `json:"usage_type"` //使用场景
+          Street         string `json:"street"`     //街道
+          ProxyTime      string `json:"proxy_time"` //使用场景
+        type: string
+      ip:
+        type: string
+      isp:
+        description: AreaCode       string `json:"area_code"`       //区域代码
+        type: string
+      province:
+        description: 省份
+        type: string
+      zip_code:
+        description: |-
+          Longitude      string `json:"longitude"`       //经度
+          Latitude       string `json:"latitude"`        //纬度
+          LocalTime      string `json:"local_time"`      //本地时间
+          Elevation      string `json:"elevation"`       //海拔
+          WeatherStation string `json:"weather_station"` //气象站
+        type: string
+    type: object
+  models.Advert:
+    properties:
+      end:
+        description: 活动结束时间
+        type: integer
+      img:
+        type: string
+      jump_type:
+        description: '跳转类型: 1=外部页面, 2=内部页面, 3=客服'
+        type: integer
+      jump_url:
+        type: string
+      left_img:
+        type: string
+      name:
+        type: string
+      show_countdown:
+        description: 是否展示倒计时
+        type: integer
+      start:
+        description: 活动开始时间
+        type: integer
+    type: object
+  models.ExtractCity:
+    properties:
+      code:
+        type: string
+      country:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
+        type: integer
+    type: object
+  models.ExtractCountry:
+    properties:
+      country:
+        type: string
+      id:
+        type: integer
+      img:
+        type: string
+      keyword:
+        type: string
+      name:
+        type: string
+      sort:
+        type: integer
+    type: object
+  models.ResBlog:
+    properties:
+      abstract:
+        type: string
+      cate_arr:
+        items:
+          type: string
+        type: array
+      cate_id:
+        type: string
+      content:
+        type: string
+      duration:
+        type: string
+      id:
+        type: integer
+      img:
+        type: string
+      title:
+        type: string
+      views:
+        type: string
+    type: object
+  models.ResCouponInfo:
+    properties:
+      code:
+        type: string
+      coupon_type:
+        description: 优惠券类型
+        type: string
+      create_time:
+        description: 获得时间
+        type: string
+      expire:
+        description: 过期时间
+        type: string
+      id:
+        type: integer
+      meal_arr:
+        description: 套餐列表
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      status:
+        description: 状态:1生效 2已使用
+        type: integer
+      title:
+        type: string
+      type:
+        description: money优惠券 ip赠送IP
+        type: string
+      use_time:
+        description: 使用时间
+        type: string
+      value:
+        description: 返回值信息 根据不同的类型判断返回
+        type: string
+    type: object
+  models.ResExtractCountryCity:
+    properties:
+      city_list:
+        items:
+          $ref: '#/definitions/models.ExtractCity'
+        type: array
+      collect:
+        type: integer
+      country:
+        type: string
+      img:
+        type: string
+      keyword:
+        type: string
+      name:
+        type: string
+      ports:
+        items:
+          additionalProperties:
+            type: string
+          type: object
+        type: array
+      sort:
+        type: integer
+      value:
+        description: 前端展示需要用到
+        type: string
+    type: object
+  models.ResIpStaticLogModel:
+    properties:
+      account:
+        type: string
+      city:
+        type: string
+      country:
+        type: string
+      create_time:
+        type: string
+      expire_time:
+        type: string
+      forward:
+        type: string
+      id:
+        type: integer
+      ip:
+        type: string
+      is_expire:
+        type: integer
+      password:
+        type: string
+      port:
+        type: integer
+      remark:
+        type: string
+      state:
+        type: string
+    type: object
+  models.ResNotice:
+    properties:
+      brief:
+        description: 简介
+        type: string
+      content:
+        description: 内容
+        type: string
+      create_time:
+        description: 公告时间
+        type: string
+      id:
+        type: integer
+      is_read:
+        description: 是否已读
+        type: integer
+      release_time:
+        description: 发布时间
+        type: string
+      title:
+        type: string
+      type:
+        type: integer
+    type: object
+  models.ResStaticRecordModel:
+    properties:
+      city:
+        type: string
+      country:
+        type: string
+      create_time:
+        type: string
+      expire_time:
+        type: string
+      id:
+        type: integer
+      ip:
+        type: string
+      is_expire:
+        type: integer
+      port:
+        type: integer
+      remark:
+        type: string
+      state:
+        type: string
+    type: object
+  models.ResStaticRegion:
+    properties:
+      balance:
+        type: integer
+      code:
+        type: string
+      country:
+        type: string
+      ip_number:
+        type: integer
+      name:
+        type: string
+      state_list:
+        items:
+          $ref: '#/definitions/models.StaticStateModel'
+        type: array
+    type: object
+  models.ResUser:
+    properties:
+      session:
+        type: string
+      user:
+        $ref: '#/definitions/models.ResUserInfo'
+    type: object
+  models.ResUserInfo:
+    properties:
+      agent_balance:
+        description: 代理余额
+        type: integer
+      balance:
+        type: integer
+      email:
+        type: string
+      flow:
+        description: 用户剩余流量 GB
+        type: string
+      flow_date:
+        description: 用户剩余流量到期时间
+        type: string
+      flow_expire:
+        description: 用户剩余流量是否到期
+        type: integer
+      flow_mb:
+        description: 用户剩余流量 MB
+        type: string
+      flow_mb_unit:
+        description: 用户剩余流量单位 MB
+        type: string
+      flow_redeem:
+        description: 可兑换 流量余额 GB
+        type: string
+      flow_unit:
+        description: 用户剩余流量单位 GB
+        type: string
+      google_auth:
+        description: 是否 已经绑定  1 已经绑定
+        type: integer
+      id:
+        type: integer
+      invite:
+        description: 邀请码
+        type: string
+      invite_url:
+        description: 邀请地址
+        type: string
+      ip_num:
+        description: 剩余IP数
+        type: integer
+      is_act:
+        description: 用户剩余流量是否到期
+        type: integer
+      is_pay:
+        description: 是否是已购买
+        type: integer
+      nickname:
+        type: string
+      username:
+        type: string
+    type: object
+  models.ResUserInviter:
+    properties:
+      money:
+        type: number
+      number:
+        description: 交易笔数
+        type: integer
+      order_money:
+        type: number
+      reg_time:
+        type: string
+      uid:
+        type: integer
+      username:
+        description: 用户昵称
+        type: string
+    type: object
+  models.ResUserMoneyLog:
+    properties:
+      cdkey:
+        description: 生成cdk的时候用
+        type: string
+      code:
+        description: 标识 1自用转化  2     3、提现
+        type: integer
+      create_time:
+        type: string
+      flow:
+        description: 兑换的流量
+        type: integer
+      money:
+        type: number
+      status:
+        description: 状态 1 已经到账   2处理中
+        type: integer
+      uid:
+        description: 购买人的用户ID
+        type: integer
+    type: object
+  models.ResUserStaticIp:
+    properties:
+      balance:
+        description: 剩余IP
+        type: integer
+      expire_day:
+        description: 过期时间
+        type: integer
+      id:
+        type: integer
+      pak_name:
+        description: 套餐类型
+        type: string
+      status:
+        description: 过期时间
+        type: integer
+    type: object
+  models.ResUserStaticIpRegion:
+    properties:
+      balance:
+        description: 剩余IP
+        type: integer
+      country_list:
+        items:
+          $ref: '#/definitions/models.ResStaticRegion'
+        type: array
+      expire_day:
+        description: 过期时间
+        type: integer
+      id:
+        type: integer
+      pak_name:
+        description: 套餐类型
+        type: string
+    type: object
+  models.ResUserUsageList:
+    properties:
+      balance:
+        description: 用户余额
+        type: string
+      collect:
+        description: 是否收藏
+        type: integer
+      email:
+        type: string
+      exchange_type:
+        type: string
+      id:
+        type: string
+      last_redemption_time:
+        description: 最后兑换时间
+        type: string
+      remark:
+        description: 备注
+        type: string
+      times:
+        type: integer
+      value:
+        type: string
+    type: object
+  models.ResUserWhitelistApi:
+    properties:
+      create_time:
+        description: 更新时间
+        type: string
+      flow_type:
+        description: 状态 1 普通流量  2不限量流量
+        type: integer
+      id:
+        type: string
+      remark:
+        description: 备注
+        type: string
+      status:
+        description: 状态 1 正常 2禁用
+        type: string
+      whitelist_ip:
+        description: IP
+        type: string
+    type: object
+  models.ResUserWhitelistIp:
+    properties:
+      cate:
+        description: 类型 1 sticky ip  2 random IP
+        type: integer
+      city:
+        description: 用户地区-城市
+        type: string
+      configs:
+        description: 配置
+        type: string
+      country:
+        description: 用户地区-国家
+        type: string
+      create_time:
+        description: 更新时间
+        type: string
+      flow_type:
+        description: 状态 1 普通流量  2不限量流量
+        type: integer
+      hostname:
+        description: hostname:port
+        type: string
+      id:
+        type: integer
+      img:
+        description: 用户地区-国家图片
+        type: string
+      minute:
+        description: 粘性IP轮转时长
+        type: integer
+      minutes:
+        description: 粘性IP轮转时长 字符串 拼好的
+        type: string
+      name:
+        description: 用户地区-国家名称
+        type: string
+      remark:
+        description: 备注
+        type: string
+      whitelist_ip:
+        description: IP
+        type: string
+    type: object
+  models.ResWithdrawalLog:
+    properties:
+      create_time:
+        description: 申请时间
+        type: string
+      deal_time:
+        description: 审核时间
+        type: string
+      id:
+        type: integer
+      money:
+        description: 提现金额
+        type: number
+      order_no:
+        type: string
+      remark:
+        description: 审核备注
+        type: string
+      status:
+        description: 状态  1待审核 2审核通过 3审核拒绝
+        type: integer
+      status_text:
+        type: string
+      step:
+        description: 步骤 1 信息提交中 2 信息核验中 3 有结果
+        type: integer
+      uid:
+        description: 用户ID
+        type: integer
+      username:
+        description: 用户名
+        type: string
+      wallet:
+        type: string
+    type: object
+  models.StUrlLists:
+    properties:
+      url:
+        type: string
+    type: object
+  models.StaticCityModel:
+    properties:
+      code:
+        type: string
+      ip_number:
+        type: integer
+      name:
+        type: string
+      sort:
+        type: integer
+    type: object
+  models.StaticIpCountryModel:
+    properties:
+      code:
+        type: string
+      country:
+        type: string
+      ip_number:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.StaticIpInfo:
+    properties:
+      city:
+        type: string
+      code:
+        type: string
+      country:
+        type: string
+      ip:
+        type: string
+      ping:
+        type: integer
+      port:
+        type: string
+      sn:
+        type: string
+      state:
+        type: string
+    type: object
+  models.StaticStateModel:
+    properties:
+      city_list:
+        items:
+          $ref: '#/definitions/models.StaticCityModel'
+        type: array
+      code:
+        type: string
+      ip_number:
+        type: integer
+      name:
+        type: string
+      sort:
+        type: integer
+    type: object
+host: textapi.360proxy.net
+info:
+  contact: {}
+  description: This 360 API
+  title: 360 API
+  version: "1.0"
+paths:
+  /api/extract_ip:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 提取IP信息
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 提取数量
+        in: formData
+        name: num
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 提取IP信息
+      tags:
+      - 个人中心-Api提取
+  /center/balance/config:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取基础配置信息
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取基础配置信息
+      tags:
+      - 余额充值
+  /center/balance/records:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取余额记录
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取余额记录
+      tags:
+      - 余额充值
+  /center/balance/stats_detail:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: "CDK\t获取用户CDK使用列表"
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 统计记录ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/controller.StatsUserExchangeList'
+              type: array
+            type: array
+      summary: "CDK\t获取用户CDK统计使用列表"
+      tags:
+      - 个人中心-CDK
+  /center/balance/stats_download:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: "CDK\t记录列表下载"
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 模式  agent 代理商  balance 余额
+        in: formData
+        name: mode
+        type: string
+      - description: 类型  isp  flow
+        in: formData
+        name: cate
+        type: string
+      - description: 用户名
+        in: formData
+        name: username
+        type: string
+      - description: 是否收藏 1收藏  0全部
+        in: formData
+        name: collect
+        type: string
+      - description: 开始日期
+        in: formData
+        name: start_date
+        type: string
+      - description: 结束日期
+        in: formData
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: "CDK\t记录列表下载"
+      tags:
+      - 个人中心-CDK
+  /center/balance/stats_use:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: "CDK\t获取用户CDK使用列表"
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 模式  agent 代理商  balance 余额
+        in: formData
+        name: mode
+        type: string
+      - description: 类型  isp  flow
+        in: formData
+        name: cate
+        type: string
+      - description: 用户名
+        in: formData
+        name: username
+        type: string
+      - description: 是否收藏 1收藏  0全部
+        in: formData
+        name: collect
+        type: string
+      - description: 开始日期
+        in: formData
+        name: start_date
+        type: string
+      - description: 结束日期
+        in: formData
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ResUserUsageList'
+            type: array
+      summary: "CDK\t获取用户CDK统计使用列表"
+      tags:
+      - 个人中心-CDK
+  /center/cdk/balance_batch:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: CDK生成兑换码-IP ----批量
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 兑换比例ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      - description: 数量  (ip数量，流量数 ，等)
+        in: formData
+        name: number
+        required: true
+        type: string
+      - description: 生成数量
+        in: formData
+        name: quantity
+        required: true
+        type: string
+      - description: 静态的时候使用
+        in: formData
+        name: country
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: cdkey:兑换码, balance:余额
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: CDK生成兑换码-IP ----批量
+      tags:
+      - 余额充值
+  /center/cdk/balance_self_use:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 自用充值到用户余额
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 兑换比例ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      - description: 数量  (ip数量，流量数 ，等)
+        in: formData
+        name: value
+        required: true
+        type: string
+      - description: 静态的时候使用
+        in: formData
+        name: country
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 自用充值到用户余额
+      tags:
+      - 余额充值
+  /center/cdk/ex/generate_list:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: cdk生成列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: cdk_lists：流量cdk列表（值为[]models.ResExchange{}对象）；to_lists：给他人充值列表（值为[]models.ResExchange{}对象）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: cdk生成列表
+      tags:
+      - 个人中心 - 企业套餐
+  /center/cdk/ex/generate_list_download:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: cdk生成列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: cdk_lists：流量cdk列表（值为[]models.ResExchange{}对象）；to_lists：给他人充值列表（值为[]models.ResExchange{}对象）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: cdk生成列表
+      tags:
+      - 个人中心 - 企业套餐
+  /center/cdk/ex_dynamic:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 换轮转ISP流量
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: CDK码
+        in: formData
+        name: cdkey
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: user_balance:用户剩余IP数, user_flow:用户流量数
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 换轮转ISP流量
+      tags:
+      - 个人中心-CDK
+  /center/cdk/ex_unlimited:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 兑换不限量
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: CDK码
+        in: formData
+        name: cdkey
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/controller.GetUnlimitedStruct'
+            type: array
+      summary: 兑换不限量
+      tags:
+      - 个人中心-CDK
+  /center/flow_api/add:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 添加白名单信息
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 白名单IP
+        in: formData
+        name: ip
+        required: true
+        type: string
+      - description: 类型 1普通流量 2无限制流量
+        in: formData
+        name: flow_type
+        required: true
+        type: string
+      - description: 备注
+        in: formData
+        name: remark
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 添加白名单信息
+      tags:
+      - 个人中心-Api提取
+  /center/flow_api/delete:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 删除白名单IP详细信息
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 白名单IP对映的ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 删除白名单IP详细信息
+      tags:
+      - 个人中心-Api提取
+  /center/flow_api/info:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取基础配置信息
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: extract 提取接口地址，add 添加接口地址，del 删除接口地址，lists 白名单列表接口地址，has_api_ip
+            是否有API IP，当前IP是否在白名单中，ip 当前IP的白名单信息
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取基础配置信息
+      tags:
+      - 个人中心-Api提取
+  /center/flow_api/lists:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取白名单列表信息
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 搜索关键字
+        in: formData
+        name: search
+        required: true
+        type: string
+      - description: 类型 1普通流量 2无限制流量
+        in: formData
+        name: flow_type
+        required: true
+        type: string
+      - description: 类型 on/off
+        in: formData
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ResUserWhitelistApi'
+            type: array
+      summary: 获取白名单列表信息
+      tags:
+      - 个人中心-Api提取
+  /center/flow_api/set_white:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 白名单IP启用禁用
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 白名单IP对映的ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      - description: 状态  on启用  off禁用
+        in: formData
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 白名单IP启用禁用
+      tags:
+      - 个人中心-Api提取
+  /center/flows/get_info:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取用户流量信息 返回余额信息
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/controller.GetAccountInfoResponse'
+            type: array
+      summary: 获取用户流量信息
+      tags:
+      - 个人中心
+  /center/package/dynamic_isp:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取动态ISP套餐
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: fresh：最后更新时间，dynamic_isp：套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取动态ISP套餐
+      tags:
+      - 支付-套餐
+  /center/package/flow:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取有效期流量套餐
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: fresh：最后更新时间，flow：流量套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型），flow_agent：代理流量套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型）
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取有效期流量套餐
+      tags:
+      - 支付-套餐
+  /center/package/flow_day:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取不限量流量套餐列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: fresh：最后更新时间，flow_day：套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取不限量流量套餐列表
+      tags:
+      - 支付-套餐
+  /center/package/low_price:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取ip套餐列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: isp：套餐列表（值为：map[string][]models.ResSocksIpPackage{}模型 agent：套餐列表（值为：map[string][]models.ResSocksIpPackage{}模型
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取ip套餐列表
+      tags:
+      - 支付-套餐
+  /center/package/socks5:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取ip套餐列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: isp：套餐列表（值为：map[string][]models.ResSocksIpPackage{}模型 agent：套餐列表（值为：map[string][]models.ResSocksIpPackage{}模型
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取ip套餐列表
+      tags:
+      - 支付-套餐
+  /center/package/static:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取静态套餐列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: long_package：套餐列表（值为：map[string][]models.ResIpPackageLong{}模型
+            long_area：地区列表（值为：map[string][]models.ResPackageAreaInfo{}模型
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取静态套餐列表
+      tags:
+      - 支付-套餐
+  /init_oem:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 初始化oem下载地址
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ' "windows_down：windowsSocks5代理客户端下载地址,mac_down：macSocks5代理客户端下载地址,proxyManage_down：代理管理器下载地址,google_down：google插件下载地址,firefox_down：火狐插件下载地址'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 初始化oem下载地址
+      tags:
+      - 插件配置
+  /init_plugin:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 初始化插件配置
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 初始化插件配置
+      tags:
+      - 插件配置
+  /ip:
+    get:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取IP信息
+      parameters:
+      - description: 获取IP信息
+        in: formData
+        name: ip
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/ipdat.IpInfoStruct'
+            type: array
+      summary: 获取IP信息
+      tags:
+      - 检测相关
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取IP信息
+      parameters:
+      - description: 获取IP信息
+        in: formData
+        name: ip
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/ipdat.IpInfoStruct'
+            type: array
+      summary: 获取IP信息
+      tags:
+      - 检测相关
+  /mp/feedback:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 代理管理器
+      parameters:
+      - description: 分类
+        in: formData
+        name: cate
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 邮箱
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: 内容
+        in: formData
+        name: content
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 代理管理器反馈
+      tags:
+      - 公告/反馈
+  /upload_img:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 上传单个图片
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 'fileUrl": '
+          schema:
+            type: object
+      summary: 上传单个图片
+      tags:
+      - 图片上传
+  /upload_multiple_images:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 上传多个图片
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 'fileUrls": '
+          schema:
+            type: object
+      summary: 上传多个图片
+      tags:
+      - 图片上传
+  /web/account/add_edit:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 添加/编辑 流量账号子账户
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 帐密ID
+        in: formData
+        name: account_id
+        required: true
+        type: string
+      - description: 用户名
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: 备注
+        in: formData
+        name: remark
+        required: true
+        type: string
+      - description: 流量限制
+        in: formData
+        name: flow
+        required: true
+        type: string
+      - description: 流量单位
+        in: formData
+        name: flow_unit
+        required: true
+        type: string
+      - description: 状态
+        in: formData
+        name: status
+        required: true
+        type: string
+      - description: 类型  1流量  3 动态ISP
+        in: formData
+        name: flow_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 添加/编辑 流量账号子账户
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/all_lists:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取所有账户列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 用户名
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: 状态
+        in: formData
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: total:总数,enabled:启用,disabled:禁用,warning:流量警告,lists:列表（值为[]models.ResUserAccount{}模型）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取所有账户列表
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/chart_data:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取用户流量记录 -折线或柱状图使用  -- 新
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 开始日期
+        in: formData
+        name: start_date
+        required: true
+        type: string
+      - description: 结束日期
+        in: formData
+        name: end_date
+        required: true
+        type: string
+      - description: 站点地址  多选 ，以逗号分隔
+        in: formData
+        name: url
+        required: true
+        type: string
+      - description: 流量单位
+        in: formData
+        name: flow_unit
+        required: true
+        type: string
+      - description: 流量类型 1：正常流量 2：无限流量
+        in: formData
+        name: flow_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: x_data：日期数组，y_data：流量数组，cate：分类名称，unit：流量单位
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取用户流量记录 -折线或柱状图使用  -- 新
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/del:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 删除 流量子账号
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 子账户ID
+        in: formData
+        name: account_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 删除 流量子账号
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/detail:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 账号信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 帐密ID
+        in: formData
+        name: account_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: account_id:帐密ID,account:用户名,password:密码,limit_flow:流量限制,flow:已用流量,flow_unit:流量单位,is_use:能否使用生成命令
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 账号信息
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/enable_disable:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 账号启用  / 禁用
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 子账户ID
+        in: formData
+        name: account_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 账号启用  / 禁用
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/get_info:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取流量信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: flow：流量，flow_gb：流量GB，unit_gb：流量单位，flow_mb：流量MB，unit_mb：流量单位，flow_date：流量到期时间，flow_expire：流量到期状态，send_open：是否开启流量发送，send_flow：发送流量，send_unit：发送流量单位，day_expire：剩余天数，day：剩余天数，day_unit：剩余天数单位，day_use：是否能用
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取流量信息
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/lists:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取子账户列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 用户名
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: 状态
+        in: formData
+        name: status
+        required: true
+        type: string
+      - description: 类型  1流量  3 动态ISP
+        in: formData
+        name: flow_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: total:总数,enabled:启用,disabled:禁用,warning:流量警告,lists:列表（值为[]models.ResUserAccount{}模型）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取子账户列表
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/long_isp/add_edit:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 添加/编辑 流量账号子账户
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 帐密ID
+        in: formData
+        name: account_id
+        required: true
+        type: string
+      - description: 用户名
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: 备注
+        in: formData
+        name: remark
+        required: true
+        type: string
+      - description: 流量限制
+        in: formData
+        name: flow
+        required: true
+        type: string
+      - description: 流量单位
+        in: formData
+        name: flow_unit
+        required: true
+        type: string
+      - description: 状态
+        in: formData
+        name: status
+        required: true
+        type: string
+      - description: 类型  1流量  3 动态ISP
+        in: formData
+        name: flow_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 添加/编辑 流量账号子账户
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/long_isp/detail:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 账号信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 帐密ID
+        in: formData
+        name: account_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: account_id:帐密ID,account:用户名,password:密码,limit_flow:流量限制,flow:已用流量,flow_unit:流量单位,is_use:能否使用生成命令
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 账号信息
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/long_isp/set_send:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 设置用户低于流量阀值 发送邮件
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 是否开启发送邮件
+        in: formData
+        name: open
+        required: true
+        type: string
+      - description: 流量阀值
+        in: formData
+        name: flow
+        required: true
+        type: string
+      - description: 流量阀值单位
+        in: formData
+        name: unit
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: send_open：是否开启发送邮件，send_flow：发送流量阀值，send_unit：发送流量阀值单位
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 设置用户低于流量阀值 发送邮件
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/long_isp/sub_account_del:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 删除 流量子账号
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 子账户ID
+        in: formData
+        name: account_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 删除 流量子账号
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/long_isp/sub_account_enable_disable:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 账号启用  / 禁用
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 子账户ID
+        in: formData
+        name: account_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 账号启用  / 禁用
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/long_isp/sub_account_lists:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取子账户列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 用户名
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: 状态
+        in: formData
+        name: status
+        required: true
+        type: string
+      - description: 类型  1流量  3 动态ISP
+        in: formData
+        name: flow_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: total:总数,enabled:启用,disabled:禁用,warning:流量警告,lists:列表（值为[]models.ResUserAccount{}模型）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取子账户列表
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/long_isp_url_list:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取统计域名
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 域名
+        in: formData
+        name: url
+        required: true
+        type: string
+      - description: 流量类型 1-流量 2-不限量 3-动态ISP
+        in: formData
+        name: flow_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.StUrlLists'
+            type: array
+      summary: 获取统计域名
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/set_send:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 设置用户低于流量阀值 发送邮件
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 是否开启发送邮件
+        in: formData
+        name: open
+        required: true
+        type: string
+      - description: 流量阀值
+        in: formData
+        name: flow
+        required: true
+        type: string
+      - description: 流量阀值单位
+        in: formData
+        name: unit
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: send_open：是否开启发送邮件，send_flow：发送流量阀值，send_unit：发送流量阀值单位
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 设置用户低于流量阀值 发送邮件
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/url_list:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取统计域名
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 域名
+        in: formData
+        name: url
+        required: true
+        type: string
+      - description: 流量类型 1-流量 2-不限量 3-动态ISP
+        in: formData
+        name: flow_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.StUrlLists'
+            type: array
+      summary: 获取统计域名
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/account/used_download:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 使用记录下载
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 开始日期
+        in: formData
+        name: start_date
+        type: string
+      - description: 结束日期
+        in: formData
+        name: end_date
+        type: string
+      - description: 账户名称
+        in: formData
+        name: username
+        type: string
+      - description: 使用单位
+        in: formData
+        name: flow_unit
+        type: string
+      - description: 小数点
+        in: formData
+        name: point
+        type: string
+      - description: 流量类型 1：正常流量 2：无限流量
+        in: formData
+        name: flow_type
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "0":
+          description: csv文件
+          schema:
+            type: string
+      summary: 使用记录下载
+      tags:
+      - 个人中心 - 流量帐密子账号
+  /web/article/views:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 文章教程-获取阅读数
+      parameters:
+      - description: 文章ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      - description: 文章类型 1 文章 2 教程
+        in: formData
+        name: cate
+        required: true
+        type: string
+      - description: 用户session
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: views：阅读数
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 文章教程-获取阅读数
+      tags:
+      - 文章教程相关
+  /web/article_video/views:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 常见问题-获取阅读数
+      parameters:
+      - description: 文章ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      - description: 文章类型 1 文章 2 教程
+        in: formData
+        name: cate
+        required: true
+        type: string
+      - description: 用户session
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: views：阅读数
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 常见问题-获取阅读数
+      tags:
+      - 常见问题相关
+  /web/auth/auth_info:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 创建信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: account：用户标识，secret ：密钥，url：二维码地址，qrcode：二维码地址带参数
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 创建信息
+      tags:
+      - google验证器
+  /web/auth/bing_auth:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 绑定信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 验证码
+        in: formData
+        name: code
+        required: true
+        type: string
+      - description: 密钥
+        in: formData
+        name: secret
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: success：绑定成功
+          schema:
+            type: object
+      summary: 绑定信息
+      tags:
+      - google验证器
+  /web/auth/sign:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 滑块验证
+      parameters:
+      - description: 验证码票据
+        in: query
+        name: ticket
+        type: string
+      - description: 随机数
+        in: query
+        name: randstr
+        type: string
+      - description: 邮箱
+        in: query
+        name: email
+        required: true
+        type: string
+      - description: 验证码类型
+        in: query
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 滑块验证
+      tags:
+      - 登陆注册相关
+  /web/auth/unbind_auth:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 解绑信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: success：解绑成功
+          schema:
+            type: object
+      summary: 解绑信息
+      tags:
+      - google验证器
+  /web/auth/verify_code:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 验证信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 验证码
+        in: formData
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: success：验证成功
+          schema:
+            type: object
+      summary: 验证信息
+      tags:
+      - google验证器
+  /web/blog/get_search:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: blog-搜索
+      parameters:
+      - description: 分类ID
+        in: formData
+        name: cate_id
+        type: string
+      - description: 搜索标题
+        in: formData
+        name: title
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ResBlog'
+            type: array
+      summary: blog-搜索
+      tags:
+      - blog相关
+  /web/blog/list_page:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: blog-列表
+      parameters:
+      - description: 分类ID
+        in: formData
+        name: cate_id
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 搜索标题
+        in: formData
+        name: title
+        type: string
+      - description: 排序  1 发布时间  2 是热度
+        in: formData
+        name: sort
+        type: string
+      - description: 每页显示数量
+        in: formData
+        name: limit
+        type: string
+      - description: 页码
+        in: formData
+        name: page
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: total：文章总数，total_page：总页数，lists：文章列表 []models.ResBlog{}
+          schema:
+            additionalProperties: true
+            type: object
+      summary: blog-列表
+      tags:
+      - blog相关
+  /web/blog/views:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: blog-获取阅读数
+      parameters:
+      - description: 文章ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      - description: 文章类型 1 文章 2 教程
+        in: formData
+        name: cate
+        required: true
+        type: string
+      - description: 用户session
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: views：阅读数
+          schema:
+            additionalProperties: true
+            type: object
+      summary: blog-获取阅读数
+      tags:
+      - blog相关
+  /web/cdk/stats_collect:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: "CDK\t统计收藏"
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 数据ID
+        in: formData
+        name: sn
+        required: true
+        type: string
+      - description: 是否收藏 1收藏 0取消收藏
+        in: formData
+        name: collect
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: CDK 统计收藏
+      tags:
+      - 个人中心-CDK
+  /web/cdk/stats_download:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: "CDK\t记录列表下载"
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 模式  agent 代理商  balance 余额
+        in: formData
+        name: mode
+        type: string
+      - description: 类型  isp  flow
+        in: formData
+        name: cate
+        type: string
+      - description: 用户名
+        in: formData
+        name: username
+        type: string
+      - description: 是否收藏 1收藏  0全部
+        in: formData
+        name: collect
+        type: string
+      - description: 开始日期
+        in: formData
+        name: start_date
+        type: string
+      - description: 结束日期
+        in: formData
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: "CDK\t记录列表下载"
+      tags:
+      - 个人中心-CDK
+  /web/cdk/stats_remark:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: "CDK\t统计备注"
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 数据ID
+        in: formData
+        name: sn
+        required: true
+        type: string
+      - description: 类型 isp IP flow 流量 stats 统计
+        in: formData
+        name: cate
+        required: true
+        type: string
+      - description: 备注
+        in: formData
+        name: remark
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: "CDK\t统计备注"
+      tags:
+      - 个人中心-CDK
+  /web/cdk/stats_use:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: "CDK\t获取用户CDK使用列表"
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 模式  agent 代理商  balance 余额
+        in: formData
+        name: mode
+        type: string
+      - description: 类型  isp  flow
+        in: formData
+        name: cate
+        type: string
+      - description: 用户名
+        in: formData
+        name: username
+        type: string
+      - description: 是否收藏 1收藏  0全部
+        in: formData
+        name: collect
+        type: string
+      - description: 开始日期
+        in: formData
+        name: start_date
+        type: string
+      - description: 结束日期
+        in: formData
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ResUserUsageList'
+            type: array
+      summary: "CDK\t获取用户CDK统计使用列表"
+      tags:
+      - 个人中心-CDK
+  /web/check_is_cn:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 检查是否 中国大陆
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 检查是否 中国大陆
+      tags:
+      - 检测相关
+  /web/coupon/card_holder:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取优惠券列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: all_list：全部列表,used_list：已使用列表,expired_list：已过期列表
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取优惠券列表
+      tags:
+      - 优惠券相关
+  /web/coupon/coupon:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取优惠券信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 优惠券信息
+          schema:
+            $ref: '#/definitions/models.ResCouponInfo'
+      summary: 获取优惠券信息
+      tags:
+      - 优惠券相关
+  /web/coupon/get_list:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取优惠券列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 是否只显示有效的优惠券
+        in: formData
+        name: useful
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ip_list：已使用IP券列表（值为[]models.ResCouponList{}对象），money_list：已使用金额券列表（值为[]models.ResCouponList{}对象）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取优惠券列表
+      tags:
+      - 优惠券相关
+  /web/coupon/my_coupons:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取优惠券列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: all_list：全部列表,used_list：已使用列表,expired_list：已过期列表
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取优惠券列表
+      tags:
+      - 优惠券相关
+  /web/coupon/my_coupons_list:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取优惠券下拉列表接口
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 套餐id
+        in: formData
+        name: package_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            items:
+              $ref: '#/definitions/controller.ResCouponList'
+            type: array
+      summary: 获取优惠券下拉列表接口
+      tags:
+      - 优惠券相关
+  /web/coupon/popup:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取优惠券弹窗
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 'show: 是否显示, data: 弹窗数据'
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取优惠券弹窗
+      tags:
+      - 优惠券
+  /web/coupon/popup_click:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取优惠券弹窗
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 'show: 是否显示, data: 弹窗数据'
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 优惠券弹窗点击
+      tags:
+      - 优惠券
+  /web/coupon/redeem_coupons:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 兑换优惠券
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 兑换码
+        in: formData
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 兑换优惠券
+      tags:
+      - 优惠券相关
+  /web/coupon/use_coupon:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取优惠券下拉列表接口
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 套餐id
+        in: formData
+        name: package_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            items:
+              $ref: '#/definitions/controller.ResCouponList'
+            type: array
+      summary: 获取优惠券下拉列表接口
+      tags:
+      - 优惠券相关
+  /web/ex/direct_conversion:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 直接提现到本账户ip余额
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 兑换数量
+        in: formData
+        name: number
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: cdk：兑换码；balance：用户余额
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 直接提现到本账户ip余额
+      tags:
+      - 个人中心 - 企业套餐
+  /web/ex/flow_cdk:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 流量生成 cdk
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 流量数量
+        in: formData
+        name: flow
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: flows：流量（单位：GB）；cdk：兑换码；balance：用户余额;flow：剩余流量（单位：GB）;flow_redeem：可兑换流量（单位：GB）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 流量生成 cdk
+      tags:
+      - 个人中心 - 企业套餐
+  /web/ex/flow_cdk_batch:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 批量流量生成 cdk
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 流量数量
+        in: formData
+        name: flow
+        required: true
+        type: string
+      - description: cdk数
+        in: formData
+        name: quantity
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: flows：流量（单位：GB）；cdk：兑换码；balance：用户余额;flow：剩余流量（单位：GB）;flow_redeem：可兑换流量（单位：GB）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 批量流量生成 cdk
+      tags:
+      - 个人中心 - 企业套餐
+  /web/ex/flow_recharge:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 给他人充值
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 流量数量
+        in: formData
+        name: flow
+        required: true
+        type: string
+      - description: 用户名/邮箱
+        in: formData
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: flows：流量（单位：GB）；cdk：兑换码；balance：用户余额;flow：剩余流量（单位：GB）;flow_redeem：可兑换流量（单位：GB）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 给他人充值
+      tags:
+      - 个人中心 - 企业套餐
+  /web/ex/flow_record:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 流量cdk/给他人账户充值 记录列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: cdk_lists：流量cdk列表（值为[]models.ResExchange{}对象）；to_lists：给他人充值列表（值为[]models.ResExchange{}对象）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 流量cdk/给他人账户充值 记录列表
+      tags:
+      - 个人中心 - 企业套餐
+  /web/ex/forbid:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 禁用cdk
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 兑换码
+        in: formData
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: status：状态（3：禁用）,use_time：使用时间
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 禁用cdk
+      tags:
+      - 个人中心 - 企业套餐
+  /web/ex/generate:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 生成兑换券
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 兑换数量
+        in: formData
+        name: number
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: cdk：兑换码；balance：用户余额
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 生成兑换券
+      tags:
+      - 个人中心 - 企业套餐
+  /web/ex/generate_batch:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 批量生成兑换券
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 兑换数量
+        in: formData
+        name: number
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: cdk：兑换码；balance：用户余额
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 批量生成兑换券
+      tags:
+      - 个人中心 - 企业套餐
+  /web/ex/generate_list:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 兑换券列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 每页显示数量
+        in: formData
+        name: limit
+        required: true
+        type: string
+      - description: 当前页码
+        in: formData
+        name: page
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: total：总数量；total_page：总页数；lists：兑换券列表（值为[]models.ResExchange{}对象）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 兑换券列表
+      tags:
+      - 个人中心 - 企业套餐
+  /web/ex/get_exchange:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 兑换券
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 兑换码
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: user_balance：用户兑换后ip余额；ip_num：用户兑换后ip余额；balance：用户兑换后流量余额；flow：兑换的流量
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 兑换券
+      tags:
+      - 个人中心 - 企业套餐
+  /web/faq/views:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 常见问题-获取阅读数
+      parameters:
+      - description: 文章ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      - description: 文章类型 1 文章 2 教程
+        in: formData
+        name: cate
+        required: true
+        type: string
+      - description: 用户session
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: views：阅读数
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 常见问题-获取阅读数
+      tags:
+      - 常见问题相关
+  /web/get_country_code:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 国家或国家代码搜索
+      parameters:
+      - description: 国家 / 国家代码
+        in: formData
+        name: code
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: lists：国家列表
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 国家或国家代码搜索
+      tags:
+      - 帮助中心
+  /web/invite/ex_balance:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 佣金余额兑换余额
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 佣金余额兑换余额
+      tags:
+      - 邀请返佣
+  /web/invite/ex_flow:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 佣金余额兑换余额
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 兑换数量
+        in: formData
+        name: number
+        required: true
+        type: string
+      - description: 兑换类型 isp  /  flow
+        in: formData
+        name: cate
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 佣金余额兑换余额
+      tags:
+      - 邀请返佣
+  /web/invite/info:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取邀请信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: total：累计总奖励，today：今日佣金，money：可用佣金，withdrawal：累计提现金额，amount_converted：自用金额，invite_num：累计邀请人数，invite：邀请码，invite_url：邀请链接，unit_price：佣金兑换比例，invite_ratio：佣金兑换比例
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取邀请信息
+      tags:
+      - 邀请返佣
+  /web/invite/money_record:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 佣金记录
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 佣金记录
+          schema:
+            items:
+              $ref: '#/definitions/models.ResUserMoneyLog'
+            type: array
+      summary: 佣金记录
+      tags:
+      - 邀请返佣
+  /web/invite/pay_record:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 邀请用户购买记录
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 每页显示数量
+        in: formData
+        name: limit
+        required: true
+        type: string
+      - description: 页数
+        in: formData
+        name: page
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: total：总数，lists []models.ResUserOrderLog{} 列表数据 total_page：总页数
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 邀请用户购买记录
+      tags:
+      - 邀请返佣
+  /web/invite/record:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 邀请 列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 邀请列表
+          schema:
+            items:
+              $ref: '#/definitions/models.ResUserInviter'
+            type: array
+      summary: 邀请 列表
+      tags:
+      - 邀请返佣
+  /web/invite/set_code:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 设置邀请码
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 邀请码
+        in: formData
+        name: invite
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: invite：邀请码；invite_url：邀请链接
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 设置邀请码
+      tags:
+      - 邀请返佣
+  /web/invite/withdrawal:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 申请提现
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 提现金额
+        in: formData
+        name: money
+        required: true
+        type: string
+      - description: 钱包地址
+        in: formData
+        name: wallet
+        required: true
+        type: string
+      - description: 联系邮箱
+        in: formData
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 申请提现
+      tags:
+      - 邀请返佣
+  /web/invite/withdrawal_info:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 提现记录详细信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 提现记录id
+        in: formData
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.ResWithdrawalLog'
+      summary: 提现记录详细信息
+      tags:
+      - 邀请返佣
+  /web/invite/withdrawal_record:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 提现记录
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ResWithdrawalLog'
+            type: array
+      summary: 提现记录
+      tags:
+      - 邀请返佣
+  /web/invite_v1/ex_balance:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 佣金兑换isp或流量v1
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 兑换的类型   isp  /  flow
+        in: formData
+        name: cate
+        required: true
+        type: string
+      - description: 兑换的数量
+        in: formData
+        name: number
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 佣金兑换isp或流量v1
+      tags:
+      - 邀请返佣
+  /web/invite_v1/get_user_money_log:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 邀请记录   /  兑换记录   /   提现记录
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 类型 invite：邀请返佣记录，exchange：佣金兑换，withdrawal：佣金提现
+        in: formData
+        name: cate
+        required: true
+        type: string
+      - description: 每页显示数量
+        in: formData
+        name: limit
+        required: true
+        type: string
+      - description: 当前页
+        in: formData
+        name: page
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: total：总记录数，total_page：总页数，lists：记录列表 []models.ResUserOrderLogV1{}
+          schema:
+            type: object
+      summary: 邀请记录   /  兑换记录   /   提现记录
+      tags:
+      - 邀请返佣
+  /web/invite_v1/info:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取邀请信息v1
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: invite：用户邀请总人数，invite_url：邀请链接，today：今日佣金，total_money：累计总奖励，used_money：已用金额，total_withdrawal_money：累计提现金额，total_exchange_money：累计兑换金额，redeemed_isp：已兑换的ISP，redeemed_flow：已兑换的流量，ratio：佣金比例，isp_ratio：ISP佣金比例，flow_ratio：流量佣金比例，isp：已兑换的ISP，flow：已兑换的流量，max_withdrawal_money：最高提现金额
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取邀请信息v1
+      tags:
+      - 邀请返佣
+  /web/invite_v1/withdrawal:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 申请提现v1
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 提现金额
+        in: formData
+        name: money
+        required: true
+        type: string
+      - description: 钱包地址
+        in: formData
+        name: wallet
+        required: true
+        type: string
+      - description: 联系邮箱
+        in: formData
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 申请提现v1
+      tags:
+      - 邀请返佣
+  /web/ip_source:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 关键词IP追踪统计
+      parameters:
+      - description: 平台标识
+        in: formData
+        name: source
+        type: string
+      - description: 关键词
+        in: formData
+        name: code
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 关键词IP追踪统计
+      tags:
+      - 检测相关
+  /web/msg/banner:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取banner
+      parameters:
+      - description: 用户登陆信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: //位置   index首页   right右下角 footer 底部
+        in: formData
+        name: place
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            $ref: '#/definitions/models.Advert'
+      summary: 获取banner
+      tags:
+      - 公告/反馈
+  /web/msg/close_notice_pop:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 关闭公告弹窗
+      parameters:
+      - description: 用户登陆信息
+        in: formData
+        name: session
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 关闭公告弹窗
+      tags:
+      - 公告/反馈
+  /web/msg/del_notice:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 删除公告
+      parameters:
+      - description: 用户登陆信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 公告id列表，逗号分隔
+        in: formData
+        name: ids
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 删除公告
+      tags:
+      - 公告/反馈
+  /web/msg/feedback:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 支付反馈
+      parameters:
+      - description: 分类
+        in: formData
+        name: cate
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 邮箱
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: 内容
+        in: formData
+        name: content
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 支付反馈
+      tags:
+      - 公告/反馈
+  /web/msg/feedback_assistance:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 申请协助反馈
+      parameters:
+      - description: 类型
+        in: formData
+        name: cate
+        required: true
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 图片
+        in: formData
+        name: image
+        type: string
+      - description: 联系方式
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: 问题描述
+        in: formData
+        name: content
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 申请协助反馈
+      tags:
+      - 公告/反馈
+  /web/msg/feedback_unlimited:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 不限量套餐反馈
+      parameters:
+      - description: 分类
+        in: formData
+        name: cate
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 邮箱
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: 内容
+        in: formData
+        name: content
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 不限量套餐反馈
+      tags:
+      - 公告/反馈
+  /web/msg/notice:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取公告信息
+      parameters:
+      - description: 用户登陆信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: list 公告列表，red_dots：红点数量，pop：弹窗信息
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取公告信息
+      tags:
+      - 公告/反馈
+  /web/msg/notice_pop:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取公告弹窗
+      parameters:
+      - description: 用户登陆信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            $ref: '#/definitions/models.ResNotice'
+      summary: 获取公告弹窗
+      tags:
+      - 公告/反馈
+  /web/msg/popup:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取弹窗信息
+      parameters:
+      - description: 用户登陆信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: //位置   index首页   right右下角 footer 底部
+        in: formData
+        name: place
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 获取弹窗信息
+      tags:
+      - 公告/反馈
+  /web/msg/read_notice:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 读取公告
+      parameters:
+      - description: 用户登陆信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 公告id列表，逗号分隔
+        in: formData
+        name: ids
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 读取公告
+      tags:
+      - 公告/反馈
+  /web/package/static_num:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取静态IP数量
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.StaticIpCountryModel'
+            type: array
+      summary: 获取静态IP数量
+      tags:
+      - 套餐页
+  /web/roll/order:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取滚动订单信息
+      parameters:
+      - description: 每页显示条数
+        in: formData
+        name: limit
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/controller.ResRollOrderList'
+            type: array
+      summary: 获取滚动订单信息
+      tags:
+      - 个人中心
+  /web/roll/withdrawal:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取滚动提现信息
+      parameters:
+      - description: 每页显示条数
+        in: formData
+        name: limit
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/controller.ResRollTxList'
+            type: array
+      summary: 获取滚动提现信息
+      tags:
+      - 个人中心
+  /web/score/exchange:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 积分兑换流量
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 兑换流量数量
+        in: formData
+        name: flow
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: all_score：总积分，use_score：已使用积分，score：兑换后剩余积分
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 积分兑换流量
+      tags:
+      - 个人中心 - 积分
+  /web/score/exchange_flow_day:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 积分兑换不限量流量
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 兑换流量天数
+        in: formData
+        name: flow
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: all_score：总积分，use_score：已使用积分，score：兑换后剩余积分
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 积分兑换不限量流量
+      tags:
+      - 个人中心 - 积分
+  /web/score/feedback:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 反馈上报信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 反馈内容
+        in: formData
+        name: content
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 反馈上报信息
+      tags:
+      - 个人中心 - 积分
+  /web/score/free:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 免费获取积分上报信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        required: true
+        type: string
+      - description: 邮箱
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: 手机号
+        in: formData
+        name: phone
+        required: true
+        type: string
+      - description: 公司名称
+        in: formData
+        name: company
+        required: true
+        type: string
+      - description: 公司地址
+        in: formData
+        name: address
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 免费获取积分上报信息
+      tags:
+      - 个人中心 - 积分
+  /web/score/info:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取积分信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: country：国家，all_score：获取的总积分，use_score：已使用积分，score：剩余积分，expire：过期时间，feedback：反馈弹窗的状态
+            0无反馈 1待处理 2成功  3失败未填写反馈 4 失败已填写反馈
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取积分信息
+      tags:
+      - 个人中心 - 积分
+  /web/score/record:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取积分记录
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: score：积分记录（值为[]ResLogUserScore{}模型），use：使用记录（值为[]ResLogUserScore{}模型）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取积分记录
+      tags:
+      - 个人中心 - 积分
+  /web/static/check_info:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 续费 前信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 待续费的IP
+        in: formData
+        name: ip
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: region：国家地区，ip：ip地址，balance：用户剩余IP数量，lists：用户剩余静态住宅代理列表（值为[]ResUserStaticIp{}模型）
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 续费 前信息
+      tags:
+      - 个人中心 - 静态住宅代理
+  /web/static/del:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 删除
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 待操作的ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 删除
+      tags:
+      - 个人中心 - 静态住宅代理
+  /web/static/ip_list:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 用户余额记录
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            items:
+              $ref: '#/definitions/models.ResUserStaticIp'
+            type: array
+      summary: 用户余额记录
+      tags:
+      - 个人中心 - 静态住宅代理
+  /web/static/pools:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 静态 IP池列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        type: string
+      - description: 国家
+        in: formData
+        name: country
+        type: string
+      - description: 洲/省
+        in: formData
+        name: state
+        type: string
+      - description: 城市
+        in: formData
+        name: city
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/models.StaticIpInfo'
+              type: array
+            type: array
+      summary: 静态 IP池列表
+      tags:
+      - 个人中心 - 静态住宅代理
+  /web/static/recharge:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 续费
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 待续费的ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      - description: 购买的长效套餐ID
+        in: formData
+        name: static_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 续费
+      tags:
+      - 个人中心 - 静态住宅代理
+  /web/static/region:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 静态国家/地区 州/省 城市
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/models.ResUserStaticIpRegion'
+              type: array
+            type: array
+      summary: 静态国家/地区 州/省 城市
+      tags:
+      - 个人中心 - 静态住宅代理
+  /web/static/set_account:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 修改账号子账户密码
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 待修改的ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: 用户名
+        in: formData
+        name: account
+        required: true
+        type: string
+      - description: 备注
+        in: formData
+        name: remark
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 修改账号子账户密码
+      tags:
+      - 个人中心 - 静态住宅代理
+  /web/static/use:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 提取扣费IP
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: IP地址
+        in: formData
+        name: ip
+        required: true
+        type: string
+      - description: SN码
+        in: formData
+        name: sn
+        required: true
+        type: string
+      - description: 套餐ID
+        in: formData
+        name: static_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            items:
+              $ref: '#/definitions/models.ResUserStaticIp'
+            type: array
+      summary: 提取扣费IP
+      tags:
+      - 个人中心 - 静态住宅代理
+  /web/static/use_download:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 使用记录下载
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 开始日期
+        in: formData
+        name: start_date
+        type: string
+      - description: 结束日期
+        in: formData
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            type: object
+      summary: 使用记录下载
+      tags:
+      - 个人中心 - 静态住宅代理
+  /web/static/use_list:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 静态 IP使用列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: ip /备注筛选
+        in: formData
+        name: ip
+        type: string
+      - description: 状态
+        in: formData
+        name: status
+        type: string
+      - description: 排序字段
+        in: formData
+        name: field
+        type: string
+      - description: 排序  1降序
+        in: formData
+        name: sorter
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            items:
+              $ref: '#/definitions/models.ResIpStaticLogModel'
+            type: array
+      summary: 静态 IP使用列表
+      tags:
+      - 个人中心 - 静态住宅代理
+  /web/static/use_record:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 静态IP  提取记录
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 开始日期
+        in: formData
+        name: start_date
+        type: string
+      - description: 结束日期
+        in: formData
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 成功
+          schema:
+            items:
+              $ref: '#/definitions/models.ResStaticRecordModel'
+            type: array
+      summary: 静态IP  提取记录
+      tags:
+      - 个人中心 - 静态住宅代理
+  /web/stats/active:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 点击统计
+      parameters:
+      - description: 标识
+        in: formData
+        name: code
+        type: string
+      - description: session
+        in: formData
+        name: session
+        type: string
+      - description: 参数
+        in: formData
+        name: param
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 点击统计
+      tags:
+      - 上报接口
+  /web/user/auto_login:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 自动登录
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ResUser'
+            type: array
+      summary: 自动登录
+      tags:
+      - 登陆注册相关
+  /web/user/bind_email:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 绑定邮箱
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 邮箱
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 绑定邮箱
+      tags:
+      - 登陆注册相关
+  /web/user/bind_wallet:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 绑定钱包地址
+      parameters:
+      - description: 钱包地址
+        in: formData
+        name: wallet
+        type: string
+      - description: 邮箱
+        in: formData
+        name: email
+        type: string
+      - description: 竞价平台
+        in: formData
+        name: j_source
+        type: string
+      - description: 竞价code
+        in: formData
+        name: j_code
+        type: string
+      - description: 竞价域名
+        in: formData
+        name: j_domain
+        type: string
+      - description: 终端
+        in: formData
+        name: p
+        type: string
+      - description: 来源
+        in: formData
+        name: origin
+        type: string
+      - description: 邀请类型 1链接  2填写推广码
+        in: formData
+        name: inviter_type
+        type: string
+      - description: 邀请码
+        in: formData
+        name: inviter_code
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: wallet：钱包地址
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 绑定钱包地址
+      tags:
+      - 个人中心
+  /web/user/country_domain_list:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取国家带城市端口列表
+      parameters:
+      - description: 用户session
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 类型 flow，flow_day，flow_day_white，isp，whitelist
+        in: formData
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ResExtractCountryCity'
+            type: array
+      summary: 获取国家端口列表
+      tags:
+      - 个人中心
+  /web/user/email_info:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 根据邮箱获取用户信息
+      parameters:
+      - description: 邮箱
+        in: formData
+        name: email
+        type: string
+      - description: 邀请码
+        in: formData
+        name: invite
+        type: string
+      - description: 套餐ID
+        in: formData
+        name: package_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 根据邮箱获取用户信息
+      tags:
+      - 个人中心
+  /web/user/email_reg:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 邮箱注册
+      parameters:
+      - description: 邮箱
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: 验证码
+        in: formData
+        name: code
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: 确认密码
+        in: formData
+        name: re_password
+        required: true
+        type: string
+      - description: 竞价平台
+        in: formData
+        name: j_source
+        type: string
+      - description: 竞价code
+        in: formData
+        name: j_code
+        type: string
+      - description: 竞价域名
+        in: formData
+        name: j_domain
+        type: string
+      - description: 用户注册来源
+        in: formData
+        name: origin
+        type: string
+      - description: 邀请类型 1链接  2填写推广码
+        in: formData
+        name: invite_type
+        type: string
+      - description: 邀请码
+        in: formData
+        name: invite
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.ResUser'
+      summary: 邮箱注册
+      tags:
+      - 登陆注册相关
+  /web/user/forget:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 忘记密码
+      parameters:
+      - description: 邮箱
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: 验证码
+        in: formData
+        name: code
+        required: true
+        type: string
+      - description: 新密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: 确认密码
+        in: formData
+        name: re_password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 忘记密码
+      tags:
+      - 登陆注册相关
+  /web/user/get_city:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取城市列表
+      parameters:
+      - description: 国家标识
+        in: formData
+        name: country
+        type: string
+      - description: 城市名称
+        in: formData
+        name: city
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 城市列表
+          schema:
+            items:
+              $ref: '#/definitions/models.ExtractCity'
+            type: array
+      summary: 获取城市列表
+      tags:
+      - 个人中心
+  /web/user/get_city_port:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取国家带城市端口列表
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ResExtractCountryCity'
+            type: array
+      summary: 获取长效国家城市域名列表
+      tags:
+      - 个人中心
+  /web/user/get_country:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取 国家列表
+      parameters:
+      - description: 国家
+        in: formData
+        name: country
+        type: string
+      - description: 限制数量
+        in: formData
+        name: limit
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: popular：热门国家；other：其他国家
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.ExtractCountry'
+              type: array
+            type: object
+      summary: 获取 国家列表
+      tags:
+      - 个人中心
+  /web/user/get_country_V2:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取 国家列表 --- 不分页
+      parameters:
+      - description: 国家
+        in: formData
+        name: country
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ExtractCountry'
+            type: array
+      summary: 获取 国家列表 --- 不分页
+      tags:
+      - 个人中心
+  /web/user/get_domain:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取用户域名列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: isp：isp域名列表；flow：流量域名列表；whitelist：白名单域名列表；flow_day：流量域名流量列表；flow_day_white：白名单域名流量列表
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取用户域名列表
+      tags:
+      - 个人中心
+  /web/user/google_login:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 谷歌登录
+      parameters:
+      - description: 谷歌ID令牌
+        in: formData
+        name: token
+        required: true
+        type: string
+      - description: 谷歌授权令牌
+        in: formData
+        name: access_token
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.ResUser'
+      summary: 谷歌登录
+      tags:
+      - 登陆注册相关
+  /web/user/login:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 邮箱登录
+      parameters:
+      - description: 邮箱
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: 验证码
+        in: formData
+        name: code
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.ResUser'
+      summary: 邮箱登录
+      tags:
+      - 登陆注册相关
+  /web/user/logout:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 退出登录
+      parameters:
+      - description: 用户登陆信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 退出登录
+      tags:
+      - 登陆注册相关
+  /web/user/long_isp/get_main_user_account:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取账号主账户
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: account：账号；password：密码
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取账号主账户
+      tags:
+      - 个人中心
+  /web/user/long_isp/set_main_pass:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 修改账号主账户用户名密码
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 账户
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: account：账号；password：密码
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 修改账号主账户用户名密码
+      tags:
+      - 个人中心
+  /web/user/pay_list:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 用户购买记录
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 每页数据量
+        in: formData
+        name: limit
+        type: string
+      - description: 页数
+        in: formData
+        name: page
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 'total:总记录数,total_page:总页数,lists:记录列表 '
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 用户购买记录
+      tags:
+      - 个人中心
+  /web/user/reset_pwd:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 修改 /重置密码
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 旧密码
+        in: formData
+        name: old_password
+        required: true
+        type: string
+      - description: 新密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: 确认密码
+        in: formData
+        name: re_password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 修改 /重置密码
+      tags:
+      - 登陆注册相关
+  /web/user/set_pass:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 修改账号子账户密码
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 账户
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: 类型  1流量  3 动态ISP
+        in: formData
+        name: flow_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: account：账号；password：密码
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 修改账号子账户密码
+      tags:
+      - 个人中心
+  /web/user/unbind_wallet:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 解绑钱包地址
+      parameters:
+      - description: 邮箱
+        in: formData
+        name: email
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 解绑钱包地址
+      tags:
+      - 个人中心
+  /web/user/up_case:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 用户案例
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 案例
+        in: formData
+        name: case
+        type: string
+      - description: 其他
+        in: formData
+        name: other
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items: {}
+            type: array
+      summary: 用户案例
+      tags:
+      - 个人中心
+  /web/user/used_data:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 用户IP消耗日期和数量
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 开始时间
+        in: formData
+        name: start_date
+        type: string
+      - description: 结束时间
+        in: formData
+        name: end_date
+        type: string
+      - description: 类型 isp、static、flow
+        in: formData
+        name: cate
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 'x_data : x轴数据, y_data : y轴数据, cate :分类名称, unit :单位, max:最大值'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 用户IP消耗日期和数量
+      tags:
+      - 个人中心
+  /web/user/used_ip_data:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 用户IP消耗日期和数量
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 'x_data : x轴数据, y_data: y轴数据, cate:分类名称'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 用户IP消耗日期和数量
+      tags:
+      - 个人中心
+  /web/user/used_ip_list:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 用户IP消耗记录
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 每页数据量
+        in: formData
+        name: limit
+        type: string
+      - description: 页数
+        in: formData
+        name: page
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: 'total:总记录数,total_page:总页数,lists:记录列表 '
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 用户IP消耗记录
+      tags:
+      - 个人中心
+  /web/user/user_account:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取账号子账户
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 类型  1流量  3 动态ISP
+        in: formData
+        name: flow_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: account：账号；password：密码
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取账号子账户
+      tags:
+      - 个人中心
+  /web/user/user_info:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取用户信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ResUser'
+            type: array
+      summary: 获取用户信息
+      tags:
+      - 个人中心
+  /web/white/add:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 添加 白名单IP
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: IP地址
+        in: formData
+        name: ip
+        required: true
+        type: string
+      - description: 流量类型
+        in: formData
+        name: flow_type
+        type: string
+      - description: 国家
+        in: formData
+        name: country
+        type: string
+      - description: 城市
+        in: formData
+        name: city
+        type: string
+      - description: 类型 1 sticky ip  2 random IP
+        in: formData
+        name: cate
+        type: string
+      - description: 持续时间
+        in: formData
+        name: minute
+        type: string
+      - description: 备注
+        in: formData
+        name: remark
+        type: string
+      - description: 账号ID
+        in: formData
+        name: account_id
+        type: string
+      - description: 主机名
+        in: formData
+        name: hostname
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 添加 白名单IP
+      tags:
+      - 个人中心 - 白名单相关
+  /web/white/delete:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 删除白名单
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 白名单ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 删除白名单
+      tags:
+      - 个人中心 - 白名单相关
+  /web/white/detail:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取详细信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 白名单ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: name：名称；img：图片
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取详细信息
+      tags:
+      - 个人中心 - 白名单相关
+  /web/white/download:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 白名单下载
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 搜索关键字
+        in: formData
+        name: search
+        type: string
+      - description: 账号ID
+        in: formData
+        name: account_id
+        type: string
+      - description: 流量类型
+        in: formData
+        name: flow_type
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 白名单下载
+      tags:
+      - 个人中心 - 白名单相关
+  /web/white/edit:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 编辑白名单
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: IP地址
+        in: formData
+        name: ip
+        required: true
+        type: string
+      - description: 白名单ID
+        in: formData
+        name: id
+        required: true
+        type: string
+      - description: 国家
+        in: formData
+        name: country
+        type: string
+      - description: 城市
+        in: formData
+        name: city
+        type: string
+      - description: 类型 1 sticky ip  2 random IP
+        in: formData
+        name: cate
+        type: string
+      - description: 持续时间
+        in: formData
+        name: minute
+        type: string
+      - description: 备注
+        in: formData
+        name: remark
+        type: string
+      - description: 主机名
+        in: formData
+        name: hostname
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 编辑白名单
+      tags:
+      - 个人中心 - 白名单相关
+  /web/white/lists:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取白名单列表信息
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 搜索关键字
+        in: formData
+        name: search
+        type: string
+      - description: 账号ID
+        in: formData
+        name: account_id
+        type: string
+      - description: 流量类型
+        in: formData
+        name: flow_type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ResUserWhitelistIp'
+            type: array
+      summary: 获取白名单列表信息
+      tags:
+      - 个人中心 - 白名单相关
+schemes:
+- http
+- https
+swagger: "2.0"
