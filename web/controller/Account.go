@@ -87,6 +87,23 @@ func WebReg(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "__T_TWO_PWD_NOT_MATCH", map[string]string{"class_id": "passwordRepeat"})
 		return
 	}
+	// 滑块验证 -- start
+	captchaSwitch := strings.TrimSpace(models.GetConfigVal("CaptchaRegisterSwitch")) // 滑块验证注册开关
+	if captchaSwitch == "1" {
+		ticket := c.DefaultPostForm("ticket", "")
+		randStr := c.DefaultPostForm("randstr", "")
+		if ticket == "" || randStr == "" {
+			JsonReturn(c, e.ERROR, "__T_CAPTCHA_FAIL", nil)
+			return
+		}
+
+		res, Msg := CaptchaHandle(c, ticket, randStr)
+		if !res {
+			JsonReturn(c, e.ERROR, Msg, nil)
+			return
+		}
+	}
+	// 滑块验证 -- end
 
 	// ----------------- 注册限制频率 start -----------------
 	resReg, salt, msgStr := DealLimitReg(c, email, ip, saltStr)

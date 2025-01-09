@@ -145,6 +145,70 @@ func GetAuthSign(c *gin.Context) {
 	}
 }
 
+
+// 处理验证
+func CaptchaHandle(c *gin.Context,ticket, randStr string) (bool, string) {
+	if ticket == "" || randStr == "" {
+		return false, "__T_CAPTCHA_FAIL"
+	}
+	secretId := models.GetConfigVal("tencent_secret_id") //
+	secretKey := models.GetConfigVal("tencent_secret_key") //
+	appSecretKey := models.GetConfigVal("tencent_app_secret_key") //
+	captchaAppId := models.GetConfigVal("tencent_app_id") //
+	//sceneId := uint64(92201)	//场景 ID，网站或应用的业务下有多个场景使用此服务，通过此 ID 区分统计数据
+	service := "captcha"
+	version := "2019-07-22"
+	action := "DescribeCaptchaResult"
+	ip := c.ClientIP()
+	credential := common.NewCredential(
+		secretId,
+		secretKey)
+	cpf := profile.NewClientProfile()
+	cpf.HttpProfile.Endpoint = "captcha.tencentcloudapi.com"
+	cpf.HttpProfile.ReqMethod = "POST"
+	cpf.Language = "en-US"
+	//创建common client
+	client := common.NewCommonClient(credential, regions.Guangzhou, cpf)
+
+	captchaType := 9
+	// 创建common request，依次传入产品名、产品版本、接口名称
+	request := tchttp.NewCommonRequest(service, version, action)
+	body := map[string]interface{}{
+		"CaptchaType":  captchaType,
+		"Ticket":       ticket,
+		"UserIp":       ip,
+		"Randstr":      randStr,
+		"CaptchaAppId": com.StrTo(captchaAppId).MustInt(),
+		"AppSecretKey": appSecretKey,
+	}
+	err := request.SetActionParameters(body)
+	if err != nil {
+		return false, err.Error()
+	}
+
+	//创建common response
+	response := tchttp.NewCommonResponse()
+	//发送请求
+	err = client.Send(request, response)
+	if err != nil {
+		msg := fmt.Sprintf("fail to invoke api: %v \n", err)
+		return false, msg
+	}
+
+	// 获取响应结果
+	result := ResultInfo{}
+	//fmt.Println("TX IMG：", string(response.GetBody()))
+	_ = json.Unmarshal(response.GetBody(), &result)
+	fmt.Printf("%+v \n", result)
+	if result.Response.CaptchaCode == 1 {
+		return true, ""
+	}else{
+		return false, "__T_CAPTCHA_FAIL-- " + util.ItoS(result.Response.CaptchaCode)
+	}
+}
+
+
+
 //func GetAuthSignCopy(c *gin.Context)  {
 //	ticket := c.DefaultPostForm("ticket","")
 //	randstr := c.DefaultPostForm("randstr","")
