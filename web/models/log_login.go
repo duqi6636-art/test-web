@@ -59,7 +59,6 @@ func createLoginLogTable(tableName string) {
   		is_pay int(11) NOT NULL DEFAULT '0' COMMENT '是否付费',
   		reg_time int DEFAULT '0' COMMENT '注册时间',
 		device_number varchar(100) DEFAULT NULL COMMENT '设备号',
-		is_pay int(11) NOT NULL DEFAULT '0' COMMENT '是否付费',
   		PRIMARY KEY (id) USING BTREE,
   		KEY uid (uid) USING BTREE,
   		KEY country (country) USING BTREE,
