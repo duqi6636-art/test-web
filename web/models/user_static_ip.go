@@ -11,6 +11,8 @@ type ResIpStaticLogModel struct {
 	City       string `json:"city"`
 	ExpireTime string `json:"expire_time"`
 	IsExpire   int    `json:"is_expire"`
+	IsOffline   string `json:"is_offline"`
+	IsReplace   int    `json:"is_replace"` //1:可替换 0:不可替换
 	CreateTime string `json:"create_time"`
 	Forward    string `json:"forward"`
 	Account    string `json:"account"`
@@ -45,6 +47,7 @@ type IpStaticLogModel struct {
 	Account    string `json:"account"`
 	Password   string `json:"password"`
 	Remark     string `json:"remark"`
+	Replaced   int    `json:"replaced"` //1:已替换 0:未替换
 }
 
 type ResStaticRecordModel struct {

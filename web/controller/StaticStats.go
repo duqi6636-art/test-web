@@ -6,6 +6,7 @@ import (
 	"api-360proxy/web/pkg/util"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"slices"
 	"strings"
 )
 
@@ -78,13 +79,33 @@ func GetUsedStaticIpList(c *gin.Context) {
 	}
 	orderBy := field + sorter
 	logData := []models.ResIpStaticLogModel{}
+
+	offlineIps := models.GetStaticOfflineIps() //下线IP列表
+	offlineIpList := make([]string, len(offlineIps))
+	for i, ipModel := range offlineIps {
+		offlineIpList[i] = ipModel.Ip
+	}
+
 	_, usedList := models.GetIpStaticIpBy(user.Id, ip, status, orderBy)
 	nowTime := util.GetNowInt()
 	for _, v := range usedList {
 		info := models.ResIpStaticLogModel{}
 		is_expire := 1
+		is_replace := 0
 		if v.ExpireTime < nowTime {
 			is_expire = 2
+			if slices.Contains(offlineIpList, v.Ip) {
+				is_expire = 4 // 过期且已下线 不返回
+			}
+		}else {
+			// 检查当前 IP 是否在 offlineIps 列表中
+			if slices.Contains(offlineIpList, v.Ip) {
+				is_expire = 3 // 已下线
+			}
+			//十分钟内 没有替换过 IP 可以替换
+			if nowTime-v.CreateTime <= 600 && v.Replaced == 0 {
+				is_replace = 1
+			}
 		}
 		info.Id = v.Id
 		info.Ip = v.Ip
@@ -96,6 +117,7 @@ func GetUsedStaticIpList(c *gin.Context) {
 		info.Password = v.Password
 		info.Remark = v.Remark
 		info.IsExpire = is_expire
+		info.IsReplace = is_replace
 		info.ExpireTime = util.GetTimeStr(v.ExpireTime, "d/m/Y")
 		info.CreateTime = util.GetTimeStr(v.CreateTime, "d/m/Y")
 		if v.Port > 0 {
@@ -242,4 +264,121 @@ func UsedStaticRecordDownload(c *gin.Context) {
 		//}
 	}
 	return
+}
+// @BasePath /api/v1
+// @Summary 更换静态IP
+// @Schemes
+// @Description 更换静态IP
+// @Tags 个人中心
+// @Accept x-www-form-urlencoded
+// @Param session formData string true "用户登录凭证信息"
+// @Param lang formData string false "语言"
+// @Param used_id formData string true "待更换的id"
+// @Param sn formData string true "新的IPsn"
+// @Param type formData string true "类型 // offline : 下线更换，online : 在线更换"
+// @Produce json
+// @Success 0 {array} map[string]interface{}
+// @Router /center/static/change [post]
+func ChangeStaticIp(c *gin.Context) {
+	idStr := c.DefaultPostForm("used_id", "") //待操作的ID
+	sn := c.DefaultPostForm("sn", "")
+	typeStr := c.DefaultPostForm("type", "offline") //类型 // offline : 下线更换，online : 在线更换
+
+	resCode, msg, _ := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+
+	if idStr == "" {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	used_id := util.StoI(idStr)
+	err_l, ipLog := models.GetIpStaticIpById(used_id)
+	if err_l != nil || ipLog.Id == 0 {
+		JsonReturn(c, -1, "__T_STATIC_IP_USED_ERROR", nil)
+		return
+	}
+
+	nowTime := util.GetNowInt()
+	if ipLog.ExpireTime < nowTime {
+		JsonReturn(c, -1, "__T_STATIC_IP_USED_ERROR", nil)
+		return
+	}
+	if typeStr == "online" {
+		if nowTime-ipLog.CreateTime > 600 || ipLog.Replaced == 1 {
+			JsonReturn(c, -1, "__T_STATIC_IP_USED_ERROR", nil)
+			return
+		}
+	}
+
+	if sn != "" {
+		idStr := util.MdDecode(sn, MdKey)
+		id := util.StoI(idStr)
+		_, ipInfo := models.GetStaticIpById(id)
+
+		models.AddDelStaticLog(c.ClientIP(), ipLog) //记录日志
+
+		data := map[string]interface{}{}
+		data["ip"] = ipInfo.Ip
+		data["port"] = ipInfo.Port
+		data["state"] = ipInfo.State
+		data["city"] = ipInfo.City
+		data["country"] = ipInfo.Country
+		data["code"] = ipInfo.Code
+		if typeStr == "offline" {
+			data["expire_time"] = ipLog.ExpireTime + 2*24*3600 // 下线更换，续费两天
+		} else {
+			//十分钟内 没有替换过 IP 可以替换
+			if nowTime-ipLog.CreateTime <= 600 && ipLog.Replaced == 0 {
+				data["expire_time"] = ipLog.ExpireTime
+				data["replaced"] = 1 // 在线更换，标记为已更换
+			}
+		}
+		err := models.SetIpStaticIp(ipLog.Id, data)
+		if err != nil {
+			JsonReturn(c, e.ERROR, "__T_IP_CHANGE_FAILED", nil)
+			return
+		}
+		JsonReturn(c, e.SUCCESS, "__T_IP_CHANGE_SUCCESS", gin.H{})
+		return
+	}
+
+}
+
+// @BasePath /api/v1
+// @Summary 检测ip是否可以替换
+// @Schemes
+// @Description 检测ip是否可以替换
+// @Tags 个人中心
+// @Accept x-www-form-urlencoded
+// @Param session formData string false "用户登录凭证信息"
+// @Param ip formData string true "IP地址"
+// @Produce json
+// @Success 0 {array} map[string]interface{}
+// @Router /web/static/check_replace [post]
+func CheckReplace(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	nowTime := util.GetNowInt()
+	ip := c.DefaultPostForm("ip", "")
+	is_replace := 0
+	if ip != "" {
+		// 提取记录
+		err_l, ipLog := models.GetIpStaticIp(uid, ip)
+		if err_l == nil && ipLog.Id > 0 {
+			//十分钟内 没有替换过 IP 可以替换
+			if nowTime-ipLog.CreateTime <= 600 && ipLog.Replaced == 0 {
+				is_replace = 1
+			}
+		}
+	}
+	data := map[string]interface{}{}
+	data["is_replace"] = is_replace
+	JsonReturn(c, 0, "__T_SUCCESS", data)
 }

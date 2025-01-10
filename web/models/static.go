@@ -2,6 +2,7 @@ package models
 
 import (
 	"api-360proxy/web/pkg/util"
+	"fmt"
 	"time"
 )
 
@@ -118,7 +119,12 @@ func GetStaticIpById(id int) (err error, info StaticIpPoolModel) {
 	err = db.Table("cm_static_ip_pool").Where("id=?", id).First(&info).Error
 	return
 }
-
+// 获取下线IP列表
+func GetStaticOfflineIps() (area []StaticIpPoolModel) {
+	dbs := db.Table("cm_static_ip_pool").Where("status != ?", 1)
+	dbs.Find(&area)
+	return
+}
 // 查询静态IP信息
 func GetStaticIpByIp(ip string) (err error, info StaticIpPoolModel) {
 	err = db.Table("cm_static_ip_pool").Where("ip=?", ip).First(&info).Error
@@ -312,5 +318,29 @@ func DelStaticLog(ip string, ipLog IpStaticLogModel) error {
 	ipDelModel.DelIp = ip
 	err1 = tx.Table("cm_log_static_del").Create(&ipDelModel).Error
 	tx.Commit()
+	return err1
+}
+// 添加记录
+func AddDelStaticLog(ip string, ipLog IpStaticLogModel) error {
+	nowTime := util.GetNowInt()
+	ipDelModel := IpStaticLogDelModel{}
+	ipDelModel.Id = ipLog.Id
+	ipDelModel.Uid = ipLog.Uid
+	ipDelModel.Username = ipLog.Username
+	ipDelModel.Code = ipLog.Code
+	ipDelModel.Ip = ipLog.Ip
+	ipDelModel.Port = ipLog.Port
+	ipDelModel.Country = ipLog.Country
+	ipDelModel.State = ipLog.State
+	ipDelModel.City = ipLog.City
+	ipDelModel.ExpireDay = ipLog.ExpireDay
+	ipDelModel.ExpireTime = ipLog.ExpireTime
+	ipDelModel.UpdateTime = ipLog.UpdateTime
+	ipDelModel.CreateTime = ipLog.CreateTime
+	ipDelModel.UserIp = ipLog.UserIp
+	ipDelModel.DelTime = nowTime
+	ipDelModel.DelIp = ip
+	err1 := db.Table("cm_log_static_del").Create(&ipDelModel).Error
+	fmt.Println(err1)
 	return err1
 }
