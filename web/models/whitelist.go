@@ -189,6 +189,6 @@ func GetApiProxyClientBy() (proxyClient []ApiProxyClientInfo) {
 	return
 }
 func GetApiProxyClientByArea(area string) (proxyClient ApiProxyClientInfo, err error) {
-	err = db.Table("cm_api_proxy_client").Where("area = ?", area).First(&proxyClient).Error
+	err = db.Table("cm_api_proxy_client").Where("area = ?", area).Order("rand()").First(&proxyClient).Error
 	return
 }
