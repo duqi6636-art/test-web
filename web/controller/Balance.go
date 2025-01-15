@@ -889,7 +889,10 @@ func GetUserBalanceCdkStatsDetail(c *gin.Context) {
 		if v.Cate == "flow" {
 			userInfo := models.GetUserFlowInfo(v.BindUid)
 			balance := userInfo.Flows
-			if balance > 0 && valueUnit > 0 {
+			//if balance > 0 && valueUnit > 0 { // 这里修改，因为有些用户流量 允许用户的流量为负数 20250114 需求
+			//	balance = balance / valueUnit
+			//}
+			if valueUnit > 0 {
 				balance = balance / valueUnit
 			}
 			balanceStr = fmt.Sprintf("%d %s", balance, unit)

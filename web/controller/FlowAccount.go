@@ -36,9 +36,9 @@ func GetAccountInfo(c *gin.Context) {
 	flowStatus := 1
 	userFlowInfo := models.GetUserFlowInfo(userInfo.Id)
 	if userFlowInfo.ID != 0 {
-		if userFlowInfo.Flows > 0 {
+		//if userFlowInfo.Flows > 0 {	// 这里注释掉，因为有些用户流量 允许用户的流量为负数 20250114 需求
 			flows = userFlowInfo.Flows
-		}
+		//}
 		flowDate = util.GetTimeStr(userFlowInfo.ExpireTime, "d/m/Y")
 		if userFlowInfo.ExpireTime < nowTime {
 			flowExpire = 1
@@ -205,9 +205,9 @@ func GetAccountInfoV2(c *gin.Context) {
 	flowExpire := 0
 	userFlowInfo := models.GetUserFlowInfo(userInfo.Id)
 	if userFlowInfo.ID > 0 {
-		if userFlowInfo.Flows > 0 {
+		//if userFlowInfo.Flows > 0 { // 这里注释掉，因为有些用户流量 允许用户的流量为负数 20250114 需求
 			flows = userFlowInfo.Flows
-		}
+		//}
 		flowDate = util.GetTimeStr(userFlowInfo.ExpireTime, "d/m/Y")
 		if userFlowInfo.ExpireTime < nowTime {
 			flowExpire = 1
