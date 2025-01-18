@@ -263,6 +263,8 @@ func UnlimitedFeedback(c *gin.Context) {
 	lang := c.DefaultPostForm("lang", "")
 	email := c.DefaultPostForm("email", "")
 	content := c.DefaultPostForm("content", "")
+	config := c.DefaultPostForm("config", "")
+	bandwidth := c.DefaultPostForm("bandwidth", "")
 	if email == "" {
 		JsonReturn(c, e.ERROR, "__T_EMAIL_IS_MUST", nil)
 		return
@@ -272,9 +274,7 @@ func UnlimitedFeedback(c *gin.Context) {
 		return
 	}
 
-	var (
-		uid = 0
-	)
+	uid := 0
 	if params.Session != "" {
 		_, uid = GetUIDbySession(params.Session)
 	}
@@ -286,6 +286,8 @@ func UnlimitedFeedback(c *gin.Context) {
 		Content:    content,
 		Platform:   "web",
 		Email:      email,
+		Config:     config,
+		Bandwidth:  bandwidth,
 		Uid:        uid,
 		CreateTime: nowTime,
 		Lang:       lang,

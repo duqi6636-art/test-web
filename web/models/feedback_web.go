@@ -12,6 +12,8 @@ type FeedbackWeb struct {
 	Lang       string `json:"lang,omitempty"`
 	Ip         string `json:"ip,omitempty"`
 	Country    string `json:"country,omitempty"`
+	Config     string `json:"config,omitempty"`
+	Bandwidth  string `json:"bandwidth,omitempty"`
 	Platform   string `json:"platform,omitempty"`
 	CreateTime int    `json:"create_time,omitempty"`
 	Occupation string `json:"occupation,omitempty"` // 职业
