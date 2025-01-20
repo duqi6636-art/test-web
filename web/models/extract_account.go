@@ -53,6 +53,19 @@ func GetStateByCid(cid int) (list []ExtractProvince) {
 	return
 }
 
+// 获取所有洲省数据
+func GetStateByCountry(country, state string) (list []ExtractProvince) {
+	dbt := db.Table("cm_ex_state")
+	if country != "" {
+		dbt = dbt.Where("country = ?", country)
+	}
+	if state != "" {
+		dbt = dbt.Where("state = ?", state)
+	}
+	dbt.Where("status = ?", 1).Order("sort desc,id desc").Find(&list)
+	return
+}
+
 // 代理城市
 type ExtractCity struct {
 	Id      int    `json:"id"`
@@ -60,6 +73,7 @@ type ExtractCity struct {
 	Code    string `json:"code"`
 	Country string `json:"country"`
 	Status  int    `json:"status"`
+	State   string `json:"state"`
 }
 
 // 获取所有城市数据
@@ -71,13 +85,15 @@ func GetAllCity() (list []ExtractCity) {
 }
 
 // 获取所有城市数据
-func GetCityByCountry(country, city string) (list []ExtractCity) {
+func GetCityByCountry(country, state, city string) (list []ExtractCity) {
 	dbs := db.Table("cm_ex_city").Where("country = ?", country)
+	if state != "" {
+		dbs = dbs.Where("state = ?", state)
+	}
 	if city != "" {
 		dbs = dbs.Where("code like ?", "%"+city+"%")
 	}
 	dbs.Where("status = ?", 1).Order("sort desc").Find(&list)
-	//db.Table("md_ex_city").Where("country = ? and status = ?", country, 1).Order("sort desc").Find(&list)
 	return
 }
 
@@ -142,5 +158,23 @@ func GetLongIspPortsByCountry() (list []MdExCountryPort) {
 
 	dbs := db.Table("cm_country_port_longisp").Where("status = ?", 1)
 	dbs.Order("sort desc").Find(&list)
+	return
+}
+
+// 代理 ISP - 运营商
+type ExtractIsp struct {
+	Id      int    `json:"id"`
+	Isp     string `json:"isp"`
+	IspName string `json:"isp_name"`
+	Country string `json:"country"`
+}
+
+// 获取所有运营商数据 根据国家
+func GetIspCountry(country string) (list []ExtractIsp) {
+	dbt := db.Table("cm_ex_isp")
+	if country != "" {
+		dbt = dbt.Where("country = ?", country)
+	}
+	dbt.Where("status = ?", 1).Find(&list)
 	return
 }

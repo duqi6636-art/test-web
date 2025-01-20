@@ -120,13 +120,13 @@ func webRouter(router *gin.Engine) {
 
 	web.POST("/get_country_code", controller.GetCountryCode) // 国家或国家代码搜索
 
-	web.POST("/user/user_account", controller.AddUserAccount) // 用户账号
-	web.POST("/user/set_pass", controller.SetUserAccount)     // 修改用户密码
-	web.POST("/user/get_country", controller.GetCountry)      // 国家
-	web.POST("/user/get_country_V2", controller.GetCountryV2) // 国家
-	web.POST("/user/get_state", controller.GetState)          // 州/省
-	web.POST("/user/get_city", controller.GetCity)            // 城市
-	//web.POST("/user/get_domain", controller.GetUserDomain)    // 获取域名列表
+	web.POST("/user/user_account", controller.AddUserAccount)              // 用户账号
+	web.POST("/user/set_pass", controller.SetUserAccount)                  // 修改用户密码
+	web.POST("/user/get_country", controller.GetCountry)                   // 国家
+	web.POST("/user/get_country_V2", controller.GetCountryV2)              // 国家
+	web.POST("/user/get_state", controller.GetState)                       // 州/省
+	web.POST("/user/get_city", controller.GetCity)                         // 城市
+	web.POST("/user/get_isp", controller.GetCountryIsp)                    // 城市
 	web.POST("/user/get_domain", controller.GetUserDomain)                 // 获取域名列表
 	web.POST("/user/country_domain_list", controller.GetCountryDomainList) // 获取国家域名列表
 
@@ -154,12 +154,12 @@ func webRouter(router *gin.Engine) {
 	white.POST("/download", controller.WhitelistDownload) //白名单IP列表--下载
 
 	score := router.Group("/web/score")
-	score.POST("/info", controller.GetUserScore)      //积分信息
-	score.POST("/record", controller.ScoreRecord)     //积分记录
-	score.POST("/exchange", controller.ExScoreFlow)   //积分兑换
-	score.POST("/exchange_flow_day", controller.ExScoreFlowDay)   //积分兑换不限量
-	score.POST("/free", controller.UpFreeWeb)         //免费获取积分
-	score.POST("/feedback", controller.UpFeedbackWeb) //反馈信息
+	score.POST("/info", controller.GetUserScore)                //积分信息
+	score.POST("/record", controller.ScoreRecord)               //积分记录
+	score.POST("/exchange", controller.ExScoreFlow)             //积分兑换
+	score.POST("/exchange_flow_day", controller.ExScoreFlowDay) //积分兑换不限量
+	score.POST("/free", controller.UpFreeWeb)                   //免费获取积分
+	score.POST("/feedback", controller.UpFeedbackWeb)           //反馈信息
 
 	packages := router.Group("/web/package")
 	packages.POST("/flow", controller.GetPackageFlow)                             //获取流量套餐
@@ -183,8 +183,8 @@ func webRouter(router *gin.Engine) {
 	statics.POST("/use_list", controller.GetUsedStaticIpList)          // 获取已提取使用列表
 	statics.POST("/use_record", controller.GetUsedStaticRecord)        // 统计使用记录
 	statics.POST("/use_download", controller.UsedStaticRecordDownload) // 统计使用记录下载
-	statics.POST("/change", controller.ChangeStaticIp)  //  更换的静态IP
-	statics.POST("/check_replace", controller.CheckReplace) // 检测是否可以更换IP
+	statics.POST("/change", controller.ChangeStaticIp)                 //  更换的静态IP
+	statics.POST("/check_replace", controller.CheckReplace)            // 检测是否可以更换IP
 
 	// 长效ISP流量
 	web.POST("/user/long_isp/get_main_user_account", controller.GetLongIspMainAccount)                      // 获取长效Isp用户主账号
