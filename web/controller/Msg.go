@@ -269,10 +269,10 @@ func UnlimitedFeedback(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "__T_EMAIL_IS_MUST", nil)
 		return
 	}
-	if !util.CheckEmail(email) {
-		JsonReturn(c, e.ERROR, "__T_EMAIL_FORMAT_ERROR", gin.H{})
-		return
-	}
+	//if !util.CheckEmail(email) {
+	//	JsonReturn(c, e.ERROR, "__T_EMAIL_FORMAT_ERROR", gin.H{})
+	//	return
+	//}
 
 	uid := 0
 	if params.Session != "" {
