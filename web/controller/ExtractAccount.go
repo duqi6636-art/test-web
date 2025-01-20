@@ -142,6 +142,17 @@ func GetCity(c *gin.Context) {
 // @Router /web/user/get_isp [post]
 func GetCountryIsp(c *gin.Context) {
 	country := strings.TrimSpace(c.DefaultPostForm("country", "")) // 国家标识
+
+	redisConn := models.RedisCountryCityPort.Get()
+	defer redisConn.Close()
+	redisKey := fmt.Sprintf("country-isp-%s", country)
+	listStr, _ := redis.String(redisConn.Do("GET", redisKey))
+	var resData []map[string]interface{}
+	if len(listStr) > 0 {
+		json.Unmarshal([]byte(listStr), &resData)
+		JsonReturn(c, 0, "__T_SUCCESS", resData)
+		return
+	}
 	country = strings.ToUpper(country)
 	// 获取所有洲省数据
 	resLists := []models.ExtractIsp{}
@@ -151,7 +162,10 @@ func GetCountryIsp(c *gin.Context) {
 		}
 		resLists = models.GetIspCountry(country)
 	}
-
+	// 存储到redis
+	res, _ := json.Marshal(resLists)
+	listStr = string(res)
+	redisConn.Do("SETEX", redisKey, 1*60*60, listStr)
 	JsonReturn(c, 0, "__T_SUCCESS", resLists)
 	return
 }
