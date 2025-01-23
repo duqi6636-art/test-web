@@ -100,7 +100,7 @@ func GetAuthSign(c *gin.Context) {
 	if err != nil {
 		mm := fmt.Sprintf("fail to invoke api: %v \n", err)
 		AddLogs("tencent_sign_error", mm) //写日志
-		JsonReturn(c, -1, "fail to invoke api: %v \n", gin.H{})
+		JsonReturn(c, -1, "__T_CAPTCHA_FAIL", gin.H{})
 		return
 	}
 
