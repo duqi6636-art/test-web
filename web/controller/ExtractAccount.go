@@ -56,16 +56,118 @@ func GetCountry(c *gin.Context) {
 	return
 }
 
-// 获取大洲/省
+// @BasePath /api/v1
+// @Summary 获取大洲/省
+// @Schemes
+// @Description 获取大洲/省
+// @Tags 个人中心
+// @Accept x-www-form-urlencoded
+// @Param country formData string false "国家标识筛选"
+// @Produce json
+// @Success 0 {array} models.ExtractProvince{}
+// @Router /web/user/get_state [post]
 func GetState(c *gin.Context) {
-	JsonReturn(c, 0, "__T_SUCCESS", gin.H{})
+	country := strings.TrimSpace(c.DefaultPostForm("country", "")) // 国家标识
+	country = strings.ToUpper(country)
+	cityRandom := models.ExtractProvince{}
+	cityRandom.Id = 0
+	cityRandom.Name = "Random"
+	cityRandom.Code = ""
+	cityRandom.Status = 1
+	resLists := []models.ExtractProvince{}
+	resLists = append(resLists, cityRandom)
+	// 获取所有洲省数据
+	if country != "" {
+		if country == "ALL" {
+			country = ""
+		}
+		stateLists := models.GetStateByCountry(country, "")
+		for _, v := range stateLists {
+			resLists = append(resLists, v)
+		}
+	}
+	JsonReturn(c, 0, "__T_SUCCESS", resLists)
 	return
-	//cid := c.DefaultPostForm("cid", "") // 国家id
+}
 
-	//// 获取所有洲省数据
-	//resLists := models.GetStateByCid(util.StoI(cid))
-	//JsonReturn(c, 0, "__T_SUCCESS", resLists)
-	//return
+// 获取城市列表
+// @BasePath /api/v1
+// @Summary 获取城市列表
+// @Description 获取城市列表
+// @Tags 个人中心
+// @Accept x-www-form-urlencoded
+// @Param country formData string false "国家标识"
+// @Param city formData string false "城市名称"
+// @Produce json
+// @Success 0 {object} []models.ExtractCity{} "城市列表"
+// @Router /web/user/get_city [post]
+func GetCity(c *gin.Context) {
+	country := c.DefaultPostForm("country", "")              // 国家标识
+	state := c.DefaultPostForm("state", "")                  // 州省标识
+	city := strings.TrimSpace(c.DefaultPostForm("city", "")) // 城市名称
+	country = strings.ToUpper(country)
+	state = strings.ToLower(state)
+	city = strings.ToLower(city)
+
+	cityRandom := models.ExtractCity{}
+	cityRandom.Id = 0
+	cityRandom.Name = "Random"
+	cityRandom.Code = ""
+	cityRandom.Status = 1
+	cityRandom.State = ""
+	cityRandom.Country = ""
+
+	resLists := []models.ExtractCity{}
+	resLists = append(resLists, cityRandom)
+	// 获取城市数据
+	if country != "" || state != "" {
+		cityLists := models.GetCityByCountry(country, state, city)
+		for _, v := range cityLists {
+			resLists = append(resLists, v)
+		}
+	}
+	JsonReturn(c, 0, "__T_SUCCESS", resLists)
+	return
+}
+
+// @BasePath /api/v1
+// @Summary 获取ISP列表
+// @Schemes
+// @Description 获取ISP列表
+// @Tags 个人中心
+// @Accept x-www-form-urlencoded
+// @Param country formData string false "国家标识筛选"
+// @Produce json
+// @Success 0 {array} models.ExtractIsp{}
+// @Router /web/user/get_isp [post]
+func GetCountryIsp(c *gin.Context) {
+	country := strings.TrimSpace(c.DefaultPostForm("country", "")) // 国家标识
+
+	redisConn := models.RedisCountryCityPort.Get()
+	defer redisConn.Close()
+	redisKey := fmt.Sprintf("country-isp-%s", country)
+	listStr, _ := redis.String(redisConn.Do("GET", redisKey))
+	var resData []map[string]interface{}
+	if len(listStr) > 0 {
+		json.Unmarshal([]byte(listStr), &resData)
+		JsonReturn(c, 0, "__T_SUCCESS", resData)
+		return
+	}
+	country = strings.ToUpper(country)
+	// 获取所有洲省数据
+	resLists := []models.ExtractIsp{}
+	if country != "" {
+		if country == "ALL" {
+			country = ""
+		}
+		resLists = models.GetIspCountry(country)
+	}
+	// 存储到redis
+	res, _ := json.Marshal(resLists)
+	listStr = string(res)
+	redisConn.Do("SETEX", redisKey, 1*60*60, listStr)
+	JsonReturn(c, 0, "__T_SUCCESS", resLists)
+	return
 }
 
 // 获取 国家列表 --- 不分页
@@ -84,36 +186,6 @@ func GetCountryV2(c *gin.Context) {
 	countryInfoList := models.GetAllCountryV2(country)
 
 	JsonReturn(c, 0, "__T_SUCCESS", countryInfoList)
-	return
-}
-
-// 获取城市列表
-// @BasePath /api/v1
-// @Summary 获取城市列表
-// @Description 获取城市列表
-// @Tags 个人中心
-// @Accept x-www-form-urlencoded
-// @Param country formData string false "国家标识"
-// @Param city formData string false "城市名称"
-// @Produce json
-// @Success 0 {object} []models.ExtractCity{} "城市列表"
-// @Router /web/user/get_city [post]
-func GetCity(c *gin.Context) {
-	country := c.DefaultPostForm("country", "")              // 国家标识
-	city := strings.TrimSpace(c.DefaultPostForm("city", "")) // 城市名称
-	resLists := []models.ExtractCity{}
-	info := models.ExtractCity{}
-	info.Id = 0
-	info.Name = "Random"
-	info.Code = ""
-	resLists = append(resLists, info)
-	// 获取城市数据
-	cityLists := models.GetCityByCountry(country, city)
-	for _, v := range cityLists {
-		resLists = append(resLists, v)
-	}
-
-	JsonReturn(c, 0, "__T_SUCCESS", resLists)
 	return
 }
 
