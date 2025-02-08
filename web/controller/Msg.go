@@ -274,6 +274,10 @@ func UnlimitedFeedback(c *gin.Context) {
 	//	return
 	//}
 
+	if email == "" || config == "" || bandwidth == "" {
+		JsonReturn(c, -1, "__T_UNLIMITED_CONFIG_EMPTY", nil)
+		return
+	}
 	uid := 0
 	if params.Session != "" {
 		_, uid = GetUIDbySession(params.Session)
