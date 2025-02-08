@@ -32,6 +32,7 @@ var (
 	PayedPackageListMap = map[string][]CmPackage{}
 	PackageTextMap      = map[string]CmPackageInfo{}
 	PackageAreaTextMap  = map[string]CmPackageInfo{}
+	PackageUnlimitedMap = []PackageUnlimitedModel{}
 )
 
 const (
@@ -471,6 +472,7 @@ func InitPackage() {
 	PackageListMap = map[string][]CmPackage{}
 	PayedPackageListMap = map[string][]CmPackage{}
 	PackageTextMap = map[string]CmPackageInfo{}
+	PackageUnlimitedMap = []PackageUnlimitedModel{}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -493,4 +495,5 @@ func InitPackage() {
 		strArea := v.Lang + "_" + util.ItoS(v.PackageId) + "_" + util.ItoS(v.AreaId)
 		PackageAreaTextMap[strArea] = v
 	}
+	PackageUnlimitedMap = GetPackageUnlimitedList()
 }

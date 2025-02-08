@@ -139,3 +139,62 @@ func createDynamicIspLogTable(tableName string) {
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户IPFlow余额记录';`
 	StatisticsDb.Exec(createTables)
 }
+
+
+// 不限量
+type UnlimitedModel struct {
+	Id         int    `json:"id"`
+	Uid        int    `json:"uid"`
+	Username   string `json:"username"`
+	AccountId  int    `json:"account_id"`
+	Value      int64  `json:"value"`
+	PreValue   int64  `json:"pre_value"`
+	UseValue   int64  `json:"use_value"`
+	UserIp     string `json:"user_ip"`
+	Mark       int    `json:"mark"` //符号标识 1增加 -1减少
+	Cate       string `json:"cate"` //类型 pay购买 cdk 兑换，score积分等
+	CreateTime int    `json:"create_time"`
+}
+// 用户不限量使用记录
+func AddUnlimitedModel(uid,accountId int, username string, value, preValue, useValue int64, userIp,cate string, mark int) (err error) {
+	log := UnlimitedModel{
+		Uid:        uid,
+		AccountId:  accountId,
+		Username:   username,
+		Value:      value,
+		PreValue:   preValue,
+		UseValue:   useValue,
+		UserIp:     userIp,
+		Cate:       cate,
+		Mark:       mark,
+		CreateTime: util.GetNowInt(),
+	}
+	var tableName = "log_unlimited"
+	if !StatisticsDb.Migrator().HasTable(tableName) {
+		createUnlimitedTable(tableName)
+	}
+	err = StatisticsDb.Table(tableName).Create(&log).Error
+	return
+}
+
+//创建表
+func createUnlimitedTable(tableName string) {
+	createTables := `CREATE TABLE ` + tableName + `(
+		id int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
+		uid int(11) NOT NULL COMMENT '用户ID',
+		username varchar(30) DEFAULT '' COMMENT '用户名',
+		account_id int(11) NOT NULL COMMENT '子账户ID',
+		mark tinyint(4) NOT NULL DEFAULT '0' COMMENT '符号标识 1增加 -1减少',
+		cate varchar(30) DEFAULT '' COMMENT '类型 pay购买 cdk 兑换，score积分 flows帐密,white白名单,api接口 等',
+		value bigint(20) DEFAULT '0' COMMENT '操作值',
+		pre_value bigint(20) DEFAULT '0' COMMENT '操作前数量',
+		use_value bigint(20) DEFAULT '0' COMMENT '操作后可用数量',
+		user_ip varchar(50) DEFAULT '' COMMENT '用户IP',
+		remark varchar(255) DEFAULT '',
+		create_time int(11) DEFAULT '0' COMMENT '操作时间',
+		PRIMARY KEY (id),
+		KEY uid (uid) USING BTREE,
+		KEY create_time (create_time) USING BTREE
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户不限量余额记录';`
+	StatisticsDb.Exec(createTables)
+}

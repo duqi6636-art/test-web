@@ -263,18 +263,22 @@ func UnlimitedFeedback(c *gin.Context) {
 	lang := c.DefaultPostForm("lang", "")
 	email := c.DefaultPostForm("email", "")
 	content := c.DefaultPostForm("content", "")
+	config := c.DefaultPostForm("config", "")
+	bandwidth := c.DefaultPostForm("bandwidth", "")
 	if email == "" {
 		JsonReturn(c, e.ERROR, "__T_EMAIL_IS_MUST", nil)
 		return
 	}
-	if !util.CheckEmail(email) {
-		JsonReturn(c, e.ERROR, "__T_EMAIL_FORMAT_ERROR", gin.H{})
+	//if !util.CheckEmail(email) {
+	//	JsonReturn(c, e.ERROR, "__T_EMAIL_FORMAT_ERROR", gin.H{})
+	//	return
+	//}
+
+	if email == "" || config == "" || bandwidth == "" {
+		JsonReturn(c, -1, "__T_UNLIMITED_CONFIG_EMPTY", nil)
 		return
 	}
-
-	var (
-		uid = 0
-	)
+	uid := 0
 	if params.Session != "" {
 		_, uid = GetUIDbySession(params.Session)
 	}
@@ -286,6 +290,8 @@ func UnlimitedFeedback(c *gin.Context) {
 		Content:    content,
 		Platform:   "web",
 		Email:      email,
+		Config:     config,
+		Bandwidth:  bandwidth,
 		Uid:        uid,
 		CreateTime: nowTime,
 		Lang:       lang,

@@ -389,3 +389,84 @@ func GetStaticCountryByLang(lang string) (data []StaticCountryArea) {
 	db.Table("cm_static_ip_country").Select("code,"+name+" as name,country_img").Where("status=?", 1).Find(&data)
 	return
 }
+
+type PackageUnlimitedModel struct {
+	Id         int     `json:"id"`
+	PackageId  int     `json:"package_id"`  // 套餐ID
+	Cate       string  `json:"cate"`        // 类型 config:并发 bandwidth:带宽
+	Money      float64 `json:"money"`       // 价格
+	Unit       string  `json:"unit"`        // 单价
+	Config     int     `json:"config"`      // 配置值
+	ConfigUnit string  `json:"config_unit"` // 配置单位
+	Default    int     `json:"default"`     // 是否默认
+	ShowType   int     `json:"show_type"`   // 展示类型
+	Sort       int     `json:"sort"`
+}
+
+type ResPackageUnlimited struct {
+	Id         int     `json:"id"`
+	Name       string  `json:"name"`        // 单价
+	Money      float64 `json:"money"`       // 价格
+	Unit       string  `json:"unit"`        // 单价
+	Config     int     `json:"config"`      // 配置值
+	ConfigUnit string  `json:"config_unit"` // 配置单位
+	Default    int     `json:"default"`     // 是否默认
+}
+
+// 获取不限量配置价格
+func GetPackageUnlimitedInfo(packageId, id int) (info PackageUnlimitedModel) {
+	dbs := db.Table("cm_package_unlimited").Where("package_id =?", packageId).Where("id =?", id).Where("status =?", 1)
+	dbs.First(&info)
+	return
+}
+
+// 获取不限量配置价格
+func GetPackageUnlimitedBy(packageId, config int, cate string) (info PackageUnlimitedModel) {
+	dbs := db.Table("cm_package_unlimited").Where("package_id =?", packageId).Where("config =?", config).Where("cate =?", cate).Where("status =?", 1)
+	dbs.First(&info)
+	return
+}
+
+// 获取不限量配置价格
+func GetPackageUnlimitedList() (data []PackageUnlimitedModel) {
+	dbs := db.Table("cm_package_unlimited").Where("status =?", 1)
+	dbs.Order("sort desc")
+	dbs.Find(&data)
+	return
+}
+
+// 获取不限量配置价格
+func GetPackageUnlimitedListBy(packageId int) (data []PackageUnlimitedModel) {
+	dbs := db.Table("cm_package_unlimited").Where("package_id =?", packageId).Where("status =?", 1)
+	dbs.Order("sort desc")
+	dbs.Find(&data)
+	return
+}
+
+// 套餐
+type UnlimitedPackageListModel struct {
+	Id            int                   `json:"id"`
+	Code          string                `json:"code"`
+	Name          string                `json:"name"`
+	SubName       string                `json:"sub_name"`
+	Value         int                   `json:"value"`
+	Day           int                   `json:"day"` //有效期天数
+	Price         float64               `json:"price"`
+	Corner        string                `json:"corner"`    //角标
+	ActTitle      string                `json:"act_title"` //活动名称
+	ActDesc       string                `json:"act_desc"`  //活动名称
+	ActLabel      string                `json:"act_label"` //活动标签
+	Default       string                `json:"default"`
+	IsHot         int                   `json:"is_hot"`
+	TypeUnit      string                `json:"type_unit"`
+	ShowPrice     float64               `json:"show_price"`
+	Unit          float64               `json:"unit"`
+	ShowUnit      float64               `json:"show_unit"`
+	Fee           float64               `json:"fee"` //手续费
+	Currency      string                `json:"currency"`
+	Gift          int                   `json:"gift"`        //推荐支付赠送
+	Give          int                   `json:"give"`        //用户赠送
+	Total         int                   `json:"total"`       //总量
+	ConfigList    []ResPackageUnlimited `json:"config_list"` //总量
+	BandwidthList []ResPackageUnlimited `json:"bandwidth"`   //带宽
+}
