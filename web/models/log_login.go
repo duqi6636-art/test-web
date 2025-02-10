@@ -27,9 +27,9 @@ type LogLogin struct {
 	IsPay        int    `json:"is_pay"` //是否是已购买
 }
 
-var tableName = "log_login" + time.Now().Format("200601")
 
 func AddLoginLog(info LogLogin) bool {
+	var tableName = "log_login" + time.Now().Format("200601")
 	if !db.HasTable(tableName) {
 		createLoginLogTable(tableName)
 	}
