@@ -39,6 +39,7 @@ type Redis struct {
 }
 
 var DatabaseConfig = &Database{}
+var ClickhouseDbConfig = &Database{}
 var DatabaseReadConfig = &Database{}
 var DatabaseDnsConfig = &Database{}
 var DatabaseStatisticsConfig = &Database{}
@@ -67,6 +68,7 @@ func Setup() {
 	LoadDnsataBase()
 	LoadRedisDb()
 	LoadStatisticsDataBase()
+	LoadClickhouseDb()
 }
 
 func LoadBase() {
@@ -134,5 +136,13 @@ func LoadRedisDb() {
 	err := Cfg.Section(dsConfig).MapTo(RedisConfig)
 	if err != nil {
 		log.Fatalf("Cfg.MapTo redisConfig err: %v", err)
+	}
+}
+
+func LoadClickhouseDb() {
+	dsConfig := "clickhouse_db"
+	err := Cfg.Section(dsConfig).MapTo(ClickhouseDbConfig)
+	if err != nil {
+		log.Fatalf("Cfg.MapTo clickhouseConfig err: %v", err)
 	}
 }

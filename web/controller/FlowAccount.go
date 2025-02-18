@@ -37,7 +37,7 @@ func GetAccountInfo(c *gin.Context) {
 	userFlowInfo := models.GetUserFlowInfo(userInfo.Id)
 	if userFlowInfo.ID != 0 {
 		//if userFlowInfo.Flows > 0 {	// 这里注释掉，因为有些用户流量 允许用户的流量为负数 20250114 需求
-			flows = userFlowInfo.Flows
+		flows = userFlowInfo.Flows
 		//}
 		flowDate = util.GetTimeStr(userFlowInfo.ExpireTime, "d/m/Y")
 		if userFlowInfo.ExpireTime < nowTime {
@@ -206,7 +206,7 @@ func GetAccountInfoV2(c *gin.Context) {
 	userFlowInfo := models.GetUserFlowInfo(userInfo.Id)
 	if userFlowInfo.ID > 0 {
 		//if userFlowInfo.Flows > 0 { // 这里注释掉，因为有些用户流量 允许用户的流量为负数 20250114 需求
-			flows = userFlowInfo.Flows
+		flows = userFlowInfo.Flows
 		//}
 		flowDate = util.GetTimeStr(userFlowInfo.ExpireTime, "d/m/Y")
 		if userFlowInfo.ExpireTime < nowTime {
@@ -420,9 +420,9 @@ func GetAccountInfoV2(c *gin.Context) {
 	balance := "0"
 	balInfo := models.GetUserBalanceByUid(userInfo.Id)
 	if balInfo.Id > 0 {
-		balance = util.FtoS2(balInfo.Balance,2)
+		balance = util.FtoS2(balInfo.Balance, 2)
 	}
-	resData.Balance = GetBalanceInfo{Balance: balance,Status: balInfo.Status}
+	resData.Balance = GetBalanceInfo{Balance: balance, Status: balInfo.Status}
 	// 获取用户余额记录 -- end---------------------
 
 	JsonReturn(c, 0, "__T_SUCCESS", resData)
@@ -522,8 +522,12 @@ func GetFlowStats(c *gin.Context) {
 	uid := user.Id
 	start_date := c.DefaultPostForm("start_date", "")
 	end_date := c.DefaultPostForm("end_date", "")
-	websiteStr := strings.TrimSpace(c.DefaultPostForm("url", "")) // 站点地址  多选 ，以逗号分隔
-	flow_unit := c.DefaultPostForm("flow_unit", "GB")             // 站点地址
+	websiteStr := strings.TrimSpace(c.DefaultPostForm("url", ""))     // 站点地址  多选 ，以逗号分隔
+	flow_unit := c.DefaultPostForm("flow_unit", "GB")                 // 站点地址
+	country := c.DefaultPostForm("country", "")                       // 国家
+	accountStr := strings.TrimSpace(c.DefaultPostForm("account", "")) // 子账号名称
+	siteUrl := c.DefaultPostForm("site_url", "")                      // 访问地址
+	flowUseType := c.DefaultPostForm("flow_use_type", "-1")           // 流量使用类型，仅flowtype =1时有效
 	if flow_unit == "" {
 		flow_unit = "GB"
 	}
@@ -557,15 +561,25 @@ func GetFlowStats(c *gin.Context) {
 			x_data = append(x_data, dayStr)
 		}
 	}
+	accountId := 0
+	if accountStr != "" {
+		err, userAccount := models.GetUserAccount(uid, accountStr)
+		if err == nil && userAccount.Id > 0 {
+			accountId = userAccount.Id
+		}
+	}
 	websiteArr := strings.Split(websiteStr, ",")
 	//list := models.GetUrlUsed(uid, website, start, end)
 	list := []models.StUrlToday{}
-	if flowType == 3 {
-		list = models.GetDynamicUrlUsed(uid, 0, start, end)
-	} else if flowType == 1 {
-		list = models.GetUrlUsed(uid, 0, start, end)
-	} else {
-		list = models.GetUnlimitedUrlUsed(uid, 0, start, end)
+	if flowType == 1 {
+		//list = models.GetUrlUsed(uid, 0, start, end)
+		list = models.GetFlowUsedStat(uid, accountId, start, end, country, siteUrl, flowUseType)
+	} else if flowType == 2 {
+		//list = models.GetUnlimitedUrlUsed(uid, 0, start, end)
+		list = models.GetFlowDayUsedStat(uid, 0, start, end)
+	} else if flowType == 3 {
+		//list = models.GetDynamicUrlUsed(uid, 0, start, end)
+		list = models.GetIspFlowUsedStat(uid, 0, start, end, country, siteUrl)
 	}
 
 	var cateName []string
@@ -794,6 +808,9 @@ func FlowStatsDownload(c *gin.Context) {
 	username := strings.TrimSpace(c.DefaultPostForm("username", "")) // 账户名称
 	flow_unit := c.DefaultPostForm("flow_unit", "GB")                // 使用单位
 	pointStr := c.DefaultPostForm("point", "0")                      // 小数点
+	country := c.DefaultPostForm("country", "")                      // 国家
+	siteUrl := c.DefaultPostForm("site_url", "")                     // 访问地址
+	flowUseType := c.DefaultPostForm("flow_use_type", "-1")          // 流量使用类型，仅flowtype =1时有效
 	if flow_unit == "" {
 		flow_unit = "GB"
 	}
@@ -846,12 +863,15 @@ func FlowStatsDownload(c *gin.Context) {
 		csvData := [][]string{}
 		csvData = append(csvData, title)
 		lists := []models.StUrlToday{}
-		if flowType == 3 {
-			lists = models.GetDynamicUrlUsed(uid, accountId, start, end)
-		} else if flowType == 1 {
-			lists = models.GetUrlUsed(uid, accountId, start, end)
-		} else {
-			lists = models.GetUnlimitedUrlUsed(uid, accountId, start, end)
+		if flowType == 1 {
+			//list = models.GetUrlUsed(uid, 0, start, end)
+			lists = models.GetFlowUsedStat(uid, accountId, start, end, country, siteUrl, flowUseType)
+		} else if flowType == 2 {
+			//list = models.GetUnlimitedUrlUsed(uid, 0, start, end)
+			lists = models.GetFlowDayUsedStat(uid, 0, start, end)
+		} else if flowType == 3 {
+			//list = models.GetDynamicUrlUsed(uid, 0, start, end)
+			lists = models.GetIspFlowUsedStat(uid, 0, start, end, country, siteUrl)
 		}
 		for _, v := range lists {
 			info := []string{}
@@ -901,10 +921,26 @@ func GetUrlStats(c *gin.Context) {
 	uid := user.Id
 	var start int
 	today := util.GetTodayTime()
-	create := today - 10*86400
-	start = create
-	list := models.GetUrlList(uid, start, url)
-	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", list)
+	start = today - 10*86400
+	//list := models.GetUrlList(uid, start, url)
+
+	flow_type := strings.TrimSpace(c.DefaultPostForm("flow_type", "1"))
+	if flow_type == "" {
+		flow_type = "1"
+	}
+	flowType := util.StoI(flow_type)
+	if flowType == 0 {
+		flowType = 1
+	}
+	lists := []models.StUrlLists{}
+	if flowType == 1 {
+		lists = models.GetUrlListStats(uid, start, url)
+	} else if flowType == 2 {
+
+	} else if flowType == 3 {
+		lists = models.GetIspUrlListStats(uid, start, today+86400, url)
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", lists)
 	return
 }
 
@@ -942,7 +978,7 @@ func GetLongIspUrlStats(c *gin.Context) {
 	url := strings.TrimSpace(c.DefaultPostForm("url", ""))
 
 	uid := user.Id
-	list := models.GetLongIspUrlList(uid, start, end, url)
+	list := models.GetIspUrlListStats(uid, start, end, url)
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", list)
 	return
 }
