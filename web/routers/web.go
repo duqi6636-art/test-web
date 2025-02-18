@@ -137,6 +137,7 @@ func webRouter(router *gin.Engine) {
 	web.POST("/account/lists", controller.GetUserAccountList)                     // 获取子账号帐密列表
 	web.POST("/account/lists_available", controller.GetUserAccountListAvailable)  // 获取当前可用账号列表
 	web.POST("/account/add_edit", controller.AddUserFlowAccount)                  // 添加 / 修改账号
+	web.POST("/account/set_pass", controller.SetUserAccountPass)                  // 修改账号名称及密码
 	web.POST("/account/detail", controller.UserFlowAccountDetail)                 // 账号信息详情
 	web.POST("/account/enable_disable", controller.AccountEnableOrDisable)        // 账号启用  / 禁用
 	web.POST("/account/del", controller.DelUserAccount)                           // 删除账号
