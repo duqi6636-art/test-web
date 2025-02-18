@@ -179,6 +179,11 @@ definitions:
       pay_type:
         description: 支付类型
         type: string
+      pay_type_arr:
+        description: 支付类型
+        items:
+          type: integer
+        type: array
       title:
         description: 标题
         type: string
@@ -314,6 +319,8 @@ definitions:
         type: integer
       name:
         type: string
+      state:
+        type: string
       status:
         type: integer
     type: object
@@ -330,6 +337,28 @@ definitions:
       name:
         type: string
       sort:
+        type: integer
+    type: object
+  models.ExtractIsp:
+    properties:
+      country:
+        type: string
+      id:
+        type: integer
+      isp:
+        type: string
+      isp_name:
+        type: string
+    type: object
+  models.ExtractProvince:
+    properties:
+      code:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      status:
         type: integer
     type: object
   models.ResBlog:
@@ -439,6 +468,11 @@ definitions:
       ip:
         type: string
       is_expire:
+        type: integer
+      is_offline:
+        type: string
+      is_replace:
+        description: 1:可替换 0:不可替换
         type: integer
       password:
         type: string
@@ -696,6 +730,9 @@ definitions:
     type: object
   models.ResUserWhitelistIp:
     properties:
+      asn:
+        description: 运营商ASN
+        type: string
       cate:
         description: 类型 1 sticky ip  2 random IP
         type: integer
@@ -733,6 +770,9 @@ definitions:
         type: string
       remark:
         description: 备注
+        type: string
+      state:
+        description: 用户地区-州省
         type: string
       whitelist_ip:
         description: IP
@@ -1487,33 +1527,6 @@ paths:
       summary: 获取动态ISP套餐
       tags:
       - 支付-套餐
-  /center/package/flow:
-    post:
-      consumes:
-      - application/x-www-form-urlencoded
-      description: 获取有效期流量套餐
-      parameters:
-      - description: 用户登录信息
-        in: formData
-        name: session
-        type: string
-      - description: 语言
-        in: formData
-        name: lang
-        type: string
-      produces:
-      - application/json
-      responses:
-        "0":
-          description: fresh：最后更新时间，flow：流量套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型），flow_agent：代理流量套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型）
-          schema:
-            items:
-              additionalProperties: true
-              type: object
-            type: array
-      summary: 获取有效期流量套餐
-      tags:
-      - 支付-套餐
   /center/package/flow_day:
     post:
       consumes:
@@ -1623,6 +1636,76 @@ paths:
       summary: 获取静态套餐列表
       tags:
       - 支付-套餐
+  /center/static/change:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 更换静态IP
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      - description: 待更换的id
+        in: formData
+        name: used_id
+        required: true
+        type: string
+      - description: 新的IPsn
+        in: formData
+        name: sn
+        required: true
+        type: string
+      - description: '类型 // offline : 下线更换，online : 在线更换'
+        in: formData
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 更换静态IP
+      tags:
+      - 个人中心
+  /center/unlimited/server_record:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取不限量的配置记录
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取不限量的配置记录
+      tags:
+      - 不限量
   /init_oem:
     post:
       consumes:
@@ -2043,6 +2126,28 @@ paths:
       summary: 获取子账户列表
       tags:
       - 个人中心 - 流量帐密子账号
+  /web/account/lists_available:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取所有账户列表
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取所有账户列表
+      tags:
+      - 个人中心 - 流量帐密子账号
   /web/account/long_isp/add_edit:
     post:
       consumes:
@@ -2290,6 +2395,42 @@ paths:
       summary: 获取统计域名
       tags:
       - 个人中心 - 流量帐密子账号
+  /web/account/set_pass:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 修改账号名称及密码
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        required: true
+        type: string
+      - description: 帐密ID
+        in: formData
+        name: account_id
+        required: true
+        type: string
+      - description: 用户名
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            type: object
+      summary: 修改账号名称及密码
+      tags:
+      - 个人中心 - 修改账号名称及密码
   /web/account/set_send:
     post:
       consumes:
@@ -4173,6 +4314,33 @@ paths:
       summary: 读取公告
       tags:
       - 公告/反馈
+  /web/package/flow:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取有效期流量套餐
+      parameters:
+      - description: 用户登录信息
+        in: formData
+        name: session
+        type: string
+      - description: 语言
+        in: formData
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: fresh：最后更新时间，flow：流量套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型），flow_agent：代理流量套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型）
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 获取有效期流量套餐
+      tags:
+      - 套餐页
   /web/package/static_num:
     post:
       consumes:
@@ -4431,6 +4599,34 @@ paths:
       summary: 续费 前信息
       tags:
       - 个人中心 - 静态住宅代理
+  /web/static/check_replace:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 检测ip是否可以替换
+      parameters:
+      - description: 用户登录凭证信息
+        in: formData
+        name: session
+        type: string
+      - description: IP地址
+        in: formData
+        name: ip
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: 检测ip是否可以替换
+      tags:
+      - 个人中心
   /web/static/del:
     post:
       consumes:
@@ -5153,6 +5349,50 @@ paths:
             additionalProperties: true
             type: object
       summary: 获取用户域名列表
+      tags:
+      - 个人中心
+  /web/user/get_isp:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取ISP列表
+      parameters:
+      - description: 国家标识筛选
+        in: formData
+        name: country
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ExtractIsp'
+            type: array
+      summary: 获取ISP列表
+      tags:
+      - 个人中心
+  /web/user/get_state:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 获取大洲/省
+      parameters:
+      - description: 国家标识筛选
+        in: formData
+        name: country
+        type: string
+      produces:
+      - application/json
+      responses:
+        "0":
+          description: ""
+          schema:
+            items:
+              $ref: '#/definitions/models.ExtractProvince'
+            type: array
+      summary: 获取大洲/省
       tags:
       - 个人中心
   /web/user/google_login:
