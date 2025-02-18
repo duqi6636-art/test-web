@@ -34,17 +34,17 @@ func GetUserUnlimitedLog(c *gin.Context) {
 	nowTime := util.GetNowInt()
 	for _, log := range logs {
 		status := 2 //默认状态为成功
-		if log.StartTime  < nowTime {
+		if log.StartTime  > nowTime {
 			status = 1 //待使用
 		}else{
-			if log.ExpireTime > nowTime {
+			if log.ExpireTime < nowTime {
 				status = 3 //已过期
 			}
 		}
 
 		exDate := ""
 		if log.ExpireTime > 0 {
-			exDate = util.GetTimeStr(log.ExpireTime,"Y-m-d H:i:s")
+			exDate = util.GetTimeStr(log.ExpireTime,"d/m/Y H:i:s")
 		}
 		info := models.ResUserUnlimitedModel{}
 		//info.Id 	     = log.Id

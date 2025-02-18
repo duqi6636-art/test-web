@@ -201,8 +201,10 @@ func HandleCdkBalance() {
 					// 不限量
 					if cateStr == "unlimited" {
 						flowDayInfo := models.GetUserFlowDayByUid(uid)
+						preValue := flowDayInfo.ExpireTime
 						expireTime := int(value) + createTime
 						dayNum := int(value)
+						startTime := createTime
 						if flowDayInfo.Id == 0 {
 							//创建用户余额IP
 							addInfo := models.UserFlowDay{}
@@ -215,6 +217,10 @@ func HandleCdkBalance() {
 							addInfo.Status = 1
 							err,_ = models.CreateUserFlowDay(addInfo)
 						} else {
+
+							if flowDayInfo.ExpireTime > createTime {
+								startTime = flowDayInfo.ExpireTime
+							}
 							upParam := make(map[string]interface{})
 							upParam["all_day"] = dayNum + flowDayInfo.AllDay //累计总购买时间
 							upParam["pre_day"] = flowDayInfo.ExpireTime          //购买前时间
@@ -230,20 +236,34 @@ func HandleCdkBalance() {
 						poolInfo := models.ScoreGetPoolFlowDayByUid(uid)
 						if poolInfo.Id == 0 {
 							poolInfo = models.ScoreGetPoolFlowDayByUid(0)
-							if poolInfo.Id > 0 {
-								poolParam := make(map[string]interface{})
-								poolParam["uid"] = uid //用户信息
-								poolParam["expire_time"] = expireTime
-								err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
-							} else {
-								dingMsg("预警提示 ，360不限量流量IP配置不足: 用户ID" + util.ItoS(uid) + "  CDK兑换")
+							//if poolInfo.Id > 0 {
+							//	poolParam := make(map[string]interface{})
+							//	poolParam["uid"] = uid //用户信息
+							//	poolParam["expire_time"] = expireTime
+							//	err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
+							//} else {
+							//	dingMsg("预警提示 ，360不限量流量IP配置不足: 用户ID" + util.ItoS(uid) + "  CDK兑换")
+							//}
+							configNum := models.GetConfigVal("unlimited_base_config")
+							bandwidthNum := models.GetConfigVal("unlimited_base_bandwidth")
+							config := util.StoI(configNum)
+							if config == 0 {
+								config = 200
 							}
+							bandwidth := util.StoI(bandwidthNum)
+							if bandwidth == 0 {
+								bandwidth = 200
+							}
+
+							// 创建IP池队列 异步处理
+							models.AddLogUserUnlimited(uid,config,bandwidth,expireTime,int(value/86400),startTime,pushInfo.Cdkey,createTime,"")
 
 						} else {
 							poolParam := make(map[string]interface{})
 							poolParam["expire_time"] = expireTime
 							err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
 						}
+						models.AddUnlimitedModel(uid, 0, pushInfo.BindUsername, value, int64(preValue), int64(expireTime), pushInfo.Ip, pushInfo.Mode, 1)
 
 						if err == nil {
 							res2 = 1

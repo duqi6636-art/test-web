@@ -99,6 +99,37 @@ func GetUserAccountAllList(c *gin.Context) {
 	return
 }
 
+// 获取所有当前可用账户列表
+// @BasePath /api/v1
+// @Summary 获取所有账户列表
+// @Description 获取所有账户列表
+// @Tags 个人中心 - 流量帐密子账号
+// @Accept x-www-form-urlencoded
+// @Param session formData string true "用户登录信息"
+// @Produce json
+// @Success 0 {object} map[string]interface{} "
+// @Router /web/account/lists_available [post]
+func GetUserAccountListAvailable(c *gin.Context) {
+	resCode, msg, userInfo := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := userInfo.Id
+	_, accountLists := models.GetUserAvailableAccount(uid)
+
+	data := []models.UserAccountPass{}
+	for _, v := range accountLists {
+		info := models.UserAccountPass{}
+		info.Account = v.Account
+		info.Password = v.Password
+		info.Flows = v.Flows
+		data = append(data, info)
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", data)
+	return
+}
+
 // 获取子账户列表
 // @BasePath /api/v1
 // @Summary 获取子账户列表
@@ -361,7 +392,6 @@ func AddUserFlowAccount(c *gin.Context) {
 
 		models.UpdateUserAccountById(accountInfo.Id, upMap) //更新子账号信息
 
-
 		// 异步处理流量
 		dealInfo.Cate = "edit"
 		dealInfo.Uid = uid
@@ -392,7 +422,6 @@ func AddUserFlowAccount(c *gin.Context) {
 		err, accId := models.AddProxyAccount(data)
 		fmt.Println(err, accId)
 		dealInfo.AccountId = accId
-
 
 		// 异步处理流量
 		dealInfo.Cate = "add"

@@ -165,7 +165,7 @@ func GetCountryIsp(c *gin.Context) {
 	// 存储到redis
 	res, _ := json.Marshal(resLists)
 	listStr = string(res)
-	redisConn.Do("SETEX", redisKey, 1*60*60, listStr)
+	redisConn.Do("SETEX", redisKey, 1*60*10, listStr)
 	JsonReturn(c, 0, "__T_SUCCESS", resLists)
 	return
 }

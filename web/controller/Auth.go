@@ -98,8 +98,9 @@ func GetAuthSign(c *gin.Context) {
 	//发送请求
 	err = client.Send(request, response)
 	if err != nil {
-		fmt.Printf("fail to invoke api: %v \n", err)
-		JsonReturn(c, -1, "fail to invoke api: %v \n", gin.H{})
+		mm := fmt.Sprintf("fail to invoke api: %v \n", err)
+		AddLogs("tencent_sign_error", mm) //写日志
+		JsonReturn(c, -1, "__T_CAPTCHA_FAIL", gin.H{})
 		return
 	}
 
@@ -140,7 +141,9 @@ func GetAuthSign(c *gin.Context) {
 			return
 		}
 	} else {
-		JsonReturn(c, -1, util.ItoS(result.Response.CaptchaCode)+result.Response.CaptchaMsg, nil)
+
+		AddLogs("tencent_sign_error", util.ItoS(result.Response.CaptchaCode)+" "+result.Response.CaptchaMsg) //写日志
+		JsonReturn(c, -1, "__T_CAPTCHA_FAIL",nil)
 		return
 	}
 }
@@ -192,7 +195,9 @@ func CaptchaHandle(c *gin.Context,ticket, randStr string) (bool, string) {
 	err = client.Send(request, response)
 	if err != nil {
 		msg := fmt.Sprintf("fail to invoke api: %v \n", err)
-		return false, msg
+
+		AddLogs("tencent_auth_error", msg) //写日志
+		return false, "__T_CAPTCHA_FAIL"
 	}
 
 	// 获取响应结果
@@ -203,7 +208,9 @@ func CaptchaHandle(c *gin.Context,ticket, randStr string) (bool, string) {
 	if result.Response.CaptchaCode == 1 {
 		return true, ""
 	}else{
-		return false, "__T_CAPTCHA_FAIL-- " + util.ItoS(result.Response.CaptchaCode)
+
+		AddLogs("tencent_auth_error", util.ItoS(result.Response.CaptchaCode)+" "+result.Response.CaptchaMsg) //写日志
+		return false, "__T_CAPTCHA_FAIL"
 	}
 }
 

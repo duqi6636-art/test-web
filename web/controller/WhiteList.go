@@ -87,6 +87,8 @@ func IpWhitelists(c *gin.Context) {
 			info.Name = regionInfo.Name
 			info.Img = regionInfo.Img
 			info.City = val.City
+			info.State = val.State
+			info.Asn = val.Asn
 			info.Hostname = val.Hostname
 			info.Cate = cate
 			info.FlowType = val.FlowType
@@ -256,6 +258,8 @@ func GetWhitelist(c *gin.Context) {
 	info.Id = has.Id + 10000
 	info.WhitelistIp = has.WhitelistIp
 	info.Country = has.Country
+	info.State = has.State
+	info.Asn = has.Asn
 	info.City = city
 	info.Hostname = has.Hostname
 	info.Cate = cate
@@ -322,6 +326,8 @@ func EditWhitelist(c *gin.Context) {
 	}
 
 	country := strings.TrimSpace(c.DefaultPostForm("country", ""))
+	state := strings.TrimSpace(c.DefaultPostForm("state", ""))
+	asn := strings.TrimSpace(c.DefaultPostForm("asn", ""))
 	city := strings.TrimSpace(c.DefaultPostForm("city", ""))
 	cate := strings.TrimSpace(c.DefaultPostForm("cate", "1")) //类型 1 sticky ip  2 random IP
 	minuteStr := strings.TrimSpace(c.DefaultPostForm("minute", ""))
@@ -338,15 +344,26 @@ func EditWhitelist(c *gin.Context) {
 	}
 	if strings.ToLower(country) == "global" || strings.ToLower(country) == "random" {
 		country = ""
+		state = ""
+		city = ""
+	}
+	if strings.ToLower(state) == "global" || strings.ToLower(state) == "random" {
+		state = ""
 		city = ""
 	}
 	if strings.ToLower(city) == "global" || strings.ToLower(city) == "random" {
 		city = ""
 	}
+	if strings.ToLower(asn) == "global" || strings.ToLower(asn) == "random" {
+		asn = ""
+	}
+
 	params := map[string]interface{}{}
 	params["whitelist_ip"] = ip
 	params["country"] = country
+	params["state"] = state
 	params["city"] = city
+	params["asv"] = asn
 	params["cate"] = cate
 	params["hostname"] = hostname
 	params["minutes"] = minute

@@ -610,10 +610,10 @@ func BeforeRecharge(c *gin.Context) {
 		JsonReturn(c, -1, "__T_IP_OFFLINE", nil)
 		return
 	}
-	if ipInfo.Uid > 0 && ipInfo.Uid != uid {
-		JsonReturn(c, -1, "__T_IP_HAS_USED", nil)
-		return
-	}
+	//if ipInfo.Uid > 0 && ipInfo.Uid != uid {
+	//	JsonReturn(c, -1, "__T_IP_HAS_USED", nil)
+	//	return
+	//}
 
 	err, balanceList := models.GetUserStaticIpByRegion(uid, strings.ToLower(ipLog.Country))
 	if err != nil || len(balanceList) == 0 {
@@ -705,10 +705,11 @@ func IpRecharge(c *gin.Context) {
 		JsonReturn(c, -1, "__T_IP_OFFLINE", nil)
 		return
 	}
-	if ipInfo.Uid > 0 && ipInfo.Uid != uid {
-		JsonReturn(c, -1, "__T_IP_HAS_USED", nil)
-		return
-	}
+	// 处理IP异常的情况，续费的IP不判断是否已被使用过的IP   20250122
+	//if ipInfo.Uid > 0 && ipInfo.Uid != uid {
+	//	JsonReturn(c, -1, "__T_IP_HAS_USED", nil)
+	//	return
+	//}
 
 	err, balanceInfo := models.GetUserStaticIpById(uid, static_id)
 	if err != nil || balanceInfo.Id == 0 {

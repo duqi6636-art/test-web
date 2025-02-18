@@ -360,3 +360,13 @@ func dealSendEmail(email_type int, email string, params map[string]string, ip st
 		fmt.Println(result)
 	}
 }
+
+
+//日志记录
+func AddLogs(code, data string) {
+	models.AddLog(models.LogModel{
+		Code:       code,
+		Text:       data,
+		CreateTime: util.GetTimeStr(util.GetNowInt(), "Y-m-d H:i:s"),
+	})
+}

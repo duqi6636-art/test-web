@@ -67,6 +67,6 @@ func centerRouter(router *gin.Engine) {
 	cb.POST("/stats_detail", controller.GetUserBalanceCdkStatsDetail)     // 统计使用记录详情
 	// 不限量相关
 	cu := router.Group("/center/unlimited")
-	cu.POST("/config", controller.GetUserUnlimitedLog)                      // 获取余额配置信息
+	cu.POST("/server_record", controller.GetUserUnlimitedLog)                      // 获取余额配置信息
 
 }
