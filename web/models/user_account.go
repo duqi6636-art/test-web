@@ -36,9 +36,10 @@ type ResUserAccount struct {
 }
 
 type UserAccountPass struct {
-	Account  string `json:"account"`
-	Password string `json:"password"`
-	Flows    int64  `json:"flows"` // 剩余流量
+	AccountId int    `json:"account_id"`
+	Account   string `json:"account"`
+	Password  string `json:"password"`
+	Flows     int64  `json:"flows"` // 剩余流量
 }
 
 // 添加代理账户
