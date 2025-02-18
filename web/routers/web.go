@@ -135,6 +135,7 @@ func webRouter(router *gin.Engine) {
 	web.POST("/account/set_send", controller.SetSendFlows)                        // 设置流量预警
 	web.POST("/account/all_lists", controller.GetUserAccountAllList)              // 获取子账号帐密列表 包含主账户
 	web.POST("/account/lists", controller.GetUserAccountList)                     // 获取子账号帐密列表
+	web.POST("/account/lists_available", controller.GetUserAccountListAvailable)  // 获取当前可用账号列表
 	web.POST("/account/add_edit", controller.AddUserFlowAccount)                  // 添加 / 修改账号
 	web.POST("/account/detail", controller.UserFlowAccountDetail)                 // 账号信息详情
 	web.POST("/account/enable_disable", controller.AccountEnableOrDisable)        // 账号启用  / 禁用

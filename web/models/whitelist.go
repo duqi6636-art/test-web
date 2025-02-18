@@ -8,6 +8,8 @@ type CmUserWhitelistIp struct {
 	WhitelistIp string `json:"whitelist_ip"` // IP
 	Country     string `json:"country"`      // 用户地区-国家
 	City        string `json:"city"`         // 用户地区-城市
+	State       string `json:"state"`        // 用户地区-州省
+	Asn         string `json:"asn"`          // 运营商ASN
 	Minutes     int    `json:"minutes"`      // 粘性IP轮转时长
 	Hostname    string `json:"hostname"`     // hostname:port
 	Status      int    `json:"status"`       // 状态 1 正常 -1删除
@@ -24,6 +26,8 @@ type ResUserWhitelistIp struct {
 	Name        string `json:"name"`         // 用户地区-国家名称
 	Img         string `json:"img"`          // 用户地区-国家图片
 	City        string `json:"city"`         // 用户地区-城市
+	State       string `json:"state"`        // 用户地区-州省
+	Asn         string `json:"asn"`          // 运营商ASN
 	Hostname    string `json:"hostname"`     // hostname:port
 	Cate        int    `json:"cate"`         // 类型 1 sticky ip  2 random IP
 	FlowType    int    `json:"flow_type"`    // 状态 1 普通流量  2不限量流量

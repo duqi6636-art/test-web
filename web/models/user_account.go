@@ -35,6 +35,12 @@ type ResUserAccount struct {
 	Percent    string `json:"percent"` // 占比百分比
 }
 
+type UserAccountPass struct {
+	Account  string `json:"account"`
+	Password string `json:"password"`
+	Flows    int64  `json:"flows"` // 剩余流量
+}
+
 // 添加代理账户
 func AddProxyAccount(data UserAccount) (err error, id int) {
 	err = db.Table(user_account_table).Create(&data).Error
@@ -123,6 +129,15 @@ func GetUserAccountNeqId(id int, account string) (err error, userAccount UserAcc
 		dbs = dbs.Where("account = ?", account)
 	}
 	err = dbs.First(&userAccount).Error
+	return
+}
+
+// 查询用户关联的代理账户信息列表
+func GetUserAvailableAccount(uid int) (err error, lists []UserAccount) {
+	err = db.Table(user_account_table).
+		Where("uid = ?", uid).
+		Where("status = ?", 1).
+		Find(&lists).Error
 	return
 }
 
