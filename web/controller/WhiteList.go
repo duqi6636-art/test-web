@@ -90,6 +90,7 @@ func IpWhitelists(c *gin.Context) {
 			info.State = val.State
 			info.Asn = val.Asn
 			info.Hostname = val.Hostname
+			info.HostValue = util.RemoveParentheses(val.Hostname)
 			info.Cate = cate
 			info.FlowType = val.FlowType
 			info.Minute = val.Minutes
@@ -363,7 +364,7 @@ func EditWhitelist(c *gin.Context) {
 	params["country"] = country
 	params["state"] = state
 	params["city"] = city
-	params["asv"] = asn
+	params["asn"] = asn
 	params["cate"] = cate
 	params["hostname"] = hostname
 	params["minutes"] = minute

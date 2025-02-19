@@ -31,6 +31,7 @@ type ResUserWhitelistIp struct {
 	State       string `json:"state"`        // 用户地区-州省
 	Asn         string `json:"asn"`          // 运营商ASN
 	Hostname    string `json:"hostname"`     // hostname:port
+	HostValue   string `json:"host_value"`   // hostname:port
 	Cate        int    `json:"cate"`         // 类型 1 sticky ip  2 random IP
 	FlowType    int    `json:"flow_type"`    // 状态 1 普通流量  2不限量流量
 	Minute      int    `json:"minute"`       // 粘性IP轮转时长
