@@ -3,6 +3,7 @@ package controller
 import (
 	"api-360proxy/web/e"
 	"api-360proxy/web/models"
+	"api-360proxy/web/pkg/setting"
 	"api-360proxy/web/pkg/util"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -38,23 +39,21 @@ func FlowApiInfo(c *gin.Context) {
 	}
 	domain := models.GetConfigVal("API_DOMAIN_URL") //
 	apiUrl := strings.TrimRight(domain, "/") + "/api/extract_ip"
-	addUrl := strings.TrimRight(domain, "/") + "/api/add_ip"
-	delUrl := strings.TrimRight(domain, "/") + "/api/del_ip"
-	listsUrl := strings.TrimRight(domain, "/") + "/api/lists_ip"
-
-	aes_key := util.Md5(AesKey)
-	userStr, err := util.AesEnCode([]byte(user.Username), []byte(aes_key))
-	userKey := util.Md5(userStr)
-
-	params := "?user=" + user.Username + "&user_key=" + userKey
-	params2 := params + "&ip="
+	//addUrl := strings.TrimRight(domain, "/") + "/api/add_ip"
+	//delUrl := strings.TrimRight(domain, "/") + "/api/del_ip"
+	//listsUrl := strings.TrimRight(domain, "/") + "/api/lists_ip"
+	//aes_key := util.Md5(AesKey)
+	//userStr, err := util.AesEnCode([]byte(user.Username), []byte(aes_key))
+	//userKey := util.Md5(userStr)
+	//params := "?user=" + user.Username + "&user_key=" + userKey
+	//params2 := params + "&ip="
 	resData := map[string]interface{}{
 		"has_api_ip": hasIp,
 		"ip":         ip,
 		"extract":    apiUrl,
-		"add":        addUrl + params2,
-		"del":        delUrl + params2,
-		"lists":      listsUrl + params,
+		//"add":        addUrl + params2,
+		//"del":        delUrl + params2,
+		//"lists":      listsUrl + params,
 	}
 	JsonReturn(c, 0, "__T_SUCCESS", resData)
 	return
@@ -152,6 +151,10 @@ func AddFlowApiWhite(c *gin.Context) {
 	}
 	uid := user.Id
 
+	country := strings.TrimSpace(c.DefaultPostForm("country", ""))
+	if strings.ToLower(country) == "global" || strings.ToLower(country) == "random" {
+		country = ""
+	}
 	ip := c.DefaultPostForm("ip", "")
 	if ip == "" || !IsPublicIP(net.ParseIP(ip)) {
 		JsonReturn(c, e.ERROR, "__T_IP_NOT_FORMAT", nil)
@@ -189,6 +192,7 @@ func AddFlowApiWhite(c *gin.Context) {
 	addInfo := models.MdUserWhitelistApi{}
 	addInfo.Uid = uid
 	addInfo.Username = user.Username
+	addInfo.Country = country
 	addInfo.WhitelistIp = ip
 	addInfo.Status = 1
 	addInfo.FlowType = flowType
@@ -333,6 +337,7 @@ func ExtractIp(c *gin.Context) {
 	typeStr := strings.ToLower(c.DefaultQuery("type", ""))
 	lt := strings.ToLower(c.DefaultQuery("lt", ""))
 	st := strings.ToLower(c.DefaultQuery("st", ""))
+	cate := strings.TrimSpace(c.DefaultPostForm("cate", "1")) //类型 1 sticky ip  2 random IP
 	if protocol == "" {
 		protocol = "http"
 	}
@@ -368,75 +373,62 @@ func ExtractIp(c *gin.Context) {
 		JsonReturn(c, -1, "__T_FLOW_EXPIRED", gin.H{})
 		return
 	}
+
 	ltStr := getBreakLine(lt, st)
 	hostStrArr := []string{}
 	hostArr := []ApiProxyJson{}
 	uniqueNumbers := make(map[int]bool)
-	if country == "" {
-		portArr := map[int]string{}
-		lists := models.GetApiProxyClientBy()
-		numKey := len(lists)
-		proxyClientArr := map[int]models.ApiProxyClientInfo{}
-		for k, val := range lists {
-			proxyClientArr[k] = val
-		}
-		for len(portArr) < num {
-			randomNum := util.GetRandomInt(0, numKey-1)
-			info, ok := proxyClientArr[randomNum]
-			if !ok {
-				randomNum = util.GetRandomInt(0, numKey-1)
-				info, ok = proxyClientArr[randomNum]
-			}
-			minPort := info.StartPort
-			maxPort := minPort + info.PortNumb
-
-			portNum := util.GetRandomInt(minPort, maxPort)
-			if !uniqueNumbers[portNum] {
-				uniqueNumbers[portNum] = true
-				portArr[portNum] = info.Host
-			}
-		}
-		for port, host := range portArr {
-			hostStr := host + ":" + util.ItoS(port)
-			hostStrArr = append(hostStrArr, hostStr)
-
-			jsonInfo := ApiProxyJson{
-				Ip:   host,
-				Port: port,
-			}
-			hostArr = append(hostArr, jsonInfo)
-		}
+	portArr := []int{}
+	var info models.ApiProxyClientInfo
+	if country == "" || country == "global" {
+		info, err = models.GetApiProxyAll(cate)
 	} else {
-		portArr := []int{}
-		info, err := models.GetApiProxyClientByArea(country)
-		if err != nil || info.Id == 0 {
-			JsonReturnShow(c, e.ERROR, "__T_PARAM_ERROR-- info", nil)
-			return
+		info, err = models.GetApiProxyClientByArea(country, cate)
+	}
+	if err != nil || info.Id == 0 {
+		JsonReturnShow(c, e.ERROR, "__T_PARAM_ERROR-- info", nil)
+		return
+	}
+	minPort := info.StartPort
+	maxPort := minPort + info.PortNumb
+	if num > info.PortNumb {
+		num = info.PortNumb
+	}
+	portNum := minPort
+	for len(portArr) < num {
+		if !uniqueNumbers[portNum] {
+			uniqueNumbers[portNum] = true
+			portArr = append(portArr, portNum)
 		}
-
-		minPort := info.StartPort
-		maxPort := minPort + info.PortNumb
-		if num > info.PortNumb {
-			num = info.PortNumb
-		}
-		for len(portArr) < num {
-			portNum := util.GetRandomInt(minPort, maxPort)
-			if !uniqueNumbers[portNum] {
-				uniqueNumbers[portNum] = true
-				portArr = append(portArr, portNum)
-			}
-		}
-		for _, port := range portArr {
-			hostStr := info.Host + ":" + util.ItoS(port)
-			hostStrArr = append(hostStrArr, hostStr)
-
-			jsonInfo := ApiProxyJson{
-				Ip:   info.Host,
-				Port: port,
-			}
-			hostArr = append(hostArr, jsonInfo)
+		portNum++
+		if portNum > maxPort {
+			break
 		}
 	}
+	area := "all"
+	if info.Area != "" {
+		area = info.Area
+	}
+	state := "as"
+	if strings.Contains(info.Tag, "nasa") {
+		state = "na"
+	} else if strings.Contains(info.Tag, "eu") {
+		state = "eu"
+	} else if strings.Contains(info.Tag, "asa") {
+		state = "as"
+	}
+	domain := area + "-" + state + "." + setting.AppConfig.FlowApiUrl
+	for _, port := range portArr {
+		hostStr := domain + ":" + util.ItoS(port)
+		hostStrArr = append(hostStrArr, hostStr)
+
+		jsonInfo := ApiProxyJson{
+			Ip:   domain,
+			Port: port,
+		}
+		hostArr = append(hostArr, jsonInfo)
+	}
+
 	models.AddLogApiUseInfo(has.Uid, num, has.WhitelistIp, country, protocol, typeStr, lt, st)
 	hostList := strings.Join(hostStrArr, ltStr)
 	if typeStr == "txt" {
@@ -668,5 +660,98 @@ func ExistWhiteList(c *gin.Context) {
 		"has_ip": hasIp,
 	}
 	JsonReturn(c, 0, "__T_SUCCESS", data)
+	return
+}
+
+// @BasePath /api/v1
+// @Summary 白名单IP-api生成域名
+// @Schemes
+// @Description 白名单IP-api生成域名
+// @Tags 个人中心
+// @Accept x-www-form-urlencoded
+// @Param session formData string false "用户登录凭证信息"
+// @Param country formData string false "国家"
+// @Param fixed formData string false 类型 0 sticky ip  1 random IP
+// @Param num formData string false "数量"
+// @Produce json
+// @Router /center/white/api_domain [post]
+func ApiDomain(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	country := strings.ToLower(c.DefaultPostForm("country", ""))
+	numStr := strings.ToLower(c.DefaultPostForm("num", ""))
+	cate := strings.TrimSpace(c.DefaultPostForm("cate", "1")) //类型 1 sticky ip  2 random IP
+
+	num := util.StoI(numStr)
+	hostStrArr := []string{}
+	hostArr := []ApiProxyJson{}
+	uniqueNumbers := make(map[int]bool)
+	portArr := []int{}
+	var info models.ApiProxyClientInfo
+	var err error
+
+	if country == "" || country == "global" {
+		info, err = models.GetApiProxyAll(cate)
+	} else {
+		info, err = models.GetApiProxyClientByArea(country, cate)
+	}
+	if err != nil || info.Id == 0 {
+		JsonReturnShow(c, e.ERROR, "__T_PARAM_ERROR-- info", nil)
+		return
+	}
+
+	minPort := info.StartPort
+	maxPort := minPort + info.PortNumb
+	if num > info.PortNumb && cate == "2" {
+		num = info.PortNumb
+	}
+	portNum := minPort
+	for len(portArr) < num {
+		if cate == "2" {
+			portArr = append(portArr, minPort)
+			if len(portArr) == num {
+				break
+			}
+		} else {
+			if !uniqueNumbers[portNum] {
+				uniqueNumbers[portNum] = true
+				portArr = append(portArr, portNum)
+			}
+			portNum++
+			if portNum > maxPort {
+				break
+			}
+		}
+
+	}
+
+	area := "all"
+	if info.Area != "" {
+		area = info.Area
+	}
+	state := "as"
+	if strings.Contains(info.Tag, "nasa") {
+		state = "na"
+	} else if strings.Contains(info.Tag, "eu") {
+		state = "eu"
+	} else if strings.Contains(info.Tag, "asa") {
+		state = "as"
+	}
+	domain := area + "-" + state + "." + setting.AppConfig.FlowApiUrl
+	for _, port := range portArr {
+		hostStr := domain + ":" + util.ItoS(port)
+		hostStrArr = append(hostStrArr, hostStr)
+
+		jsonInfo := ApiProxyJson{
+			Ip:   domain,
+			Port: port,
+		}
+		hostArr = append(hostArr, jsonInfo)
+	}
+	go models.AddLogApiUseInfo(user.Id, num, c.ClientIP(), country, "", "", "", "")
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", hostArr)
 	return
 }

@@ -16,7 +16,7 @@ func centerRouter(router *gin.Engine) {
 	pack.POST("/dynamic_isp", controller.GetDynamicISPPackageList) // 获取动态isp套餐列表
 	pack.POST("/flow_day", controller.GetFlowDayPackageList)       // 获取不限量套餐列表
 	pack.POST("/socks5", controller.GetSocks5PackageList)          // 获取ip套餐列表
-	pack.POST("/static", controller.GetStaticPackage)          		// 获取静态长效套餐列表
+	pack.POST("/static", controller.GetStaticPackage)              // 获取静态长效套餐列表
 	pack.POST("/low_price", controller.GetLowPrice)                // 获取各套餐最低价格
 
 	flows := router.Group("/center/flows")
@@ -24,10 +24,10 @@ func centerRouter(router *gin.Engine) {
 
 	//api提取
 	//对外
-	router.GET("/api/extract_ip", controller.ExtractIp)       // 提取IP
-	router.GET("/api/add_ip", controller.FlowApiAddWhite)     // 添加
-	router.GET("/api/del_ip", controller.FlowApiDelWhite)     // 删除
-	router.GET("/api/lists_ip", controller.FlowApiListsWhite) // 查询列表
+	router.GET("/api/extract_ip", controller.ExtractIp) // 提取IP
+	//router.GET("/api/add_ip", controller.FlowApiAddWhite)     // 添加
+	//router.GET("/api/del_ip", controller.FlowApiDelWhite)     // 删除
+	//router.GET("/api/lists_ip", controller.FlowApiListsWhite) // 查询列表
 	//对内
 	white := router.Group("/center/flow_api")
 	white.POST("/info", controller.FlowApiInfo)                //基础信息
@@ -36,6 +36,7 @@ func centerRouter(router *gin.Engine) {
 	white.POST("/set_white", controller.SetFlowApiWhite)       //白名单IP列表禁用启用
 	white.POST("/delete", controller.DelFlowApiWhite)          //白名单IP列表--删除
 	white.POST("/exist_white_list", controller.ExistWhiteList) // 是否存在白名单IP
+	white.POST("/domain", controller.ApiDomain)                // 白名单域名
 
 	//优惠券
 	coupon := router.Group("/center/coupon")
@@ -67,6 +68,6 @@ func centerRouter(router *gin.Engine) {
 	cb.POST("/stats_detail", controller.GetUserBalanceCdkStatsDetail)     // 统计使用记录详情
 	// 不限量相关
 	cu := router.Group("/center/unlimited")
-	cu.POST("/server_record", controller.GetUserUnlimitedLog)                      // 获取余额配置信息
+	cu.POST("/server_record", controller.GetUserUnlimitedLog) // 获取余额配置信息
 
 }

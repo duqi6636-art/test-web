@@ -28,6 +28,7 @@ type App struct {
 	SendEmailSwitch       int
 	resource_domain_local string
 	ProjectName           string
+	FlowApiUrl            string
 }
 
 type Redis struct {

@@ -1,5 +1,7 @@
 package models
 
+import "api-360proxy/web/pkg/util"
+
 type CmUserWhitelistIp struct {
 	Id          int    `json:"id"`
 	Uid         int    `json:"uid"`          // 用户ID
@@ -93,6 +95,7 @@ type MdUserWhitelistApi struct {
 	Uid         int    `json:"uid"`          // 用户ID
 	Username    string `json:"username"`     // 用户名
 	WhitelistIp string `json:"whitelist_ip"` // IP
+	Country     string `json:"country"`      // 国家
 	Status      int    `json:"status"`       // 状态 1 正常 -1删除
 	FlowType    int    `json:"flow_type"`    // 状态 1 普通流量  2不限量流量
 	Remark      string `json:"remark"`       // 备注
@@ -192,7 +195,22 @@ func GetApiProxyClientBy() (proxyClient []ApiProxyClientInfo) {
 	db.Table("cm_api_proxy_client").Where("area <> ?", "").Find(&proxyClient)
 	return
 }
-func GetApiProxyClientByArea(area string) (proxyClient ApiProxyClientInfo, err error) {
-	err = db.Table("cm_api_proxy_client").Where("area = ?", area).Order("rand()").First(&proxyClient).Error
+
+func GetApiProxyAll(cate string) (proxyClient ApiProxyClientInfo, err error) {
+	fixedPort := util.StoI(cate) - 1
+	err = db.Table("cm_api_proxy_client").
+		Where("area = ?", "").
+		Where("fixed_port = ?", fixedPort).
+		Where("tag like ?", "%asa%").
+		First(&proxyClient).Error
+	return
+}
+
+func GetApiProxyClientByArea(area string, cate string) (proxyClient ApiProxyClientInfo, err error) {
+	fixedPort := util.StoI(cate) - 1
+	err = db.Table("cm_api_proxy_client").
+		Where("fixed_port = ?", fixedPort).
+		Where("area = ?", area).
+		First(&proxyClient).Error
 	return
 }
