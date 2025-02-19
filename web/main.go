@@ -3,6 +3,7 @@ package main
 import (
 	"api-360proxy/pkg/ipdat"
 	"api-360proxy/web/crons"
+	"api-360proxy/web/db/clickhousedb"
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/setting"
 	"api-360proxy/web/routers"
@@ -16,6 +17,7 @@ func init() {
 	setting.Setup()
 	models.Setup()
 	models.StatisticsDbSetup()
+	clickhousedb.InitClickhouseDb()
 	models.CreateDatabaseTables()
 }
 
