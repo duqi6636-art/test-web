@@ -985,47 +985,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/center/package/flow": {
-            "post": {
-                "description": "获取有效期流量套餐",
-                "consumes": [
-                    "application/x-www-form-urlencoded"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "支付-套餐"
-                ],
-                "summary": "获取有效期流量套餐",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "用户登录信息",
-                        "name": "session",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "语言",
-                        "name": "lang",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "0": {
-                        "description": "fresh：最后更新时间，flow：流量套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型），flow_agent：代理流量套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型）",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": true
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/center/package/flow_day": {
             "post": {
                 "description": "获取不限量流量套餐列表",
@@ -1179,6 +1138,110 @@ const docTemplate = `{
                 "responses": {
                     "0": {
                         "description": "long_package：套餐列表（值为：map[string][]models.ResIpPackageLong{}模型 long_area：地区列表（值为：map[string][]models.ResPackageAreaInfo{}模型",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/center/static/change": {
+            "post": {
+                "description": "更换静态IP",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "个人中心"
+                ],
+                "summary": "更换静态IP",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户登录凭证信息",
+                        "name": "session",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "语言",
+                        "name": "lang",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "待更换的id",
+                        "name": "used_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "新的IPsn",
+                        "name": "sn",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "类型 // offline : 下线更换，online : 在线更换",
+                        "name": "type",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/center/unlimited/server_record": {
+            "post": {
+                "description": "获取不限量的配置记录",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "不限量"
+                ],
+                "summary": "获取不限量的配置记录",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户登录凭证信息",
+                        "name": "session",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "语言",
+                        "name": "lang",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -1814,6 +1877,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/web/account/lists_available": {
+            "post": {
+                "description": "获取所有账户列表",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "个人中心 - 流量帐密子账号"
+                ],
+                "summary": "获取所有账户列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户登录信息",
+                        "name": "session",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/web/account/long_isp/add_edit": {
             "post": {
                 "description": "添加/编辑 流量账号子账户",
@@ -2172,6 +2268,59 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/models.StUrlLists"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/web/account/set_pass": {
+            "post": {
+                "description": "修改账号名称及密码",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "个人中心 - 修改账号名称及密码"
+                ],
+                "summary": "修改账号名称及密码",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户登录信息",
+                        "name": "session",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "帐密ID",
+                        "name": "account_id",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "用户名",
+                        "name": "username",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "密码",
+                        "name": "password",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "type": "object"
                         }
                     }
                 }
@@ -4998,6 +5147,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/web/package/flow": {
+            "post": {
+                "description": "获取有效期流量套餐",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "套餐页"
+                ],
+                "summary": "获取有效期流量套餐",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户登录信息",
+                        "name": "session",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "语言",
+                        "name": "lang",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "fresh：最后更新时间，flow：流量套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型），flow_agent：代理流量套餐列表（值为：map[string][]models.ResIpPackageFlow{}模型）",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/web/package/static_num": {
             "post": {
                 "description": "获取静态IP数量",
@@ -5378,6 +5568,48 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/web/static/check_replace": {
+            "post": {
+                "description": "检测ip是否可以替换",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "个人中心"
+                ],
+                "summary": "检测ip是否可以替换",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "用户登录凭证信息",
+                        "name": "session",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "IP地址",
+                        "name": "ip",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
                         }
                     }
                 }
@@ -6469,6 +6701,74 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/web/user/get_isp": {
+            "post": {
+                "description": "获取ISP列表",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "个人中心"
+                ],
+                "summary": "获取ISP列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "国家标识筛选",
+                        "name": "country",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ExtractIsp"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/web/user/get_state": {
+            "post": {
+                "description": "获取大洲/省",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "个人中心"
+                ],
+                "summary": "获取大洲/省",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "国家标识筛选",
+                        "name": "country",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "0": {
+                        "description": "",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ExtractProvince"
+                            }
                         }
                     }
                 }
@@ -7726,6 +8026,13 @@ const docTemplate = `{
                     "description": "支付类型",
                     "type": "string"
                 },
+                "pay_type_arr": {
+                    "description": "支付类型",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "title": {
                     "description": "标题",
                     "type": "string"
@@ -7902,6 +8209,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "state": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "integer"
                 }
@@ -7926,6 +8236,40 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "sort": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ExtractIsp": {
+            "type": "object",
+            "properties": {
+                "country": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "isp": {
+                    "type": "string"
+                },
+                "isp_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ExtractProvince": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "integer"
                 }
             }
@@ -8087,6 +8431,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "is_expire": {
+                    "type": "integer"
+                },
+                "is_offline": {
+                    "type": "string"
+                },
+                "is_replace": {
+                    "description": "1:可替换 0:不可替换",
                     "type": "integer"
                 },
                 "password": {
@@ -8458,6 +8809,10 @@ const docTemplate = `{
         "models.ResUserWhitelistIp": {
             "type": "object",
             "properties": {
+                "asn": {
+                    "description": "运营商ASN",
+                    "type": "string"
+                },
                 "cate": {
                     "description": "类型 1 sticky ip  2 random IP",
                     "type": "integer"
@@ -8507,6 +8862,10 @@ const docTemplate = `{
                 },
                 "remark": {
                     "description": "备注",
+                    "type": "string"
+                },
+                "state": {
+                    "description": "用户地区-州省",
                     "type": "string"
                 },
                 "whitelist_ip": {
