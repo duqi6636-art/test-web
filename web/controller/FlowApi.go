@@ -671,7 +671,7 @@ func ExistWhiteList(c *gin.Context) {
 // @Accept x-www-form-urlencoded
 // @Param session formData string false "用户登录凭证信息"
 // @Param country formData string false "国家"
-// @Param fixed formData string false 类型 0 sticky ip  1 random IP
+// @Param cate formData string false 类型 1 sticky ip 2 random IP
 // @Param num formData string false "数量"
 // @Produce json
 // @Router /center/white/api_domain [post]

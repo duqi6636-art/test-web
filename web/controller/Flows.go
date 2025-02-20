@@ -26,6 +26,8 @@ import (
 func GetUserAccountAllList(c *gin.Context) {
 	username := strings.TrimSpace(c.DefaultPostForm("username", "")) // 用户名
 	statusStr := c.DefaultPostForm("status", "")
+	startDate := c.DefaultPostForm("start_date", "")
+	endDate := c.DefaultPostForm("end_date", "")
 	if statusStr == "" {
 		statusStr = "10"
 	}
@@ -37,7 +39,17 @@ func GetUserAccountAllList(c *gin.Context) {
 		return
 	}
 	uid := userInfo.Id
-	_, accountLists := models.GetUserAccountAllList(uid, username)
+
+	start := 0
+	end := 0
+	if startDate != "" {
+		start = util.StoI(util.GetTimeStamp(startDate, "Y-m-d"))
+	}
+	if endDate != "" {
+		end = util.StoI(util.GetTimeStamp(endDate, "Y-m-d")) + 86399
+	}
+
+	_, accountLists := models.GetUserAccountAllList(uid, username, start, end)
 
 	total := len(accountLists)
 	enabled := 0
@@ -96,6 +108,71 @@ func GetUserAccountAllList(c *gin.Context) {
 	resData["warning"] = warning
 	resData["lists"] = data
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resData)
+	return
+}
+
+// 获取所有账户列表
+// @BasePath /api/v1
+// @Summary 获取所有账户列表
+// @Description 获取所有账户列表
+// @Tags 个人中心 - 流量帐密子账号
+// @Accept x-www-form-urlencoded
+// @Param session formData string true "用户登录信息"
+// @Param username formData string true "用户名"
+// @Param status formData string true "状态"
+// @Produce json
+// @Success 0 {object} map[string]interface{} "total:总数,enabled:启用,disabled:禁用,warning:流量警告,lists:列表（值为[]models.ResUserAccount{}模型）"
+// @Router /web/account/all_lists [post]
+func GetUserAccountAllListDownload(c *gin.Context) {
+	username := strings.TrimSpace(c.DefaultPostForm("username", "")) // 用户名
+	statusStr := c.DefaultPostForm("status", "")
+	startDate := c.DefaultPostForm("start_date", "")
+	endDate := c.DefaultPostForm("end_date", "")
+	if statusStr == "" {
+		statusStr = "10"
+	}
+	resCode, msg, userInfo := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := userInfo.Id
+
+	start := 0
+	end := 0
+	if startDate != "" {
+		start = util.StoI(util.GetTimeStamp(startDate, "Y-m-d"))
+	}
+	if endDate != "" {
+		end = util.StoI(util.GetTimeStamp(endDate, "Y-m-d")) + 86399
+	}
+	_, accountLists := models.GetUserAccountAllList(uid, username, start, end)
+	csvData := [][]string{}
+	title := []string{"Username", "Password", "Traffic Used", "Traffic Limit", "Remark", "Create Time"}
+	csvData = append(csvData, title)
+	for _, v := range accountLists {
+		flowChar := int64(1024 * 1024 * 1024)
+		if v.FlowUnit == "MB" {
+			flowChar = 1024 * 1024
+		}
+		limitFlowB := v.LimitFlow
+		useFlowB := limitFlowB - v.Flows
+		if useFlowB < 0 {
+			useFlowB = limitFlowB
+		}
+		useFlow := fmt.Sprintf("%.2f", float64(useFlowB)/float64(flowChar)) //已使用列表
+		limitFlow := int(limitFlowB / flowChar)
+		info := []string{}
+		info = append(info, v.Account)
+		info = append(info, v.Password)
+		info = append(info, useFlow+v.FlowUnit)
+		info = append(info, util.ItoS(limitFlow)+v.FlowUnit)
+		info = append(info, v.Remark)
+		info = append(info, Time2DateEn(v.CreateTime))
+		csvData = append(csvData, info)
+	}
+	err := DownloadCsv(c, "Account Information", csvData)
+	fmt.Println(err)
 	return
 }
 

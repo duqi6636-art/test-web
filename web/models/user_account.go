@@ -80,13 +80,19 @@ func UpdateUserAccountById(id int, user interface{}) bool {
 }
 
 // 查询用户关联的代理账户信息列表
-func GetUserAccountAllList(uid int, account string) (err error, lists []UserAccount) {
+func GetUserAccountAllList(uid int, account string, startTime, endTime int) (err error, lists []UserAccount) {
 	dbs := db.Table(user_account_table)
 	if uid > 0 {
 		dbs = dbs.Where("uid = ?", uid)
 	}
 	if account != "" {
 		dbs = dbs.Where("account like ?", "%"+account+"%")
+	}
+	if startTime > 0 {
+		dbs = dbs.Where("create_time >= ?", startTime)
+	}
+	if endTime > 86400 {
+		dbs = dbs.Where("create_time <= ?", endTime)
 	}
 
 	dbs = dbs.Where("status >= ?", 0)

@@ -131,21 +131,22 @@ func webRouter(router *gin.Engine) {
 	web.POST("/user/country_domain_list", controller.GetCountryDomainList) // 获取国家域名列表
 
 	// 流量帐密子账号
-	web.POST("/account/get_info", controller.GetAccountInfo)                      // 获取流量信息
-	web.POST("/account/set_send", controller.SetSendFlows)                        // 设置流量预警
-	web.POST("/account/all_lists", controller.GetUserAccountAllList)              // 获取子账号帐密列表 包含主账户
-	web.POST("/account/lists", controller.GetUserAccountList)                     // 获取子账号帐密列表
-	web.POST("/account/lists_available", controller.GetUserAccountListAvailable)  // 获取当前可用账号列表
-	web.POST("/account/add_edit", controller.AddUserFlowAccount)                  // 添加 / 修改账号
-	web.POST("/account/set_pass", controller.SetUserAccountPass)                  // 修改账号名称及密码
-	web.POST("/account/detail", controller.UserFlowAccountDetail)                 // 账号信息详情
-	web.POST("/account/enable_disable", controller.AccountEnableOrDisable)        // 账号启用  / 禁用
-	web.POST("/account/del", controller.DelUserAccount)                           // 删除账号
-	web.POST("/account/chart_data", controller.GetFlowStats)                      // 统计图数据
-	web.POST("/account/url_list", controller.GetUrlStats)                         // 统计图 筛选-Url
-	web.POST("/account/used_download", controller.FlowStatsDownload)              // 使用数控下载
-	web.POST("/account/ip_chart_data", controller.GetIpCharData)                  // 获取IP提取统计图数据
-	web.POST("/account/ip_chart_data_download", controller.GetIpCharDataDownload) // 下载IP提取统计图数据
+	web.POST("/account/get_info", controller.GetAccountInfo)                          // 获取流量信息
+	web.POST("/account/set_send", controller.SetSendFlows)                            // 设置流量预警
+	web.POST("/account/all_lists", controller.GetUserAccountAllList)                  // 获取子账号帐密列表 包含主账户
+	web.POST("/account/all_lists_download", controller.GetUserAccountAllListDownload) // 获取子账号帐密列表 包含主账户
+	web.POST("/account/lists", controller.GetUserAccountList)                         // 获取子账号帐密列表
+	web.POST("/account/lists_available", controller.GetUserAccountListAvailable)      // 获取当前可用账号列表
+	web.POST("/account/add_edit", controller.AddUserFlowAccount)                      // 添加 / 修改账号
+	web.POST("/account/set_pass", controller.SetUserAccountPass)                      // 修改账号名称及密码
+	web.POST("/account/detail", controller.UserFlowAccountDetail)                     // 账号信息详情
+	web.POST("/account/enable_disable", controller.AccountEnableOrDisable)            // 账号启用  / 禁用
+	web.POST("/account/del", controller.DelUserAccount)                               // 删除账号
+	web.POST("/account/chart_data", controller.GetFlowStats)                          // 统计图数据
+	web.POST("/account/url_list", controller.GetUrlStats)                             // 统计图 筛选-Url
+	web.POST("/account/used_download", controller.FlowStatsDownload)                  // 使用数控下载
+	web.POST("/account/ip_chart_data", controller.GetIpCharData)                      // 获取IP提取统计图数据
+	web.POST("/account/ip_chart_data_download", controller.GetIpCharDataDownload)     // 下载IP提取统计图数据
 
 	white := router.Group("/web/white")
 	white.POST("/lists", controller.IpWhitelists)         //白名单IP列表
