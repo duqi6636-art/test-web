@@ -149,12 +149,13 @@ func webRouter(router *gin.Engine) {
 	web.POST("/account/ip_chart_data_download", controller.GetIpCharDataDownload)     // 下载IP提取统计图数据
 
 	white := router.Group("/web/white")
-	white.POST("/lists", controller.IpWhitelists)         //白名单IP列表
-	white.POST("/add", controller.AddWhitelist)           //白名单IP列表--添加
-	white.POST("/detail", controller.GetWhitelist)        //白名单IP列表--详细信息
-	white.POST("/edit", controller.EditWhitelist)         //白名单IP列表--编辑
-	white.POST("/delete", controller.DelWhitelist)        //白名单IP列表--删除
-	white.POST("/download", controller.WhitelistDownload) //白名单IP列表--下载
+	white.POST("/lists", controller.IpWhitelists)            //白名单IP列表
+	white.POST("/add", controller.AddWhitelist)              //白名单IP列表--添加
+	white.POST("/detail", controller.GetWhitelist)           //白名单IP列表--详细信息
+	white.POST("/edit", controller.EditWhitelist)            //白名单IP列表--编辑
+	white.POST("/set_status", controller.SetWhitelistStatus) //白名单IP列表--编辑
+	white.POST("/delete", controller.DelWhitelist)           //白名单IP列表--删除
+	white.POST("/download", controller.WhitelistDownload)    //白名单IP列表--下载
 
 	score := router.Group("/web/score")
 	score.POST("/info", controller.GetUserScore)                //积分信息

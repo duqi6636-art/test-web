@@ -422,6 +422,53 @@ func DelWhitelist(c *gin.Context) {
 	return
 }
 
+// 修改状态
+// @BasePath /api/v1
+// @Summary 修改状态
+// @Description 修改状态
+// @Tags 个人中心 - 白名单相关
+// @Accept x-www-form-urlencoded
+// @Param session formData string true "用户登录信息"
+// @Param id formData string true "白名单ID"
+// @Param status formData string true "状态 on/off"
+// @Produce json
+// @Success 0 {object} interface{}
+// @Router /web/white/set_status [post]
+func SetWhitelistStatus(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	idStr := c.DefaultPostForm("id", "")
+	statusStr := strings.TrimSpace(c.DefaultPostForm("status", ""))
+
+	id := util.StoI(idStr) - 10000
+	has, err := models.GetUserWhitelistIpById(id)
+	if err != nil || has.Id == 0 {
+		JsonReturn(c, e.ERROR, "__T_IP_HAS_NOT", nil)
+		return
+	}
+	if has.Uid != uid {
+		JsonReturn(c, e.ERROR, "__T_IP_INFO_ERROR", nil)
+		return
+	}
+	status := 0
+	if statusStr == "on" {
+		status = 1
+	} else {
+		status = 2
+	}
+	params := map[string]interface{}{}
+	params["status"] = status
+	params["update_time"] = util.GetNowInt()
+	err = models.EditUserWhitelistIp(has.Id, params)
+
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
+	return
+}
+
 // 白名单下载
 // @BasePath /api/v1
 // @Summary 白名单下载
