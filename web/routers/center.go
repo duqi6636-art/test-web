@@ -30,13 +30,14 @@ func centerRouter(router *gin.Engine) {
 	//router.GET("/api/lists_ip", controller.FlowApiListsWhite) // 查询列表
 	//对内
 	white := router.Group("/center/flow_api")
-	white.POST("/info", controller.FlowApiInfo)                //基础信息
-	white.POST("/lists", controller.FlowApiWhitelist)          //白名单IP列表
-	white.POST("/add", controller.AddFlowApiWhite)             //白名单IP列表--添加
-	white.POST("/set_white", controller.SetFlowApiWhite)       //白名单IP列表禁用启用
-	white.POST("/delete", controller.DelFlowApiWhite)          //白名单IP列表--删除
-	white.POST("/exist_white_list", controller.ExistWhiteList) // 是否存在白名单IP
-	white.POST("/domain", controller.ApiDomain)                // 白名单域名
+	white.POST("/info", controller.FlowApiInfo)                  //基础信息
+	white.POST("/lists", controller.FlowApiWhitelist)            //白名单IP列表
+	white.POST("/add", controller.AddFlowApiWhite)               //白名单IP列表--添加
+	white.POST("/set_white", controller.SetFlowApiWhite)         //白名单IP列表禁用启用
+	white.POST("/delete", controller.DelFlowApiWhite)            //白名单IP列表--删除
+	white.POST("/exist_white_list", controller.ExistWhiteList)   // 是否存在白名单IP
+	white.POST("/download", controller.FlowApiWhitelistDownload) // 下载白名单IP列表
+	white.POST("/domain", controller.ApiDomain)                  // 白名单域名
 
 	//优惠券
 	coupon := router.Group("/center/coupon")

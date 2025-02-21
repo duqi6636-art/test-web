@@ -69,7 +69,9 @@ func FlowApiInfo(c *gin.Context) {
 // @Param lang formData string false "语言"
 // @Param search formData string true "搜索关键字"
 // @Param flow_type formData string true "类型 1普通流量 2无限制流量"
-// @Param status formData string true "类型 on/off"
+// @Param status formData string true "状态 on/off"
+// @Param start_date formData string true "开始时间 2002-01-01"
+// @Param end_date formData string true "结束时间 2002-01-01"
 // @Produce json
 // @Success 0 {array} models.ResUserWhitelistApi{}
 // @Router /center/flow_api/lists [post]
@@ -85,7 +87,18 @@ func FlowApiWhitelist(c *gin.Context) {
 	search := strings.TrimSpace(c.DefaultPostForm("search", ""))
 	flow_type := strings.TrimSpace(c.DefaultPostForm("flow_type", "1"))
 	lang := strings.ToLower(c.DefaultPostForm("lang", "en"))      //语言
-	statusStr := strings.ToLower(c.DefaultPostForm("status", "")) //语言
+	statusStr := strings.ToLower(c.DefaultPostForm("status", "")) //状态
+	startDate := c.DefaultPostForm("start_date", "")
+	endDate := c.DefaultPostForm("end_date", "")
+
+	start := 0
+	end := 0
+	if startDate != "" {
+		start = util.StoI(util.GetTimeStamp(startDate, "Y-m-d"))
+	}
+	if endDate != "" {
+		end = util.StoI(util.GetTimeStamp(endDate, "Y-m-d")) + 86399
+	}
 
 	flowType := util.StoI(flow_type)
 	if flowType == 0 {
@@ -102,8 +115,7 @@ func FlowApiWhitelist(c *gin.Context) {
 
 	aes_key := util.Md5(AesKey)
 	if uid > 0 {
-		lists := models.GetFlowApiWhiteByUid(uid, flowType, search, status)
-		fmt.Println(lists)
+		lists := models.GetFlowApiWhiteByUid(uid, flowType, search, status, start, end)
 		for _, val := range lists {
 			info := models.ResUserWhitelistApi{}
 			idStr, err := util.AesEnCode([]byte(util.ItoS(val.Id)), []byte(aes_key))
@@ -127,6 +139,78 @@ func FlowApiWhitelist(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resList)
 	return
 
+}
+
+// @BasePath /api/v1
+// @Summary 下载白名单列表信息
+// @Schemes
+// @Description 下载白名单列表信息
+// @Tags 个人中心-Api提取
+// @Accept x-www-form-urlencoded
+// @Param session formData string false "用户登录凭证信息"
+// @Param lang formData string false "语言"
+// @Param search formData string true "搜索关键字"
+// @Param flow_type formData string true "类型 1普通流量 2无限制流量"
+// @Param status formData string true "状态 on/off"
+// @Param start_date formData string true "开始时间 2002-01-01"
+// @Param end_date formData string true "结束时间 2002-01-01"
+// @Produce json
+// @Success 0 {array} models.ResUserWhitelistApi{}
+// @Router /center/flow_api/download [post]
+func FlowApiWhitelistDownload(c *gin.Context) {
+	title := []string{"IP", "SupportType", "AddTime", "Remarks"}
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+
+	search := strings.TrimSpace(c.DefaultPostForm("search", ""))
+	flow_type := strings.TrimSpace(c.DefaultPostForm("flow_type", "1"))
+	statusStr := strings.ToLower(c.DefaultPostForm("status", "")) //状态
+	startDate := c.DefaultPostForm("start_date", "")
+	endDate := c.DefaultPostForm("end_date", "")
+
+	start := 0
+	end := 0
+	if startDate != "" {
+		start = util.StoI(util.GetTimeStamp(startDate, "Y-m-d"))
+	}
+	if endDate != "" {
+		end = util.StoI(util.GetTimeStamp(endDate, "Y-m-d")) + 86399
+	}
+
+	flowType := util.StoI(flow_type)
+	if flowType == 0 {
+		flowType = 1
+	}
+	if statusStr != "" {
+		if statusStr == "on" {
+			statusStr = "1"
+		} else {
+			statusStr = "2"
+		}
+	}
+	status := util.StoI(statusStr)
+
+	if uid > 0 {
+		csvData := [][]string{}
+		csvData = append(csvData, title)
+		lists := models.GetFlowApiWhiteByUid(uid, flowType, search, status, start, end)
+		for _, val := range lists {
+			linshi := []string{}
+			linshi = append(linshi, val.WhitelistIp)
+			linshi = append(linshi, "Country")
+			linshi = append(linshi, util.GetTimeStr(val.CreateTime, "d/m/Y H:i"))
+			linshi = append(linshi, val.Remark)
+
+			csvData = append(csvData, linshi)
+		}
+		err := DownloadCsv(c, "Whitelists", csvData)
+		fmt.Println(err)
+	}
+	return
 }
 
 // @BasePath /api/v1
@@ -182,7 +266,7 @@ func AddFlowApiWhite(c *gin.Context) {
 
 	remark := strings.TrimSpace(c.DefaultPostForm("remark", ""))
 
-	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0)
+	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0, 0, 0)
 	total := len(totalList)
 	if total >= 100 {
 		JsonReturn(c, e.ERROR, "__T_IP_HAS_MORE_LIMIT", nil)
@@ -476,7 +560,7 @@ func FlowApiListsWhite(c *gin.Context) {
 	uid := userInfo.Id
 	flowType := 1
 
-	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0)
+	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0, 0, 0)
 	resList := []models.ResFlowApiWhiteApi{}
 	for _, val := range totalList {
 		info := models.ResFlowApiWhiteApi{}
@@ -537,7 +621,7 @@ func FlowApiAddWhite(c *gin.Context) {
 		return
 	}
 
-	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0)
+	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0, 0, 0)
 	total := len(totalList)
 	if total >= 100 {
 		JsonReturnShow(c, e.ERROR, "__T_IP_HAS_MORE_LIMIT", nil)

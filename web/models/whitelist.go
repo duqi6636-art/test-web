@@ -37,7 +37,6 @@ type ResUserWhitelistIp struct {
 	Minute      int    `json:"minute"`       // 粘性IP轮转时长
 	Minutes     string `json:"minutes"`      // 粘性IP轮转时长 字符串 拼好的
 	Remark      string `json:"remark"`       // 备注
-	Configs     string `json:"configs"`      // 配置
 	CreateTime  string `json:"create_time"`  // 更新时间
 }
 
@@ -58,10 +57,25 @@ func GetWhitelistIpsPageByUid(uid, accountId int, search string, offset, limit i
 }
 
 // 获取列表 By WhitelistIp
-func GetWhitelistIpsByUid(uid, accountId, flowType int, search string) (info []CmUserWhitelistIp) {
-	dbs := db.Table("cm_user_whitelist_ip").Where("uid =?", uid).Where("account_id =?", accountId).Where("flow_type =?", flowType).Where("status =?", 1)
+func GetWhitelistIpsByUid(uid, accountId, flowType int, search string, status int, startTime, endTime int) (info []CmUserWhitelistIp) {
+	dbs := db.Table("cm_user_whitelist_ip").
+		Where("uid =?", uid).
+		Where("account_id =?", accountId).
+		Where("flow_type =?", flowType).
+		Where("status =?", 1)
 	if search != "" {
 		dbs = dbs.Where("whitelist_ip like ? or country =? or city =?", "%"+search+"%", search, search)
+	}
+	if status > 0 {
+		dbs = dbs.Where("status =?", status)
+	} else {
+		dbs = dbs.Where("status >?", 0)
+	}
+	if startTime > 0 {
+		dbs = dbs.Where("create_time >= ?", startTime)
+	}
+	if endTime > 86400 {
+		dbs = dbs.Where("create_time <= ?", endTime)
 	}
 	dbs = dbs.Order("id desc").Find(&info)
 	return
@@ -127,7 +141,7 @@ func AddFlowApiWhite(info MdUserWhitelistApi) (err error) {
 }
 
 // 获取列表 By Uid
-func GetFlowApiWhiteByUid(uid, flow_type int, search string, status int) (info []MdUserWhitelistApi) {
+func GetFlowApiWhiteByUid(uid, flow_type int, search string, status int, startTime, endTime int) (info []MdUserWhitelistApi) {
 	dbs := db.Table(userWhiteApiTable).Where("uid =? and flow_type = ?", uid, flow_type)
 	if search != "" {
 		dbs = dbs.Where("whitelist_ip =?", search)
@@ -136,6 +150,12 @@ func GetFlowApiWhiteByUid(uid, flow_type int, search string, status int) (info [
 		dbs = dbs.Where("status =?", status)
 	} else {
 		dbs = dbs.Where("status >?", 0)
+	}
+	if startTime > 0 {
+		dbs = dbs.Where("create_time >= ?", startTime)
+	}
+	if endTime > 86400 {
+		dbs = dbs.Where("create_time <= ?", endTime)
 	}
 	dbs = dbs.Order("id desc").Find(&info)
 	return

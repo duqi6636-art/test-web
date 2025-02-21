@@ -36,6 +36,18 @@ func IpWhitelists(c *gin.Context) {
 	search := strings.TrimSpace(c.DefaultPostForm("search", ""))
 	accountIdStr := strings.TrimSpace(c.DefaultPostForm("account_id", "0"))
 	flow_type := strings.TrimSpace(c.DefaultPostForm("flow_type", "1"))
+	startDate := c.DefaultPostForm("start_date", "")
+	endDate := c.DefaultPostForm("end_date", "")
+	statusStr := c.DefaultPostForm("status", "")
+
+	start := 0
+	end := 0
+	if startDate != "" {
+		start = util.StoI(util.GetTimeStamp(startDate, "Y-m-d"))
+	}
+	if endDate != "" {
+		end = util.StoI(util.GetTimeStamp(endDate, "Y-m-d")) + 86399
+	}
 	if flow_type == "" {
 		flow_type = "1"
 	}
@@ -46,6 +58,15 @@ func IpWhitelists(c *gin.Context) {
 	if accountIdStr == "" {
 		accountIdStr = "0"
 	}
+	if statusStr != "" {
+		if statusStr == "on" {
+			statusStr = "1"
+		} else {
+			statusStr = "2"
+		}
+	}
+	status := util.StoI(statusStr)
+
 	if uid > 0 {
 		regionList := models.GetAllCountryV2("")
 		regionMap := map[string]models.ExtractCountry{}
@@ -53,31 +74,14 @@ func IpWhitelists(c *gin.Context) {
 		for _, val := range regionList {
 			regionMap[val.Country] = val
 		}
-
 		accountId := util.StoI(accountIdStr)
-		lists := models.GetWhitelistIpsByUid(uid, accountId, flowType, search)
-		fmt.Println(lists)
+		lists := models.GetWhitelistIpsByUid(uid, accountId, flowType, search, status, start, end)
 		for _, val := range lists {
 			minutes := "Random"
 			cate := 2
 			if val.Minutes > 0 {
 				minutes = util.ItoS(val.Minutes) + " mins"
 				cate = 1
-			}
-			configStr := ""
-			if val.Country != "" {
-				configStr = configStr + "region-" + val.Country
-			}
-			if val.City != "" {
-				configStr = configStr + "-city-" + val.City
-			}
-			if val.Minutes > 0 {
-				sessid := util.RandStr("r", 8)
-				if configStr == "" {
-					configStr = configStr + "sessid-" + sessid + "-sessTime-" + util.ItoS(val.Minutes)
-				} else {
-					configStr = configStr + "-sessid-" + sessid + "-sessTime-" + util.ItoS(val.Minutes)
-				}
 			}
 			regionInfo := regionMap[val.Country]
 			info := models.ResUserWhitelistIp{}
@@ -95,7 +99,6 @@ func IpWhitelists(c *gin.Context) {
 			info.FlowType = val.FlowType
 			info.Minute = val.Minutes
 			info.Minutes = minutes
-			info.Configs = configStr
 			info.Remark = val.Remark
 			info.CreateTime = util.GetTimeStr(val.CreateTime, "d/m/Y H:i")
 			resList = append(resList, info)
@@ -433,7 +436,7 @@ func DelWhitelist(c *gin.Context) {
 // @Success 0 {object} interface{}
 // @Router /web/white/download [post]
 func WhitelistDownload(c *gin.Context) {
-	title := []string{"Number", "IP", "Config", "Hostname-port"}
+	title := []string{"IP", "SupportType", "AddTime", "Remarks"}
 	resCode, msg, userInfo := DealUser(c) //处理用户信息
 	if resCode != e.SUCCESS {
 		JsonReturn(c, resCode, msg, nil)
@@ -443,6 +446,18 @@ func WhitelistDownload(c *gin.Context) {
 	search := strings.TrimSpace(c.DefaultPostForm("search", ""))
 	accountIdStr := strings.TrimSpace(c.DefaultPostForm("account_id", "0"))
 	flow_type := strings.TrimSpace(c.DefaultPostForm("flow_type", "1"))
+	startDate := c.DefaultPostForm("start_date", "")
+	endDate := c.DefaultPostForm("end_date", "")
+	statusStr := c.DefaultPostForm("status", "")
+
+	start := 0
+	end := 0
+	if startDate != "" {
+		start = util.StoI(util.GetTimeStamp(startDate, "Y-m-d"))
+	}
+	if endDate != "" {
+		end = util.StoI(util.GetTimeStamp(endDate, "Y-m-d")) + 86399
+	}
 	if flow_type == "" {
 		flow_type = "1"
 	}
@@ -453,45 +468,33 @@ func WhitelistDownload(c *gin.Context) {
 	if accountIdStr == "" {
 		accountIdStr = "0"
 	}
+	if statusStr != "" {
+		if statusStr == "on" {
+			statusStr = "1"
+		} else {
+			statusStr = "2"
+		}
+	}
+	status := util.StoI(statusStr)
 
 	if uid > 0 {
 		csvData := [][]string{}
 		csvData = append(csvData, title)
 		accountId := util.StoI(accountIdStr)
-		lists := models.GetWhitelistIpsByUid(uid, accountId, flowType, search)
+		lists := models.GetWhitelistIpsByUid(uid, accountId, flowType, search, status, start, end)
 
-		for k, v := range lists {
+		for _, v := range lists {
 			linshi := []string{}
-			configStr := ""
-			if v.Country != "" {
-				configStr = configStr + "region-" + v.Country
-			}
-			if v.City != "" {
-				configStr = configStr + "-city-" + v.City
-			}
-			if v.Minutes > 0 {
-				sessid := util.RandStr("r", 8)
-				//configStr = configStr + "-sessid-"+sessid+"-sessTime-" + util.ItoS(v.Minutes)
-				if configStr == "" {
-					configStr = configStr + "sessid-" + sessid + "-sessTime-" + util.ItoS(v.Minutes)
-				} else {
-					configStr = configStr + "-sessid-" + sessid + "-sessTime-" + util.ItoS(v.Minutes)
-				}
-			}
-			linshi = append(linshi, util.ItoS(k+1))
 			linshi = append(linshi, v.WhitelistIp)
-			linshi = append(linshi, configStr)
-			linshi = append(linshi, v.Hostname)
+			linshi = append(linshi, "City")
+			linshi = append(linshi, util.GetTimeStr(v.CreateTime, "d/m/Y H:i"))
+			linshi = append(linshi, v.Remark)
 
 			csvData = append(csvData, linshi)
 		}
 
 		err := DownloadCsv(c, "Whitelists", csvData)
 		fmt.Println(err)
-		//if err != nil {
-		//	JsonReturn(c, e.ERROR, err.Error(), nil)
-		//	return
-		//}
 	}
 
 	return
