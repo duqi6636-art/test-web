@@ -37,7 +37,7 @@ type ResUserWhitelistIp struct {
 	Minute      int    `json:"minute"`       // 粘性IP轮转时长
 	Minutes     string `json:"minutes"`      // 粘性IP轮转时长 字符串 拼好的
 	Remark      string `json:"remark"`       // 备注
-	Status      int    `json:"status"`       // 备注
+	Status      string `json:"status"`       // 备注
 	CreateTime  string `json:"create_time"`  // 更新时间
 }
 
