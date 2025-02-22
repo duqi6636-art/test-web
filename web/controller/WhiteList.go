@@ -83,6 +83,10 @@ func IpWhitelists(c *gin.Context) {
 				minutes = util.ItoS(val.Minutes) + " mins"
 				cate = 1
 			}
+			statusR := "off"
+			if val.Status == 1 {
+				statusR = "on"
+			}
 			regionInfo := regionMap[val.Country]
 			info := models.ResUserWhitelistIp{}
 			info.Id = val.Id + 10000
@@ -100,6 +104,7 @@ func IpWhitelists(c *gin.Context) {
 			info.Minute = val.Minutes
 			info.Minutes = minutes
 			info.Remark = val.Remark
+			info.Status = statusR
 			info.CreateTime = util.GetTimeStr(val.CreateTime, "d/m/Y H:i")
 			resList = append(resList, info)
 		}
@@ -192,12 +197,12 @@ func AddWhitelist(c *gin.Context) {
 		city = ""
 	}
 	accountId := util.StoI(accountIdStr)
-	//totalList := models.GetWhitelistIpsByUid(uid,accountId,"")
-	//total := len(totalList)
-	//if total >= 100 {
-	//	JsonReturn(c, e.ERROR, "__T_IP_HAS_MORE_LIMIT", nil)
-	//	return
-	//}
+
+	// 如果是主账号添加 修改为0
+	accountInfo, _ := models.GetUserAccountById(accountId)
+	if accountInfo.Master == 1 {
+		accountId = 0
+	}
 
 	addInfo := models.CmUserWhitelistIp{}
 	addInfo.Uid = uid
