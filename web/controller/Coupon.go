@@ -300,8 +300,8 @@ func CouponInfoAutoByCid(userInfo models.Users, couponIdStr string, isAgent int)
 		couponConfInfo := models.GetCouponByCid(0, couponId) //获取不同类型券配置
 		nowTime := util.GetNowInt()
 		if couponConfInfo.Id > 0 {
-			couponUserInfo := models.GetCouponByCid(userInfo.Id, couponId) // 获取用户已领取的券
-			if couponUserInfo.Id == 0 {                                    // 如果用户没有可用的券就再发放一个		                     //
+			couponUserInfo := models.GetCouponByCid(userInfo.Id, couponId)                                // 获取用户已领取的券
+			if couponUserInfo.Id == 0 || (couponConfInfo.Expire > 0 && couponUserInfo.Expire < nowTime) { // 如果用户没有可用的券就再发放一个		                     //
 				codeStr := GetUuid()
 				codeArr := strings.Split(codeStr, "-")
 				lens := len(codeArr)
