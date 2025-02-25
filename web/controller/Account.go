@@ -1324,12 +1324,14 @@ func ResUserInfo(session, ip string, info models.Users) models.ResUser {
 	links := strings.TrimSpace(models.GetConfigV("inviter_share_url")) + "?invite=" + inviterCode
 	ip_nums := info.Balance
 	agentBalance := 0
+	isAgent := 0 //是否是代理商用户
 	agentInfo := models.GetAgentBalanceByUid(info.Id)
 	if agentInfo.Id != 0 {
 		if agentInfo.Balance < 0 {
 			agentInfo.Balance = 0
 		}
 		agentBalance = agentInfo.Balance
+		isAgent = 1
 	}
 	// 获取流量信息
 	flows := int64(0)
@@ -1339,7 +1341,7 @@ func ResUserInfo(session, ip string, info models.Users) models.ResUser {
 	userFlowInfo := models.GetUserFlowInfo(info.Id)
 	if userFlowInfo.ID != 0 {
 		//if userFlowInfo.Flows > 0 { // 这里注释掉，因为有些用户流量 允许用户的流量为负数 20250114 需求
-			flows = userFlowInfo.Flows
+		flows = userFlowInfo.Flows
 		//}
 		flowDate = util.GetTimeStr(userFlowInfo.ExpireTime, "d/m/Y")
 		if userFlowInfo.ExpireTime < nowTime {
@@ -1383,6 +1385,11 @@ func ResUserInfo(session, ip string, info models.Users) models.ResUser {
 				isMsg = 0
 			}
 		}
+	}
+	//5元券活动 只要用户账户里面 没有可用的 减价券，就在发一个
+	actConf := models.GetConfigVal("coupon_active_5")
+	if actConf != "" {
+		CouponInfoAutoByCid(info, actConf, isAgent)
 	}
 
 	// 生成返回数据
