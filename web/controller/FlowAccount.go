@@ -37,7 +37,7 @@ func GetAccountInfo(c *gin.Context) {
 	userFlowInfo := models.GetUserFlowInfo(userInfo.Id)
 	if userFlowInfo.ID != 0 {
 		//if userFlowInfo.Flows > 0 {	// 这里注释掉，因为有些用户流量 允许用户的流量为负数 20250114 需求
-			flows = userFlowInfo.Flows
+		flows = userFlowInfo.Flows
 		//}
 		flowDate = util.GetTimeStr(userFlowInfo.ExpireTime, "d/m/Y")
 		if userFlowInfo.ExpireTime < nowTime {
@@ -206,7 +206,7 @@ func GetAccountInfoV2(c *gin.Context) {
 	userFlowInfo := models.GetUserFlowInfo(userInfo.Id)
 	if userFlowInfo.ID > 0 {
 		//if userFlowInfo.Flows > 0 { // 这里注释掉，因为有些用户流量 允许用户的流量为负数 20250114 需求
-			flows = userFlowInfo.Flows
+		flows = userFlowInfo.Flows
 		//}
 		flowDate = util.GetTimeStr(userFlowInfo.ExpireTime, "d/m/Y")
 		if userFlowInfo.ExpireTime < nowTime {
@@ -420,9 +420,9 @@ func GetAccountInfoV2(c *gin.Context) {
 	balance := "0"
 	balInfo := models.GetUserBalanceByUid(userInfo.Id)
 	if balInfo.Id > 0 {
-		balance = util.FtoS2(balInfo.Balance,2)
+		balance = util.FtoS2(balInfo.Balance, 2)
 	}
-	resData.Balance = GetBalanceInfo{Balance: balance,Status: balInfo.Status}
+	resData.Balance = GetBalanceInfo{Balance: balance, Status: balInfo.Status}
 	// 获取用户余额记录 -- end---------------------
 
 	JsonReturn(c, 0, "__T_SUCCESS", resData)
@@ -565,7 +565,8 @@ func GetFlowStats(c *gin.Context) {
 	} else if flowType == 1 {
 		list = models.GetUrlUsed(uid, 0, start, end)
 	} else {
-		list = models.GetUnlimitedUrlUsed(uid, 0, start, end)
+		//list = models.GetUnlimitedUrlUsed(uid, 0, start, end)
+		list = models.GetFlowDayUsedStat(uid, 0, start, end)
 	}
 
 	var cateName []string
@@ -851,7 +852,9 @@ func FlowStatsDownload(c *gin.Context) {
 		} else if flowType == 1 {
 			lists = models.GetUrlUsed(uid, accountId, start, end)
 		} else {
-			lists = models.GetUnlimitedUrlUsed(uid, accountId, start, end)
+			//lists = models.GetUnlimitedUrlUsed(uid, accountId, start, end)
+
+			lists = models.GetFlowDayUsedStat(uid, 0, start, end)
 		}
 		for _, v := range lists {
 			info := []string{}

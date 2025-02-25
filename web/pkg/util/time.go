@@ -59,11 +59,17 @@ func GetNowTimeStr() string {
 func GetTimeStr(t int, formate string) string {
 	now_time := time.Now()
 	formateStr := "20060102150405"
-	if formate == "Y-m-d" {
-		formateStr = "2006-01-02"
+	if formate == "Y" {
+		formateStr = "2006"
+	}
+	if formate == "Ym" {
+		formateStr = "200601"
 	}
 	if formate == "Ymd" {
 		formateStr = "20060102"
+	}
+	if formate == "Y-m-d" {
+		formateStr = "2006-01-02"
 	}
 	if formate == "Y-m-d H:i" {
 		formateStr = "2006-01-02 15:04"
