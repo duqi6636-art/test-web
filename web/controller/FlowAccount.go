@@ -863,6 +863,7 @@ func FlowStatsDownload(c *gin.Context) {
 		csvData := [][]string{}
 		csvData = append(csvData, title)
 		lists := []models.StUrlToday{}
+
 		if flowType == 1 {
 			//list = models.GetUrlUsed(uid, 0, start, end)
 			lists = models.GetFlowUsedStat(uid, accountId, start, end, country, siteUrl, flowUseType)

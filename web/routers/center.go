@@ -8,6 +8,10 @@ import (
 func centerRouter(router *gin.Engine) {
 
 	// 购买相关
+	mig := router.Group("/migrate")
+	mig.POST("/flow_day", controller.DealOldUrl) // 获取用户购买记录
+
+	// 购买相关
 	pur := router.Group("/center/purchase")
 	pur.POST("/record", controller.UserOrderListBy) // 获取用户购买记录
 
@@ -16,7 +20,7 @@ func centerRouter(router *gin.Engine) {
 	pack.POST("/dynamic_isp", controller.GetDynamicISPPackageList) // 获取动态isp套餐列表
 	pack.POST("/flow_day", controller.GetFlowDayPackageList)       // 获取不限量套餐列表
 	pack.POST("/socks5", controller.GetSocks5PackageList)          // 获取ip套餐列表
-	pack.POST("/static", controller.GetStaticPackage)          		// 获取静态长效套餐列表
+	pack.POST("/static", controller.GetStaticPackage)              // 获取静态长效套餐列表
 	pack.POST("/low_price", controller.GetLowPrice)                // 获取各套餐最低价格
 
 	flows := router.Group("/center/flows")
@@ -67,6 +71,6 @@ func centerRouter(router *gin.Engine) {
 	cb.POST("/stats_detail", controller.GetUserBalanceCdkStatsDetail)     // 统计使用记录详情
 	// 不限量相关
 	cu := router.Group("/center/unlimited")
-	cu.POST("/server_record", controller.GetUserUnlimitedLog)                      // 获取余额配置信息
+	cu.POST("/server_record", controller.GetUserUnlimitedLog) // 获取余额配置信息
 
 }

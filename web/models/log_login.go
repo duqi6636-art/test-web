@@ -1,7 +1,6 @@
 package models
 
 import (
-	"api-360proxy/web/pkg/util"
 	"time"
 )
 
@@ -26,7 +25,6 @@ type LogLogin struct {
 	UserAgent    string `json:"user_agent"`
 	IsPay        int    `json:"is_pay"` //是否是已购买
 }
-
 
 func AddLoginLog(info LogLogin) bool {
 	var tableName = "log_login" + time.Now().Format("200601")
@@ -70,9 +68,9 @@ func createLoginLogTable(tableName string) {
 }
 
 // 查询当日登陆数据
-func GettodayLogin(uid int) int {
-	today := util.GetTodayTime()
-	num := 0
-	db.Table(tableName).Where("today = ? and uid = ?", today, uid).Count(&num)
-	return num
-}
+//func GettodayLogin(uid int) int {
+//	today := util.GetTodayTime()
+//	num := 0
+//	db.Table(tableName).Where("today = ? and uid = ?", today, uid).Count(&num)
+//	return num
+//}
