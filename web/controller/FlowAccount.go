@@ -570,7 +570,7 @@ func GetFlowStats(c *gin.Context) {
 	}
 	websiteArr := strings.Split(websiteStr, ",")
 	//list := models.GetUrlUsed(uid, website, start, end)
-	list := []models.StUrlToday{}
+	list := []models.StAddressToday{}
 	if flowType == 1 {
 		//list = models.GetUrlUsed(uid, 0, start, end)
 		list = models.GetFlowUsedStat(uid, accountId, start, end, country, siteUrl, flowUseType)
@@ -588,9 +588,9 @@ func GetFlowStats(c *gin.Context) {
 	}
 
 	kvInfo := map[string]int64{}
-	cateInfo := map[string][]models.StUrlToday{}
+	cateInfo := map[string][]models.StAddressToday{}
 	for _, vv := range cateName {
-		cateInfo[vv] = []models.StUrlToday{}
+		cateInfo[vv] = []models.StAddressToday{}
 		for _, v := range x_data {
 			kvInfo[v] = 0
 		}
@@ -600,7 +600,7 @@ func GetFlowStats(c *gin.Context) {
 		todays := util.GetTimeStr(v.Today, "Y-m-d")
 		flows := int64(0)
 		if websiteStr != "" {
-			if util.InArrayString(v.Url, websiteArr) {
+			if util.InArrayString(v.Address, websiteArr) {
 				flowNow, ok := kvInfo[todays]
 				if !ok {
 					flowNow = 0
@@ -862,37 +862,28 @@ func FlowStatsDownload(c *gin.Context) {
 	if uid > 0 {
 		csvData := [][]string{}
 		csvData = append(csvData, title)
-		lists := []models.StUrlToday{}
+		lists := []models.StAddressToday{}
 
 		if flowType == 1 {
 			//list = models.GetUrlUsed(uid, 0, start, end)
-			lists = models.GetFlowUsedStat(uid, accountId, start, end, country, siteUrl, flowUseType)
+			lists = models.GetFlowUsedStatDown(uid, accountId, start, end, country, siteUrl, flowUseType)
 		} else if flowType == 2 {
 			//list = models.GetUnlimitedUrlUsed(uid, 0, start, end)
 			lists = models.GetFlowDayUsedStat(uid, 0, start, end)
 		} else if flowType == 3 {
 			//list = models.GetDynamicUrlUsed(uid, 0, start, end)
-			lists = models.GetIspFlowUsedStat(uid, 0, start, end, country, siteUrl)
+			lists = models.GetIspFlowUsedStatDown(uid, 0, start, end, country, siteUrl)
 		}
 		for _, v := range lists {
 			info := []string{}
 			flowsStr := util.FtoS2(math.Round(float64(v.Flows)/float64(flowChar)), point)
 
 			info = append(info, util.GetTimeStr(v.Today, "d-m-Y"))
-			info = append(info, v.Url)
+			info = append(info, v.Address)
 			info = append(info, flowsStr+" "+flow_unit)
 			csvData = append(csvData, info)
 		}
-		listWhite := models.GetUrlWhiteUsed(uid, accountId, start, end)
 
-		for _, v := range listWhite {
-			info := []string{}
-			flowsStr := util.FtoS2(math.Round(float64(v.Flows)/float64(flowChar)), point)
-			info = append(info, util.GetTimeStr(v.Today, "d-m-Y"))
-			info = append(info, v.Url)
-			info = append(info, flowsStr+" "+flow_unit)
-			csvData = append(csvData, info)
-		}
 		err := DownloadCsv(c, "UsedRecord", csvData)
 		fmt.Println(err)
 	}
