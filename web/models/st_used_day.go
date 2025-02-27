@@ -22,7 +22,7 @@ func GetFlowUsedStat(uid, accountId int, start, end int, country, address, flowT
 	tableStr := "st_user_flow_used_" + ym
 	dbs := clickhousedb.ClickhouseDb.
 		Table(tableStr).
-		Select("today,sum(flows) as flows").
+		Select("today,flows").
 		Where("uid = ?", uid).
 		Where("today >= ? and today <= ?", start, end)
 	if accountId > 0 {
@@ -38,8 +38,7 @@ func GetFlowUsedStat(uid, accountId int, start, end int, country, address, flowT
 		dbs = dbs.Where("flow_type = ?", flowType)
 	}
 
-	//dbs.Order("today asc").Find(&list)
-	dbs.Group("today").Order("today asc").Find(&list)
+	dbs.Order("today asc").Find(&list)
 	return
 }
 
@@ -102,7 +101,7 @@ func GetIspFlowUsedStat(uid, accountId int, start, end int, country, address str
 	tableStr := "st_user_isp_flow_used_" + ym
 	dbs := clickhousedb.ClickhouseDb.
 		Table(tableStr).
-		Select("today,sum(flows) as flows").
+		Select("today,flows").
 		Where("uid = ?", uid).
 		Where("today >= ? and today <= ?", start, end)
 	if accountId > 0 {
@@ -114,8 +113,8 @@ func GetIspFlowUsedStat(uid, accountId int, start, end int, country, address str
 	if address != "" {
 		dbs = dbs.Where("address = ?", address)
 	}
-	//dbs.Order("today asc").Find(&list)
-	dbs.Group("today").Order("today asc").Find(&list)
+	dbs.Order("today asc").Find(&list)
+	//dbs.Group("today").Order("today asc").Find(&list)
 	return
 }
 
@@ -150,9 +149,9 @@ func GetUrlListStats(uid int, start int, url string) (list []StUrlLists) {
 		Where("uid = ?", uid).
 		Where("today >= ?", start)
 	if url != "" {
-		dbs = dbs.Where("url like ?", "%"+url+"%")
+		dbs = dbs.Where("address like ?", "%"+url+"%")
 	}
-	dbs.Group("url").Find(&list)
+	dbs.Group("address").Find(&list)
 	return
 }
 
@@ -166,8 +165,8 @@ func GetIspUrlListStats(uid int, start, end int, url string) (list []StUrlLists)
 		Where("uid = ?", uid).
 		Where("today >= ? and today <= ?", start, end)
 	if url != "" {
-		dbs = dbs.Where("url like ?", "%"+url+"%")
+		dbs = dbs.Where("address like ?", "%"+url+"%")
 	}
-	dbs.Group("url").Find(&list)
+	dbs.Group("address").Find(&list)
 	return
 }
