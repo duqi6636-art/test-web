@@ -285,9 +285,67 @@ func CouponInfoAuto(userInfo models.Users, cate string) {
 	}
 }
 
+// 检测用户券信息和发放券 -5元券
+func CouponInfoAutoByCid(userInfo models.Users, couponIdStr string, isAgent int) {
+	is_pay := "no_pay"
+	if isAgent == 1 {
+		is_pay = "agent"
+	} else {
+		if userInfo.IsPay == "true" {
+			is_pay = "payed"
+		}
+	}
+	couponId := util.StoI(couponIdStr)
+	if couponId > 0 {
+		couponConfInfo := models.GetCouponByCid(0, couponId) //获取不同类型券配置
+		nowTime := util.GetNowInt()
+		if couponConfInfo.Id > 0 {
+			couponUserList := models.GetCouponByCidCount(userInfo.Id, couponId) // 获取用户已领取的券
+			hasNum := 0                                                         //查询用户有几个可用券
+			for _, v := range couponUserList {
+				if v.Expire == 0 {
+					hasNum = hasNum + 1
+				} else {
+					if v.Expire > nowTime {
+						hasNum = hasNum + 1
+					}
+				}
+			}
+			if hasNum == 0 { // 如果用户没有可用的券就再发放一个		                     //
+				codeStr := GetUuid()
+				codeArr := strings.Split(codeStr, "-")
+				lens := len(codeArr)
+				code := codeArr[0] + "-" + codeArr[lens-2] + "-" + codeArr[lens-1]
+				info := couponConfInfo
+				info.Id = 0
+				info.Code = code
+				info.Expire = nowTime + couponConfInfo.ExpiryDay*86400
+				info.BindUid = userInfo.Id
+				info.BindUsername = userInfo.Username
+				info.Cate = couponConfInfo.Cate
+				info.CreateTime = nowTime
+				// 如果是已付费用户 且 配置了已付费用户券
+				if is_pay == "payed" && (couponConfInfo.UserType == "all" || couponConfInfo.UserType == "payed") {
+					err := models.AddCoupon(info)
+					fmt.Println("payed:", err)
+				}
+				// 如果是未付费用户 且 配置了未付费用户券
+				if is_pay == "no_pay" && (couponConfInfo.UserType == "all" || couponConfInfo.UserType == "no_pay") {
+					err := models.AddCoupon(info)
+					fmt.Println("no_pay:", err)
+				}
+				// 如果是代理商用户 且 配置了代理商券
+				if is_pay == "agent" && (couponConfInfo.UserType == "all" || couponConfInfo.UserType == "agent") {
+					err := models.AddCoupon(info)
+					fmt.Println("agent:", err)
+				}
+			}
+		}
+	}
+}
+
 // 检测新用户券信息和发放券
 func NewCouponInfoAuto(userInfo models.Users, cate string) {
-
 	couponConfList := models.GetCouponListByCate(0, cate)           //获取不同类型券配置
 	couponUserList := models.GetCouponListByCate(userInfo.Id, cate) //获取用户已领取的不同类型券
 	// 获取优惠券列表-判断是否已下掉
