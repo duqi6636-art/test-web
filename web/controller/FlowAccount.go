@@ -579,7 +579,7 @@ func GetFlowStats(c *gin.Context) {
 		list = models.GetFlowDayUsedStat(uid, 0, start, end)
 	} else if flowType == 3 {
 		//list = models.GetDynamicUrlUsed(uid, 0, start, end)
-		list = models.GetIspFlowUsedStat(uid, 0, start, end, country, siteUrl)
+		list = models.GetIspFlowUsedStat(uid, accountId, start, end, country, siteUrl)
 	}
 
 	var cateName []string
@@ -872,7 +872,7 @@ func FlowStatsDownload(c *gin.Context) {
 			lists = models.GetFlowDayUsedStat(uid, 0, start, end)
 		} else if flowType == 3 {
 			//list = models.GetDynamicUrlUsed(uid, 0, start, end)
-			lists = models.GetIspFlowUsedStatDown(uid, 0, start, end, country, siteUrl)
+			lists = models.GetIspFlowUsedStatDown(uid, accountId, start, end, country, siteUrl)
 		}
 		for _, v := range lists {
 			info := []string{}
