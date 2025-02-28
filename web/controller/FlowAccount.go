@@ -810,7 +810,7 @@ func FlowStatsDownload(c *gin.Context) {
 	pointStr := c.DefaultPostForm("point", "0")                      // 小数点
 	country := c.DefaultPostForm("country", "")                      // 国家
 	siteUrl := c.DefaultPostForm("site_url", "")                     // 访问地址
-	flowUseType := c.DefaultPostForm("flow_use_type", "-1")          // 流量使用类型，仅flowtype =1时有效
+	flowUseType := c.DefaultPostForm("flow_use_type", "")            // 流量使用类型，仅flowtype =1时有效
 	if flow_unit == "" {
 		flow_unit = "GB"
 	}
