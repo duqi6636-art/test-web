@@ -734,14 +734,21 @@ func ExistWhiteList(c *gin.Context) {
 	uid := user.Id
 	// IP信息
 	ip := c.ClientIP()
-	hasIp := 0
-	has, err := models.GetFlowApiWhiteByUidIp(uid, ip, 1)
-	if err == nil && has.Id > 0 {
-		hasIp = 1
+	countryHasIp := 0
+	cityHasIp := 0
+	countryHas, err := models.GetFlowApiWhiteByUidIp(uid, ip, 1)
+	if err == nil && countryHas.Id > 0 {
+		countryHasIp = 1
+	}
+
+	cityHas, err := models.GetWhiteByUidIp(uid, ip, 1)
+	if err == nil && cityHas.Id > 0 {
+		countryHasIp = 1
 	}
 	data := map[string]interface{}{
-		"ip":     ip,
-		"has_ip": hasIp,
+		"ip":             ip,
+		"country_has_ip": countryHasIp,
+		"city_has_ip":    cityHasIp,
 	}
 	JsonReturn(c, 0, "__T_SUCCESS", data)
 	return

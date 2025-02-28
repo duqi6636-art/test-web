@@ -67,6 +67,13 @@ func IpWhitelists(c *gin.Context) {
 	}
 	status := util.StoI(statusStr)
 
+	// 如果是主账号添加 修改为0
+	accountId := util.StoI(accountIdStr)
+	accountInfo, _ := models.GetUserAccountById(accountId)
+	if accountInfo.Master == 1 {
+		accountId = 0
+	}
+
 	if uid > 0 {
 		regionList := models.GetAllCountryV2("")
 		regionMap := map[string]models.ExtractCountry{}
@@ -74,7 +81,6 @@ func IpWhitelists(c *gin.Context) {
 		for _, val := range regionList {
 			regionMap[val.Country] = val
 		}
-		accountId := util.StoI(accountIdStr)
 		lists := models.GetWhitelistIpsByUid(uid, accountId, flowType, search, status, start, end)
 		for _, val := range lists {
 			minutes := "Random"
