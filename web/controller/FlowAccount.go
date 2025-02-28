@@ -527,7 +527,7 @@ func GetFlowStats(c *gin.Context) {
 	country := c.DefaultPostForm("country", "")                       // 国家
 	accountStr := strings.TrimSpace(c.DefaultPostForm("account", "")) // 子账号名称
 	siteUrl := c.DefaultPostForm("site_url", "")                      // 访问地址
-	flowUseType := c.DefaultPostForm("flow_use_type", "-1")           // 流量使用类型，仅flowtype =1时有效
+	flowUseType := c.DefaultPostForm("flow_use_type", "")             // 流量使用类型，仅flowtype =1时有效
 	if flow_unit == "" {
 		flow_unit = "GB"
 	}
