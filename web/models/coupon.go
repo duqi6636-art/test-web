@@ -4,30 +4,31 @@ import (
 	"api-360proxy/web/pkg/util"
 	"time"
 )
+
 type Coupon struct {
-	Id           int     `json:"id"`
-	Code         string  `json:"code"`
-	Name         string  `json:"name"`
-	Title        string  `json:"title"`
-	Type         string  `json:"type"`       // "1" => "减价格", "2" => "加（IP/流量）", "3" => "折扣-减价格", "4" => "折扣-加（IP/流量）"
-	Value float64 `json:"value" gorm:"value"` // 优惠金额/折扣比例/增加余额 折扣或折现值
-	Number int `json:"number" gorm:"number"` // 发放数
-	Cate string `json:"cate" gorm:"cate"` // 类型
-	UserType string `json:"user_type" gorm:"user_type"` // 用户类型 payed 已付费 no_pay 未付费 agent 代理商
-	Status int `json:"status" gorm:"status"` // 状态:1生效 2过期
-	UseType int `json:"use_type" gorm:"use_type"` // 使用类型 1单次使用(单个券应单个用户使用)  2重复使用(单个券对应多个用户)
-	Meals string `json:"meals" gorm:"meals"` // 绑定套餐id
-	ExpiryDay int `json:"expiry_day" gorm:"expiry_day"` // 过期时间(领取的时间戳+ 这个天数)
-	UseCycle int `json:"use_cycle" gorm:"use_cycle"` // 可用周期 1终身  30一月 90一季 180 半年 360一年
-	UseNumber int `json:"use_number" gorm:"use_number"` // 可用次数
-	Platform int `json:"platform" gorm:"platform"` // 平台ID
-	GroupId int `json:"group_id" gorm:"group_id"` // 分组ID
-	Remark string `json:"remark" gorm:"remark"` // 备注
-	Admin string `json:"admin" gorm:"admin"` // 创建人
-	CreateTime int `json:"create_time" gorm:"create_time"` // 创建时间
-	UsedNum int `json:"used_num" gorm:"used_num"` // 使用数量
-	LastTime int `json:"last_time" gorm:"last_time"` // 上次统计时间
-	Cron string `json:"cron" gorm:"cron"` // 角标
+	Id         int     `json:"id"`
+	Code       string  `json:"code"`
+	Name       string  `json:"name"`
+	Title      string  `json:"title"`
+	Type       string  `json:"type"`                           // "1" => "减价格", "2" => "加（IP/流量）", "3" => "折扣-减价格", "4" => "折扣-加（IP/流量）"
+	Value      float64 `json:"value" gorm:"value"`             // 优惠金额/折扣比例/增加余额 折扣或折现值
+	Number     int     `json:"number" gorm:"number"`           // 发放数
+	Cate       string  `json:"cate" gorm:"cate"`               // 类型
+	UserType   string  `json:"user_type" gorm:"user_type"`     // 用户类型 payed 已付费 no_pay 未付费 agent 代理商
+	Status     int     `json:"status" gorm:"status"`           // 状态:1生效 2过期
+	UseType    int     `json:"use_type" gorm:"use_type"`       // 使用类型 1单次使用(单个券应单个用户使用)  2重复使用(单个券对应多个用户)
+	Meals      string  `json:"meals" gorm:"meals"`             // 绑定套餐id
+	ExpiryDay  int     `json:"expiry_day" gorm:"expiry_day"`   // 过期时间(领取的时间戳+ 这个天数)
+	UseCycle   int     `json:"use_cycle" gorm:"use_cycle"`     // 可用周期 1终身  30一月 90一季 180 半年 360一年
+	UseNumber  int     `json:"use_number" gorm:"use_number"`   // 可用次数
+	Platform   int     `json:"platform" gorm:"platform"`       // 平台ID
+	GroupId    int     `json:"group_id" gorm:"group_id"`       // 分组ID
+	Remark     string  `json:"remark" gorm:"remark"`           // 备注
+	Admin      string  `json:"admin" gorm:"admin"`             // 创建人
+	CreateTime int     `json:"create_time" gorm:"create_time"` // 创建时间
+	UsedNum    int     `json:"used_num" gorm:"used_num"`       // 使用数量
+	LastTime   int     `json:"last_time" gorm:"last_time"`     // 上次统计时间
+	Cron       string  `json:"cron" gorm:"cron"`               // 角标
 }
 type CouponList struct {
 	Id           int     `json:"id"`
@@ -51,10 +52,10 @@ type CouponList struct {
 	Platform     int     `json:"platform"` //平台ID
 	GroupId      int     `json:"group_id"` //分组ID
 	CreateTime   int     `json:"create_time"`
-	Cron         string  `json:"cron"` // 角标
-	Cate         string  `json:"cate"` // 类型
-	Condition  string   `json:"condition"`   // 标题文案描述
-	PayType    string `json:"pay_type"`    // 支付类型
+	Cron         string  `json:"cron"`      // 角标
+	Cate         string  `json:"cate"`      // 类型
+	Condition    string  `json:"condition"` // 标题文案描述
+	PayType      string  `json:"pay_type"`  // 支付类型
 }
 
 type ResCouponList struct {
@@ -144,7 +145,6 @@ func GetCouponListByUserType(uid int, userType string) (err error, num int) {
 	return
 }
 
-
 // 获取 自动发放的券
 func GetCouponListByCate(uid int, cate string) (info []CouponList) {
 	dbs := db.Table(couponListTable).Where("cate=?", cate).Where("bind_uid = ?", uid)
@@ -210,7 +210,6 @@ func GetAvailableCouponListByUid(uid int) (err error, info []CouponList) {
 	return
 }
 
-
 // 更新信息
 func EditCouponByCode(code string, data map[string]interface{}) bool {
 	err := db.Table(couponListTable).Where("code = ?", code).Updates(data).Error
@@ -233,9 +232,16 @@ func GetCouponByUse(cid, uid, useCycle int) (err error, info []CouponList) {
 }
 
 // 获取 根据cid获取 cdk
-func GetCouponByCid(uid, cid int) (err error, info CouponList) {
+func GetCouponByCid(uid, cid int) (info CouponList) {
 	dbt := db.Table(couponListTable).Where("bind_uid = ?", uid).Where("cid = ?", cid)
-	err = dbt.Where("status = ?", 1).First(&info).Error
+	dbt.Where("status = ?", 1).First(&info)
+	return
+}
+
+// 获取 根据cid获取 cdk
+func GetCouponByCidCount(uid, cid int) (info []CouponList) {
+	dbt := db.Table(couponListTable).Where("bind_uid = ?", uid).Where("cid = ?", cid)
+	dbt.Where("status = ?", 1).Find(&info)
 	return
 }
 
@@ -255,7 +261,7 @@ func GetClickLog(uid int) (info CouponPopupClick) {
 	return
 }
 
-func AddPopupClickLog(uid int, username, email, code, userIp string,nowTime int) (err error) {
+func AddPopupClickLog(uid int, username, email, code, userIp string, nowTime int) (err error) {
 	log := CouponPopupClick{
 		Uid:        uid,
 		Username:   username,
@@ -273,7 +279,7 @@ func AddPopupClickLog(uid int, username, email, code, userIp string,nowTime int)
 	return
 }
 
-//创建表
+// 创建表
 func createClickLogLogTable(tableName string) {
 	createTables := `CREATE TABLE ` + tableName + `(
 		id int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
