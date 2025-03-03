@@ -17,6 +17,7 @@ func init() {
 	setting.Setup()
 	models.Setup()
 	models.StatisticsDbSetup()
+	//初始化clickhouse数据库
 	clickhousedb.InitClickhouseDb()
 	models.CreateDatabaseTables()
 }

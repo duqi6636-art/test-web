@@ -522,8 +522,12 @@ func GetFlowStats(c *gin.Context) {
 	uid := user.Id
 	start_date := c.DefaultPostForm("start_date", "")
 	end_date := c.DefaultPostForm("end_date", "")
-	websiteStr := strings.TrimSpace(c.DefaultPostForm("url", "")) // 站点地址  多选 ，以逗号分隔
-	flow_unit := c.DefaultPostForm("flow_unit", "GB")             // 站点地址
+	websiteStr := strings.TrimSpace(c.DefaultPostForm("url", ""))     // 站点地址  多选 ，以逗号分隔
+	flow_unit := c.DefaultPostForm("flow_unit", "GB")                 // 站点地址
+	country := c.DefaultPostForm("country", "")                       // 国家
+	accountStr := strings.TrimSpace(c.DefaultPostForm("account", "")) // 子账号名称
+	siteUrl := c.DefaultPostForm("site_url", "")                      // 访问地址
+	flowUseType := c.DefaultPostForm("flow_use_type", "")             // 流量使用类型，仅flowtype =1时有效
 	if flow_unit == "" {
 		flow_unit = "GB"
 	}
@@ -557,16 +561,25 @@ func GetFlowStats(c *gin.Context) {
 			x_data = append(x_data, dayStr)
 		}
 	}
+	accountId := 0
+	if accountStr != "" {
+		err, userAccount := models.GetUserAccount(uid, accountStr)
+		if err == nil && userAccount.Id > 0 {
+			accountId = userAccount.Id
+		}
+	}
 	websiteArr := strings.Split(websiteStr, ",")
 	//list := models.GetUrlUsed(uid, website, start, end)
-	list := []models.StUrlToday{}
-	if flowType == 3 {
-		list = models.GetDynamicUrlUsed(uid, 0, start, end)
-	} else if flowType == 1 {
-		list = models.GetUrlUsed(uid, 0, start, end)
-	} else {
+	list := []models.StAddressToday{}
+	if flowType == 1 {
+		//list = models.GetUrlUsed(uid, 0, start, end)
+		list = models.GetFlowUsedStat(uid, accountId, start, end, country, siteUrl, flowUseType)
+	} else if flowType == 2 {
 		//list = models.GetUnlimitedUrlUsed(uid, 0, start, end)
 		list = models.GetFlowDayUsedStat(uid, 0, start, end)
+	} else if flowType == 3 {
+		//list = models.GetDynamicUrlUsed(uid, 0, start, end)
+		list = models.GetIspFlowUsedStat(uid, accountId, start, end, country, siteUrl)
 	}
 
 	var cateName []string
@@ -575,9 +588,9 @@ func GetFlowStats(c *gin.Context) {
 	}
 
 	kvInfo := map[string]int64{}
-	cateInfo := map[string][]models.StUrlToday{}
+	cateInfo := map[string][]models.StAddressToday{}
 	for _, vv := range cateName {
-		cateInfo[vv] = []models.StUrlToday{}
+		cateInfo[vv] = []models.StAddressToday{}
 		for _, v := range x_data {
 			kvInfo[v] = 0
 		}
@@ -587,7 +600,7 @@ func GetFlowStats(c *gin.Context) {
 		todays := util.GetTimeStr(v.Today, "Y-m-d")
 		flows := int64(0)
 		if websiteStr != "" {
-			if util.InArrayString(v.Url, websiteArr) {
+			if util.InArrayString(v.Address, websiteArr) {
 				flowNow, ok := kvInfo[todays]
 				if !ok {
 					flowNow = 0
@@ -795,6 +808,9 @@ func FlowStatsDownload(c *gin.Context) {
 	username := strings.TrimSpace(c.DefaultPostForm("username", "")) // 账户名称
 	flow_unit := c.DefaultPostForm("flow_unit", "GB")                // 使用单位
 	pointStr := c.DefaultPostForm("point", "0")                      // 小数点
+	country := c.DefaultPostForm("country", "")                      // 国家
+	siteUrl := c.DefaultPostForm("site_url", "")                     // 访问地址
+	flowUseType := c.DefaultPostForm("flow_use_type", "")            // 流量使用类型，仅flowtype =1时有效
 	if flow_unit == "" {
 		flow_unit = "GB"
 	}
@@ -846,35 +862,28 @@ func FlowStatsDownload(c *gin.Context) {
 	if uid > 0 {
 		csvData := [][]string{}
 		csvData = append(csvData, title)
-		lists := []models.StUrlToday{}
-		if flowType == 3 {
-			lists = models.GetDynamicUrlUsed(uid, accountId, start, end)
-		} else if flowType == 1 {
-			lists = models.GetUrlUsed(uid, accountId, start, end)
-		} else {
-			//lists = models.GetUnlimitedUrlUsed(uid, accountId, start, end)
+		lists := []models.StAddressToday{}
 
+		if flowType == 1 {
+			//list = models.GetUrlUsed(uid, 0, start, end)
+			lists = models.GetFlowUsedStatDown(uid, accountId, start, end, country, siteUrl, flowUseType)
+		} else if flowType == 2 {
+			//list = models.GetUnlimitedUrlUsed(uid, 0, start, end)
 			lists = models.GetFlowDayUsedStat(uid, 0, start, end)
+		} else if flowType == 3 {
+			//list = models.GetDynamicUrlUsed(uid, 0, start, end)
+			lists = models.GetIspFlowUsedStatDown(uid, accountId, start, end, country, siteUrl)
 		}
 		for _, v := range lists {
 			info := []string{}
 			flowsStr := util.FtoS2(math.Round(float64(v.Flows)/float64(flowChar)), point)
 
 			info = append(info, util.GetTimeStr(v.Today, "d-m-Y"))
-			info = append(info, v.Url)
+			info = append(info, v.Address)
 			info = append(info, flowsStr+" "+flow_unit)
 			csvData = append(csvData, info)
 		}
-		listWhite := models.GetUrlWhiteUsed(uid, accountId, start, end)
 
-		for _, v := range listWhite {
-			info := []string{}
-			flowsStr := util.FtoS2(math.Round(float64(v.Flows)/float64(flowChar)), point)
-			info = append(info, util.GetTimeStr(v.Today, "d-m-Y"))
-			info = append(info, v.Url)
-			info = append(info, flowsStr+" "+flow_unit)
-			csvData = append(csvData, info)
-		}
 		err := DownloadCsv(c, "UsedRecord", csvData)
 		fmt.Println(err)
 	}
@@ -904,10 +913,26 @@ func GetUrlStats(c *gin.Context) {
 	uid := user.Id
 	var start int
 	today := util.GetTodayTime()
-	create := today - 10*86400
-	start = create
-	list := models.GetUrlList(uid, start, url)
-	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", list)
+	start = today - 10*86400
+	//list := models.GetUrlList(uid, start, url)
+
+	flow_type := strings.TrimSpace(c.DefaultPostForm("flow_type", "1"))
+	if flow_type == "" {
+		flow_type = "1"
+	}
+	flowType := util.StoI(flow_type)
+	if flowType == 0 {
+		flowType = 1
+	}
+	lists := []models.StUrlLists{}
+	if flowType == 1 {
+		lists = models.GetUrlListStats(uid, start, url)
+	} else if flowType == 2 {
+
+	} else if flowType == 3 {
+		lists = models.GetIspUrlListStats(uid, start, today+86400, url)
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", lists)
 	return
 }
 
@@ -945,7 +970,7 @@ func GetLongIspUrlStats(c *gin.Context) {
 	url := strings.TrimSpace(c.DefaultPostForm("url", ""))
 
 	uid := user.Id
-	list := models.GetLongIspUrlList(uid, start, end, url)
+	list := models.GetIspUrlListStats(uid, start, end, url)
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", list)
 	return
 }

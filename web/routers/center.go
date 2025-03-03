@@ -8,6 +8,10 @@ import (
 func centerRouter(router *gin.Engine) {
 
 	// 购买相关
+	mig := router.Group("/migrate")
+	mig.POST("/flow_day", controller.DealOldUrl) // 获取用户购买记录
+
+	// 购买相关
 	pur := router.Group("/center/purchase")
 	pur.POST("/record", controller.UserOrderListBy) // 获取用户购买记录
 
