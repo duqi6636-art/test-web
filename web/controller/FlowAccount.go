@@ -908,12 +908,24 @@ func GetUrlStats(c *gin.Context) {
 		JsonReturn(c, resCode, msg, nil)
 		return
 	}
+	startDate := c.DefaultPostForm("start_date", "")
+	endDate := c.DefaultPostForm("end_date", "")
+	var start, end int
+	if startDate == "" || endDate == "" {
+		today := util.GetTodayTime()
+		create := today - 10*86400
+		start = create
+		end = today
+	} else {
+		start = util.StoI(util.GetTimeStamp(startDate, "Y-m-d"))
+		end = util.StoI(util.GetTimeStamp(endDate, "Y-m-d"))
+	}
 	url := strings.TrimSpace(c.DefaultPostForm("url", ""))
 
 	uid := user.Id
-	var start int
-	today := util.GetTodayTime()
-	start = today - 10*86400
+	//var start int
+	//today := util.GetTodayTime()
+	//start = today - 10*86400
 	//list := models.GetUrlList(uid, start, url)
 
 	flow_type := strings.TrimSpace(c.DefaultPostForm("flow_type", "1"))
@@ -924,15 +936,21 @@ func GetUrlStats(c *gin.Context) {
 	if flowType == 0 {
 		flowType = 1
 	}
-	lists := []models.StUrlLists{}
+	lists := []models.StAddressLists{}
 	if flowType == 1 {
-		lists = models.GetUrlListStats(uid, start, url)
+		lists = models.GetUrlListStats(uid, start, end, url)
 	} else if flowType == 2 {
 
 	} else if flowType == 3 {
-		lists = models.GetIspUrlListStats(uid, start, today+86400, url)
+		lists = models.GetIspUrlListStats(uid, start, end, url)
 	}
-	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", lists)
+	resLists := []models.StUrlLists{}
+	for _, v := range lists {
+		resInf := models.StUrlLists{}
+		resInf.Url = v.Address
+		resLists = append(resLists, resInf)
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resLists)
 	return
 }
 
