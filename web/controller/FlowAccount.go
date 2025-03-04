@@ -924,7 +924,7 @@ func GetUrlStats(c *gin.Context) {
 	if flowType == 0 {
 		flowType = 1
 	}
-	lists := []models.StUrlLists{}
+	lists := []models.StAddressLists{}
 	if flowType == 1 {
 		lists = models.GetUrlListStats(uid, start, url)
 	} else if flowType == 2 {
@@ -932,7 +932,13 @@ func GetUrlStats(c *gin.Context) {
 	} else if flowType == 3 {
 		lists = models.GetIspUrlListStats(uid, start, today+86400, url)
 	}
-	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", lists)
+	resLists := []models.StUrlLists{}
+	for _, v := range lists {
+		resInf := models.StUrlLists{}
+		resInf.Url = v.Address
+		resLists = append(resLists, resInf)
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resLists)
 	return
 }
 

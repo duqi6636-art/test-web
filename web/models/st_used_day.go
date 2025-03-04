@@ -139,13 +139,18 @@ func GetIspFlowUsedStatDown(uid, accountId int, start, end int, country, address
 	return
 }
 
+// 流量使用
+type StAddressLists struct {
+	Address string `json:"address"`
+}
+
 // 获取 流量使用URL
-func GetUrlListStats(uid int, start int, url string) (list []StUrlLists) {
+func GetUrlListStats(uid int, start int, url string) (list []StAddressLists) {
 	ym := util.GetTimeStr(start, "Ym")
 	tableStr := "st_user_flow_used_" + ym
 	dbs := clickhousedb.ClickhouseDb.
 		Table(tableStr).
-		Select("today,flows").
+		Select("address").
 		Where("uid = ?", uid).
 		Where("today >= ?", start)
 	if url != "" {
@@ -156,12 +161,12 @@ func GetUrlListStats(uid int, start int, url string) (list []StUrlLists) {
 }
 
 // 获取 轮转ISP流量URL
-func GetIspUrlListStats(uid int, start, end int, url string) (list []StUrlLists) {
+func GetIspUrlListStats(uid int, start, end int, url string) (list []StAddressLists) {
 	ym := util.GetTimeStr(start, "Ym")
 	tableStr := "st_user_isp_flow_used_" + ym
 	dbs := clickhousedb.ClickhouseDb.
 		Table(tableStr).
-		Select("today,flows").
+		Select("address").
 		Where("uid = ?", uid).
 		Where("today >= ? and today <= ?", start, end)
 	if url != "" {
