@@ -145,14 +145,14 @@ type StAddressLists struct {
 }
 
 // 获取 流量使用URL
-func GetUrlListStats(uid int, start int, url string) (list []StAddressLists) {
+func GetUrlListStats(uid int, start, end int, url string) (list []StAddressLists) {
 	ym := util.GetTimeStr(start, "Ym")
 	tableStr := "st_user_flow_used_" + ym
 	dbs := clickhousedb.ClickhouseDb.
 		Table(tableStr).
 		Select("address").
 		Where("uid = ?", uid).
-		Where("today >= ?", start)
+		Where("today >= ? and today <= ?", start, end)
 	if url != "" {
 		dbs = dbs.Where("address like ?", "%"+url+"%")
 	}
