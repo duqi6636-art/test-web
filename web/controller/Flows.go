@@ -92,7 +92,7 @@ func GetUserAccountAllList(c *gin.Context) {
 		info.Status = v.Status
 		info.Remark = v.Remark
 		info.Percent = percent
-		info.CreateTime = Time2DateEn(v.CreateTime)
+		info.CreateTime = util.GetTimeStr(v.CreateTime, "d-m-Y")
 		if status == 10 {
 			data = append(data, info)
 		} else {
@@ -168,7 +168,7 @@ func GetUserAccountAllListDownload(c *gin.Context) {
 		info = append(info, useFlow+v.FlowUnit)
 		info = append(info, util.ItoS(limitFlow)+v.FlowUnit)
 		info = append(info, v.Remark)
-		info = append(info, Time2DateEn(v.CreateTime))
+		info = append(info, util.GetTimeStr(v.CreateTime, "d-m-Y"))
 		csvData = append(csvData, info)
 	}
 	err := DownloadCsv(c, "Account Information", csvData)
@@ -198,10 +198,15 @@ func GetUserAccountListAvailable(c *gin.Context) {
 	data := []models.UserAccountPass{}
 	for _, v := range accountLists {
 		info := models.UserAccountPass{}
+		if v.Master == 1 {
+			flowsInfo := models.GetUserFlowInfo(v.Uid)
+			info.Flows = flowsInfo.Flows
+		} else {
+			info.Flows = v.Flows
+		}
 		info.AccountId = v.Id
 		info.Account = v.Account
 		info.Password = v.Password
-		info.Flows = v.Flows
 		data = append(data, info)
 	}
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", data)
@@ -275,7 +280,7 @@ func GetUserAccountList(c *gin.Context) {
 		info.Status = v.Status
 		info.Remark = v.Remark
 		info.Percent = percent
-		info.CreateTime = Time2DateEn(v.CreateTime)
+		info.CreateTime = util.GetTimeStr(v.CreateTime, "d-m-Y")
 		if status == 10 {
 			data = append(data, info)
 		} else {

@@ -105,6 +105,12 @@ func DeleteUserWhitelist(id int) (err error) {
 	return err
 }
 
+// 获取信息 By Uid WhitelistIp
+func GetWhiteByUidIp(uid int, ip string, cate int) (info MdUserWhitelistApi, err error) {
+	err = db.Table("cm_user_whitelist_ip").Where("uid =?", uid).Where("whitelist_ip =?", ip).Where("flow_type =?", cate).Where("status >?", 0).First(&info).Error
+	return
+}
+
 // API -提取流量API白名单
 type MdUserWhitelistApi struct {
 	Id          int    `json:"id"`
