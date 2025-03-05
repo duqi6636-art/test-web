@@ -355,12 +355,12 @@ func AddUserFlowAccount(c *gin.Context) {
 		return
 	}
 	if flowStr == "" {
-		JsonReturn(c, e.ERROR, "__T_FLOW_NUMBER", nil)
+		JsonReturn(c, e.ERROR, "__T_FLOW_NUMBER_ERROR", nil)
 		return
 	}
 	limitFlows := int64(util.StoI(flowStr))
 	if limitFlows <= 0 {
-		JsonReturn(c, e.ERROR, "__T_FLOW_NUMBER", nil)
+		JsonReturn(c, e.ERROR, "__T_FLOW_NUMBER_ERROR", nil)
 		return
 	}
 	if flowUnit == "" {
