@@ -87,9 +87,10 @@ func WebReg(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "__T_TWO_PWD_NOT_MATCH", map[string]string{"class_id": "passwordRepeat"})
 		return
 	}
-	// 滑块验证 -- start
-	captchaSwitch := strings.TrimSpace(models.GetConfigVal("CaptchaRegisterSwitch")) // 滑块验证注册开关
-	if captchaSwitch == "1" {
+	// 注册验证 -- start
+	captchaSwitch := strings.TrimSpace(models.GetConfigVal("CaptchaRegisterSwitch")) // 滑块验证注册开关 由原来的开关变成 类型配置  1 滑块验证  2 google人机验证
+
+	if captchaSwitch == "1" { // 滑块验证
 		ticket := c.DefaultPostForm("ticket", "")
 		randStr := c.DefaultPostForm("randstr", "")
 		if ticket == "" || randStr == "" {
@@ -103,7 +104,20 @@ func WebReg(c *gin.Context) {
 			return
 		}
 	}
-	// 滑块验证 -- end
+
+	if captchaSwitch == "2" { //google 人机验证
+		googleResponse := c.DefaultPostForm("google_robot_response", "")
+		if googleResponse == "" {
+			JsonReturn(c, e.ERROR, "__T_CAPTCHA_FAIL", nil)
+			return
+		}
+		authRes, authMsg := CheckGoogleRecaptcha(c, googleResponse)
+		if authRes == false {
+			JsonReturn(c, e.ERROR, authMsg, nil)
+			return
+		}
+	}
+	// 注册验证 -- end
 
 	// ----------------- 注册限制频率 start -----------------
 	resReg, salt, msgStr := DealLimitReg(c, email, ip, saltStr)
