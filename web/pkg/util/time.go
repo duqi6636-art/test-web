@@ -87,13 +87,13 @@ func GetTimeStr(t int, formate string) string {
 		formateStr = "2006-01-02 15:04:05"
 	}
 	if formate == "d-m-Y" {
-		formateStr = "2-01-2006"
+		formateStr = "02-01-2006"
 	}
 	if formate == "d-m-Y H:i:s" {
-		formateStr = "2-01-2006 15:04:05"
+		formateStr = "02-01-2006 15:04:05"
 	}
 	if formate == "d-m-Y H:i" {
-		formateStr = "2-01-2006 15:04"
+		formateStr = "02-01-2006 15:04"
 	}
 	if t > 0 {
 		now_time = time.Unix(int64(t), 0)
