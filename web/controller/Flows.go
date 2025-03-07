@@ -26,6 +26,8 @@ import (
 func GetUserAccountAllList(c *gin.Context) {
 	username := strings.TrimSpace(c.DefaultPostForm("username", "")) // 用户名
 	statusStr := c.DefaultPostForm("status", "")
+	startDate := c.DefaultPostForm("start_date", "")
+	endDate := c.DefaultPostForm("end_date", "")
 	if statusStr == "" {
 		statusStr = "10"
 	}
@@ -37,7 +39,17 @@ func GetUserAccountAllList(c *gin.Context) {
 		return
 	}
 	uid := userInfo.Id
-	_, accountLists := models.GetUserAccountAllList(uid, username)
+
+	start := 0
+	end := 0
+	if startDate != "" {
+		start = util.StoI(util.GetTimeStamp(startDate, "Y-m-d"))
+	}
+	if endDate != "" {
+		end = util.StoI(util.GetTimeStamp(endDate, "Y-m-d")) + 86399
+	}
+
+	_, accountLists := models.GetUserAccountAllList(uid, username, start, end)
 
 	total := len(accountLists)
 	enabled := 0
@@ -80,7 +92,7 @@ func GetUserAccountAllList(c *gin.Context) {
 		info.Status = v.Status
 		info.Remark = v.Remark
 		info.Percent = percent
-		info.CreateTime = Time2DateEn(v.CreateTime)
+		info.CreateTime = util.GetTimeStr(v.CreateTime, "d-m-Y")
 		if status == 10 {
 			data = append(data, info)
 		} else {
@@ -96,6 +108,108 @@ func GetUserAccountAllList(c *gin.Context) {
 	resData["warning"] = warning
 	resData["lists"] = data
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resData)
+	return
+}
+
+// 获取所有账户列表
+// @BasePath /api/v1
+// @Summary 获取所有账户列表
+// @Description 获取所有账户列表
+// @Tags 个人中心 - 流量帐密子账号
+// @Accept x-www-form-urlencoded
+// @Param session formData string true "用户登录信息"
+// @Param username formData string true "用户名"
+// @Param status formData string true "状态"
+// @Produce json
+// @Success 0 {object} map[string]interface{} "total:总数,enabled:启用,disabled:禁用,warning:流量警告,lists:列表（值为[]models.ResUserAccount{}模型）"
+// @Router /web/account/all_lists [post]
+func GetUserAccountAllListDownload(c *gin.Context) {
+	username := strings.TrimSpace(c.DefaultPostForm("username", "")) // 用户名
+	statusStr := c.DefaultPostForm("status", "")
+	startDate := c.DefaultPostForm("start_date", "")
+	endDate := c.DefaultPostForm("end_date", "")
+	if statusStr == "" {
+		statusStr = "10"
+	}
+	resCode, msg, userInfo := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := userInfo.Id
+
+	start := 0
+	end := 0
+	if startDate != "" {
+		start = util.StoI(util.GetTimeStamp(startDate, "Y-m-d"))
+	}
+	if endDate != "" {
+		end = util.StoI(util.GetTimeStamp(endDate, "Y-m-d")) + 86399
+	}
+	_, accountLists := models.GetUserAccountAllList(uid, username, start, end)
+	csvData := [][]string{}
+	title := []string{"Username", "Password", "Traffic Used", "Traffic Limit", "Remark", "Create Time"}
+	csvData = append(csvData, title)
+	for _, v := range accountLists {
+		flowChar := int64(1024 * 1024 * 1024)
+		if v.FlowUnit == "MB" {
+			flowChar = 1024 * 1024
+		}
+		limitFlowB := v.LimitFlow
+		useFlowB := limitFlowB - v.Flows
+		if useFlowB < 0 {
+			useFlowB = limitFlowB
+		}
+		useFlow := fmt.Sprintf("%.2f", float64(useFlowB)/float64(flowChar)) //已使用列表
+		limitFlow := int(limitFlowB / flowChar)
+		info := []string{}
+		info = append(info, v.Account)
+		info = append(info, v.Password)
+		info = append(info, useFlow+v.FlowUnit)
+		info = append(info, util.ItoS(limitFlow)+v.FlowUnit)
+		info = append(info, v.Remark)
+		info = append(info, util.GetTimeStr(v.CreateTime, "d-m-Y"))
+		csvData = append(csvData, info)
+	}
+	err := DownloadCsv(c, "Account Information", csvData)
+	fmt.Println(err)
+	return
+}
+
+// 获取所有当前可用账户列表
+// @BasePath /api/v1
+// @Summary 获取所有账户列表
+// @Description 获取所有账户列表
+// @Tags 个人中心 - 流量帐密子账号
+// @Accept x-www-form-urlencoded
+// @Param session formData string true "用户登录信息"
+// @Produce json
+// @Success 0 {object} map[string]interface{} "
+// @Router /web/account/lists_available [post]
+func GetUserAccountListAvailable(c *gin.Context) {
+	resCode, msg, userInfo := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := userInfo.Id
+	_, accountLists := models.GetUserAvailableAccount(uid)
+
+	data := []models.UserAccountPass{}
+	for _, v := range accountLists {
+		info := models.UserAccountPass{}
+		if v.Master == 1 {
+			flowsInfo := models.GetUserFlowInfo(v.Uid)
+			info.Flows = flowsInfo.Flows
+		} else {
+			info.Flows = v.Flows
+		}
+		info.AccountId = v.Id
+		info.Account = v.Account
+		info.Password = v.Password
+		data = append(data, info)
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", data)
 	return
 }
 
@@ -166,7 +280,7 @@ func GetUserAccountList(c *gin.Context) {
 		info.Status = v.Status
 		info.Remark = v.Remark
 		info.Percent = percent
-		info.CreateTime = Time2DateEn(v.CreateTime)
+		info.CreateTime = util.GetTimeStr(v.CreateTime, "d-m-Y")
 		if status == 10 {
 			data = append(data, info)
 		} else {
@@ -241,12 +355,12 @@ func AddUserFlowAccount(c *gin.Context) {
 		return
 	}
 	if flowStr == "" {
-		JsonReturn(c, e.ERROR, "__T_FLOW_NUMBER", nil)
+		JsonReturn(c, e.ERROR, "__T_FLOW_NUMBER_ERROR", nil)
 		return
 	}
 	limitFlows := int64(util.StoI(flowStr))
 	if limitFlows <= 0 {
-		JsonReturn(c, e.ERROR, "__T_FLOW_NUMBER", nil)
+		JsonReturn(c, e.ERROR, "__T_FLOW_NUMBER_ERROR", nil)
 		return
 	}
 	if flowUnit == "" {
@@ -361,7 +475,6 @@ func AddUserFlowAccount(c *gin.Context) {
 
 		models.UpdateUserAccountById(accountInfo.Id, upMap) //更新子账号信息
 
-
 		// 异步处理流量
 		dealInfo.Cate = "edit"
 		dealInfo.Uid = uid
@@ -393,7 +506,6 @@ func AddUserFlowAccount(c *gin.Context) {
 		fmt.Println(err, accId)
 		dealInfo.AccountId = accId
 
-
 		// 异步处理流量
 		dealInfo.Cate = "add"
 		dealInfo.Uid = uid
@@ -410,6 +522,90 @@ func AddUserFlowAccount(c *gin.Context) {
 	fmt.Println(resP)
 
 	JsonReturn(c, e.SUCCESS, "__T_EDIT_SUCCESS", nil)
+	return
+}
+
+// 添加/编辑 流量账号子账户
+// @BasePath /api/v1
+// @Summary 修改账号名称及密码
+// @Description 修改账号名称及密码
+// @Tags 个人中心 - 修改账号名称及密码
+// @Accept x-www-form-urlencoded
+// @Param session formData string true "用户登录信息"
+// @Param account_id formData string true "帐密ID"
+// @Param username formData string true "用户名"
+// @Param password formData string true "密码"
+// @Produce json
+// @Success 0 {object} interface{}
+// @Router /web/account/set_pass [post]
+func SetUserAccountPass(c *gin.Context) {
+	accountId := com.StrTo(c.DefaultPostForm("account_id", "0")).MustInt() // 帐密ID
+	username := strings.TrimSpace(c.DefaultPostForm("username", ""))       // 用户名
+	password := strings.TrimSpace(c.DefaultPostForm("password", ""))       // 密码
+
+	resCode, msg, userInfo := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := userInfo.Id
+	if username == "" {
+		JsonReturn(c, e.ERROR, "__T_USERNAME_ERROR", nil)
+		return
+	}
+	if password == "" {
+		JsonReturn(c, e.ERROR, "__T_PASSWORD_ERROR", nil)
+		return
+	}
+	//账户密码不能一样
+	if username == password {
+		JsonReturn(c, e.ERROR, "__T_USERNAME_PASSWORD_SAME", nil)
+		return
+	}
+	if !util.CheckUserAccount(username) {
+		JsonReturn(c, e.ERROR, "__T_ACCOUNT_USERNAME_ERROR", nil)
+		return
+	}
+	if !util.CheckUserPassword(password) {
+		JsonReturn(c, e.ERROR, "__T_ACCOUNT_PASSWORD_ERROR", nil)
+		return
+	}
+	accountInfo := models.UserAccount{}
+	if accountId > 0 {
+		accountInfo, _ = models.GetUserAccountById(accountId)
+		if accountInfo.Uid != uid {
+			JsonReturn(c, e.ERROR, "__T_USER_INFO_ERROR", nil)
+			return
+		}
+		var hasAccount models.UserAccount
+		_, hasAccount = models.GetUserAccountNeqId(accountId, username)
+
+		if hasAccount.Id != 0 {
+			JsonReturn(c, e.ERROR, "__T_ACCOUNT_USERNAME_EXIST", nil)
+			return
+		}
+		// 不能使用历史密码
+		if accountInfo.Password != password {
+			historyPasswordArr := models.GetHistoryPasswordArr(uid)
+			fmt.Println("historyPasswordArr", historyPasswordArr)
+			if util.InArray(password, historyPasswordArr) {
+				JsonReturn(c, e.ERROR, "__T_PASSWORD_HISTORY_ERROR", nil)
+				return
+			}
+		}
+		upMap := map[string]interface{}{}
+		upMap["account"] = username
+		upMap["password"] = password
+
+		models.UpdateUserAccountById(accountInfo.Id, upMap) //更新子账号信息
+		//写入历史密码
+		if accountInfo.Password != password {
+			models.AddHistoryPassword(uid, accountInfo.Password, accountInfo.Id)
+		}
+		JsonReturn(c, e.SUCCESS, "__T_EDIT_SUCCESS", nil)
+		return
+	}
+	JsonReturn(c, e.ERROR, "__T_FAIL", nil)
 	return
 }
 

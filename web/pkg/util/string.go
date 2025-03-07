@@ -13,13 +13,13 @@ func Split(str, sep string) []string {
 	return strings.Split(str, sep)
 }
 
-//手机号加*
+// 手机号加*
 func PhoneFmt(phone string) string {
 	slice := []byte(phone)
 	return string(slice[0:3]) + "****" + string(slice[7:])
 }
 
-//去除字符串两端空格
+// 去除字符串两端空格
 func Trim(str string) string {
 	return strings.Trim(str, " ")
 }
@@ -29,7 +29,7 @@ func StrContain(target, char string) bool {
 	return strings.Contains(target, char)
 }
 
-//检查字符串切片是否包含某个值
+// 检查字符串切片是否包含某个值
 func InArrayString(elem string, list []string) bool {
 	for _, val := range list {
 		if val == elem {
@@ -39,7 +39,7 @@ func InArrayString(elem string, list []string) bool {
 	return false
 }
 
-//检查字符串切片是否包含某个值
+// 检查字符串切片是否包含某个值
 func InArrayInt(elem int, list []int) bool {
 	for _, val := range list {
 		if val == elem {
@@ -49,7 +49,7 @@ func InArrayInt(elem int, list []int) bool {
 	return false
 }
 
-//获取全局唯一order_id
+// 获取全局唯一order_id
 func GetOrderId() string {
 	formatLayout := "20060102150405"
 	orderNo := time.Now().Format(formatLayout)
@@ -64,13 +64,12 @@ func Sif(condition bool, trueVal, falseVal string) string {
 	return falseVal
 }
 
-func IfInt(condition bool, falseVal,trueVal int) int {
+func IfInt(condition bool, falseVal, trueVal int) int {
 	if condition {
 		return trueVal
 	}
 	return falseVal
 }
-
 
 func StoF(s string) float64 {
 	v, err := strconv.ParseFloat(s, 64)
@@ -86,7 +85,7 @@ func FtoS(s float64) string {
 	return str
 }
 
-func FtoS2(s float64,num int) string {
+func FtoS2(s float64, num int) string {
 	str := ""
 	str = strconv.FormatFloat(s, 'f', num, 64)
 	return str
@@ -104,7 +103,7 @@ func StoI(s string) int {
 	return 0
 }
 
-//去除字符串中的html标签
+// 去除字符串中的html标签
 func TrimHtml(src string) string {
 	//将HTML标签全转换成小写
 	re, _ := regexp.Compile("\\<[\\S\\s]+?\\>")
@@ -130,4 +129,11 @@ func Mif(condition bool, trueVal, falseVal string) string {
 		return trueVal
 	}
 	return falseVal
+}
+
+func RemoveParentheses(s string) string {
+	// 定义正则表达式模式，用于匹配括号及其内部的内容
+	re := regexp.MustCompile(`\([^)]*\)`)
+	// 使用空字符串替换匹配到的内容
+	return strings.TrimSpace(re.ReplaceAllString(s, ""))
 }

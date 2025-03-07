@@ -1,5 +1,7 @@
 package models
 
+import "api-360proxy/web/pkg/util"
+
 type CmUserWhitelistIp struct {
 	Id          int    `json:"id"`
 	Uid         int    `json:"uid"`          // 用户ID
@@ -8,6 +10,8 @@ type CmUserWhitelistIp struct {
 	WhitelistIp string `json:"whitelist_ip"` // IP
 	Country     string `json:"country"`      // 用户地区-国家
 	City        string `json:"city"`         // 用户地区-城市
+	State       string `json:"state"`        // 用户地区-州省
+	Asn         string `json:"asn"`          // 运营商ASN
 	Minutes     int    `json:"minutes"`      // 粘性IP轮转时长
 	Hostname    string `json:"hostname"`     // hostname:port
 	Status      int    `json:"status"`       // 状态 1 正常 -1删除
@@ -24,13 +28,16 @@ type ResUserWhitelistIp struct {
 	Name        string `json:"name"`         // 用户地区-国家名称
 	Img         string `json:"img"`          // 用户地区-国家图片
 	City        string `json:"city"`         // 用户地区-城市
+	State       string `json:"state"`        // 用户地区-州省
+	Asn         string `json:"asn"`          // 运营商ASN
 	Hostname    string `json:"hostname"`     // hostname:port
+	HostValue   string `json:"host_value"`   // hostname:port
 	Cate        int    `json:"cate"`         // 类型 1 sticky ip  2 random IP
 	FlowType    int    `json:"flow_type"`    // 状态 1 普通流量  2不限量流量
 	Minute      int    `json:"minute"`       // 粘性IP轮转时长
 	Minutes     string `json:"minutes"`      // 粘性IP轮转时长 字符串 拼好的
 	Remark      string `json:"remark"`       // 备注
-	Configs     string `json:"configs"`      // 配置
+	Status      string `json:"status"`       // 备注
 	CreateTime  string `json:"create_time"`  // 更新时间
 }
 
@@ -51,10 +58,25 @@ func GetWhitelistIpsPageByUid(uid, accountId int, search string, offset, limit i
 }
 
 // 获取列表 By WhitelistIp
-func GetWhitelistIpsByUid(uid, accountId, flowType int, search string) (info []CmUserWhitelistIp) {
-	dbs := db.Table("cm_user_whitelist_ip").Where("uid =?", uid).Where("account_id =?", accountId).Where("flow_type =?", flowType).Where("status =?", 1)
+func GetWhitelistIpsByUid(uid, accountId, flowType int, search string, status int, startTime, endTime int) (info []CmUserWhitelistIp) {
+	dbs := db.Table("cm_user_whitelist_ip").
+		Where("uid =?", uid).
+		Where("account_id =?", accountId).
+		Where("flow_type =?", flowType).
+		Where("status =?", 1)
 	if search != "" {
 		dbs = dbs.Where("whitelist_ip like ? or country =? or city =?", "%"+search+"%", search, search)
+	}
+	if status > 0 {
+		dbs = dbs.Where("status =?", status)
+	} else {
+		dbs = dbs.Where("status >?", 0)
+	}
+	if startTime > 0 {
+		dbs = dbs.Where("create_time >= ?", startTime)
+	}
+	if endTime > 86400 {
+		dbs = dbs.Where("create_time <= ?", endTime)
 	}
 	dbs = dbs.Order("id desc").Find(&info)
 	return
@@ -83,12 +105,19 @@ func DeleteUserWhitelist(id int) (err error) {
 	return err
 }
 
+// 获取信息 By Uid WhitelistIp
+func GetWhiteByUidIp(uid int, ip string, cate int) (info MdUserWhitelistApi, err error) {
+	err = db.Table("cm_user_whitelist_ip").Where("uid =?", uid).Where("whitelist_ip =?", ip).Where("flow_type =?", cate).Where("status >?", 0).First(&info).Error
+	return
+}
+
 // API -提取流量API白名单
 type MdUserWhitelistApi struct {
 	Id          int    `json:"id"`
 	Uid         int    `json:"uid"`          // 用户ID
 	Username    string `json:"username"`     // 用户名
 	WhitelistIp string `json:"whitelist_ip"` // IP
+	Country     string `json:"country"`      // 国家
 	Status      int    `json:"status"`       // 状态 1 正常 -1删除
 	FlowType    int    `json:"flow_type"`    // 状态 1 普通流量  2不限量流量
 	Remark      string `json:"remark"`       // 备注
@@ -119,7 +148,7 @@ func AddFlowApiWhite(info MdUserWhitelistApi) (err error) {
 }
 
 // 获取列表 By Uid
-func GetFlowApiWhiteByUid(uid, flow_type int, search string, status int) (info []MdUserWhitelistApi) {
+func GetFlowApiWhiteByUid(uid, flow_type int, search string, status int, startTime, endTime int) (info []MdUserWhitelistApi) {
 	dbs := db.Table(userWhiteApiTable).Where("uid =? and flow_type = ?", uid, flow_type)
 	if search != "" {
 		dbs = dbs.Where("whitelist_ip =?", search)
@@ -128,6 +157,12 @@ func GetFlowApiWhiteByUid(uid, flow_type int, search string, status int) (info [
 		dbs = dbs.Where("status =?", status)
 	} else {
 		dbs = dbs.Where("status >?", 0)
+	}
+	if startTime > 0 {
+		dbs = dbs.Where("create_time >= ?", startTime)
+	}
+	if endTime > 86400 {
+		dbs = dbs.Where("create_time <= ?", endTime)
 	}
 	dbs = dbs.Order("id desc").Find(&info)
 	return
@@ -188,7 +223,22 @@ func GetApiProxyClientBy() (proxyClient []ApiProxyClientInfo) {
 	db.Table("cm_api_proxy_client").Where("area <> ?", "").Find(&proxyClient)
 	return
 }
-func GetApiProxyClientByArea(area string) (proxyClient ApiProxyClientInfo, err error) {
-	err = db.Table("cm_api_proxy_client").Where("area = ?", area).Order("rand()").First(&proxyClient).Error
+
+func GetApiProxyAll(cate string) (proxyClient ApiProxyClientInfo, err error) {
+	fixedPort := util.StoI(cate) - 1
+	err = db.Table("cm_api_proxy_client").
+		Where("area = ?", "").
+		Where("fixed_port = ?", fixedPort).
+		Where("tag like ?", "%asa%").
+		First(&proxyClient).Error
+	return
+}
+
+func GetApiProxyClientByArea(area string, cate string) (proxyClient ApiProxyClientInfo, err error) {
+	fixedPort := util.StoI(cate) - 1
+	err = db.Table("cm_api_proxy_client").
+		Where("fixed_port = ?", fixedPort).
+		Where("area = ?", area).
+		First(&proxyClient).Error
 	return
 }

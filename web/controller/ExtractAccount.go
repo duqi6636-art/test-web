@@ -385,11 +385,9 @@ func GetCountryDomainList(c *gin.Context) {
 		var ports []map[string]string
 		for _, port := range countryPortList {
 			if port.Country == v.Country {
-
 				// 端口后缀
 				portSuffix := ":"
 				if mType == "whitelist" {
-
 					portSuffix = portSuffix + "3650"
 				} else {
 
@@ -472,7 +470,7 @@ func transformPorts(ports []string, portSuffix string) []map[string]string {
 			value := parts[1]
 			transformed = append(transformed, map[string]string{
 				"title": title + portSuffix,
-				"value": value + portSuffix,
+				"value": strings.TrimSpace(value + portSuffix),
 			})
 		}
 	}

@@ -3,6 +3,7 @@ package controller
 import (
 	"api-360proxy/web/e"
 	"api-360proxy/web/models"
+	"api-360proxy/web/pkg/setting"
 	"api-360proxy/web/pkg/util"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -38,23 +39,21 @@ func FlowApiInfo(c *gin.Context) {
 	}
 	domain := models.GetConfigVal("API_DOMAIN_URL") //
 	apiUrl := strings.TrimRight(domain, "/") + "/api/extract_ip"
-	addUrl := strings.TrimRight(domain, "/") + "/api/add_ip"
-	delUrl := strings.TrimRight(domain, "/") + "/api/del_ip"
-	listsUrl := strings.TrimRight(domain, "/") + "/api/lists_ip"
-
-	aes_key := util.Md5(AesKey)
-	userStr, err := util.AesEnCode([]byte(user.Username), []byte(aes_key))
-	userKey := util.Md5(userStr)
-
-	params := "?user=" + user.Username + "&user_key=" + userKey
-	params2 := params + "&ip="
+	//addUrl := strings.TrimRight(domain, "/") + "/api/add_ip"
+	//delUrl := strings.TrimRight(domain, "/") + "/api/del_ip"
+	//listsUrl := strings.TrimRight(domain, "/") + "/api/lists_ip"
+	//aes_key := util.Md5(AesKey)
+	//userStr, err := util.AesEnCode([]byte(user.Username), []byte(aes_key))
+	//userKey := util.Md5(userStr)
+	//params := "?user=" + user.Username + "&user_key=" + userKey
+	//params2 := params + "&ip="
 	resData := map[string]interface{}{
 		"has_api_ip": hasIp,
 		"ip":         ip,
 		"extract":    apiUrl,
-		"add":        addUrl + params2,
-		"del":        delUrl + params2,
-		"lists":      listsUrl + params,
+		//"add":        addUrl + params2,
+		//"del":        delUrl + params2,
+		//"lists":      listsUrl + params,
 	}
 	JsonReturn(c, 0, "__T_SUCCESS", resData)
 	return
@@ -70,7 +69,9 @@ func FlowApiInfo(c *gin.Context) {
 // @Param lang formData string false "语言"
 // @Param search formData string true "搜索关键字"
 // @Param flow_type formData string true "类型 1普通流量 2无限制流量"
-// @Param status formData string true "类型 on/off"
+// @Param status formData string true "状态 on/off"
+// @Param start_date formData string true "开始时间 2002-01-01"
+// @Param end_date formData string true "结束时间 2002-01-01"
 // @Produce json
 // @Success 0 {array} models.ResUserWhitelistApi{}
 // @Router /center/flow_api/lists [post]
@@ -86,7 +87,18 @@ func FlowApiWhitelist(c *gin.Context) {
 	search := strings.TrimSpace(c.DefaultPostForm("search", ""))
 	flow_type := strings.TrimSpace(c.DefaultPostForm("flow_type", "1"))
 	lang := strings.ToLower(c.DefaultPostForm("lang", "en"))      //语言
-	statusStr := strings.ToLower(c.DefaultPostForm("status", "")) //语言
+	statusStr := strings.ToLower(c.DefaultPostForm("status", "")) //状态
+	startDate := c.DefaultPostForm("start_date", "")
+	endDate := c.DefaultPostForm("end_date", "")
+
+	start := 0
+	end := 0
+	if startDate != "" {
+		start = util.StoI(util.GetTimeStamp(startDate, "Y-m-d"))
+	}
+	if endDate != "" {
+		end = util.StoI(util.GetTimeStamp(endDate, "Y-m-d")) + 86399
+	}
 
 	flowType := util.StoI(flow_type)
 	if flowType == 0 {
@@ -103,8 +115,7 @@ func FlowApiWhitelist(c *gin.Context) {
 
 	aes_key := util.Md5(AesKey)
 	if uid > 0 {
-		lists := models.GetFlowApiWhiteByUid(uid, flowType, search, status)
-		fmt.Println(lists)
+		lists := models.GetFlowApiWhiteByUid(uid, flowType, search, status, start, end)
 		for _, val := range lists {
 			info := models.ResUserWhitelistApi{}
 			idStr, err := util.AesEnCode([]byte(util.ItoS(val.Id)), []byte(aes_key))
@@ -131,6 +142,78 @@ func FlowApiWhitelist(c *gin.Context) {
 }
 
 // @BasePath /api/v1
+// @Summary 下载白名单列表信息
+// @Schemes
+// @Description 下载白名单列表信息
+// @Tags 个人中心-Api提取
+// @Accept x-www-form-urlencoded
+// @Param session formData string false "用户登录凭证信息"
+// @Param lang formData string false "语言"
+// @Param search formData string true "搜索关键字"
+// @Param flow_type formData string true "类型 1普通流量 2无限制流量"
+// @Param status formData string true "状态 on/off"
+// @Param start_date formData string true "开始时间 2002-01-01"
+// @Param end_date formData string true "结束时间 2002-01-01"
+// @Produce json
+// @Success 0 {array} models.ResUserWhitelistApi{}
+// @Router /center/flow_api/download [post]
+func FlowApiWhitelistDownload(c *gin.Context) {
+	title := []string{"IP", "SupportType", "AddTime", "Remarks"}
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+
+	search := strings.TrimSpace(c.DefaultPostForm("search", ""))
+	flow_type := strings.TrimSpace(c.DefaultPostForm("flow_type", "1"))
+	statusStr := strings.ToLower(c.DefaultPostForm("status", "")) //状态
+	startDate := c.DefaultPostForm("start_date", "")
+	endDate := c.DefaultPostForm("end_date", "")
+
+	start := 0
+	end := 0
+	if startDate != "" {
+		start = util.StoI(util.GetTimeStamp(startDate, "Y-m-d"))
+	}
+	if endDate != "" {
+		end = util.StoI(util.GetTimeStamp(endDate, "Y-m-d")) + 86399
+	}
+
+	flowType := util.StoI(flow_type)
+	if flowType == 0 {
+		flowType = 1
+	}
+	if statusStr != "" {
+		if statusStr == "on" {
+			statusStr = "1"
+		} else {
+			statusStr = "2"
+		}
+	}
+	status := util.StoI(statusStr)
+
+	if uid > 0 {
+		csvData := [][]string{}
+		csvData = append(csvData, title)
+		lists := models.GetFlowApiWhiteByUid(uid, flowType, search, status, start, end)
+		for _, val := range lists {
+			linshi := []string{}
+			linshi = append(linshi, val.WhitelistIp)
+			linshi = append(linshi, "Country")
+			linshi = append(linshi, util.GetTimeStr(val.CreateTime, "d/m/Y H:i"))
+			linshi = append(linshi, val.Remark)
+
+			csvData = append(csvData, linshi)
+		}
+		err := DownloadCsv(c, "Whitelists", csvData)
+		fmt.Println(err)
+	}
+	return
+}
+
+// @BasePath /api/v1
 // @Summary 添加白名单信息
 // @Schemes
 // @Description 添加白名单信息
@@ -152,6 +235,10 @@ func AddFlowApiWhite(c *gin.Context) {
 	}
 	uid := user.Id
 
+	country := strings.TrimSpace(c.DefaultPostForm("country", ""))
+	if strings.ToLower(country) == "global" || strings.ToLower(country) == "random" {
+		country = ""
+	}
 	ip := c.DefaultPostForm("ip", "")
 	if ip == "" || !IsPublicIP(net.ParseIP(ip)) {
 		JsonReturn(c, e.ERROR, "__T_IP_NOT_FORMAT", nil)
@@ -179,7 +266,7 @@ func AddFlowApiWhite(c *gin.Context) {
 
 	remark := strings.TrimSpace(c.DefaultPostForm("remark", ""))
 
-	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0)
+	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0, 0, 0)
 	total := len(totalList)
 	if total >= 100 {
 		JsonReturn(c, e.ERROR, "__T_IP_HAS_MORE_LIMIT", nil)
@@ -189,6 +276,7 @@ func AddFlowApiWhite(c *gin.Context) {
 	addInfo := models.MdUserWhitelistApi{}
 	addInfo.Uid = uid
 	addInfo.Username = user.Username
+	addInfo.Country = country
 	addInfo.WhitelistIp = ip
 	addInfo.Status = 1
 	addInfo.FlowType = flowType
@@ -333,6 +421,7 @@ func ExtractIp(c *gin.Context) {
 	typeStr := strings.ToLower(c.DefaultQuery("type", ""))
 	lt := strings.ToLower(c.DefaultQuery("lt", ""))
 	st := strings.ToLower(c.DefaultQuery("st", ""))
+	cate := strings.TrimSpace(c.DefaultPostForm("cate", "1")) //类型 1 sticky ip  2 random IP
 	if protocol == "" {
 		protocol = "http"
 	}
@@ -368,75 +457,62 @@ func ExtractIp(c *gin.Context) {
 		JsonReturn(c, -1, "__T_FLOW_EXPIRED", gin.H{})
 		return
 	}
+
 	ltStr := getBreakLine(lt, st)
 	hostStrArr := []string{}
 	hostArr := []ApiProxyJson{}
 	uniqueNumbers := make(map[int]bool)
-	if country == "" {
-		portArr := map[int]string{}
-		lists := models.GetApiProxyClientBy()
-		numKey := len(lists)
-		proxyClientArr := map[int]models.ApiProxyClientInfo{}
-		for k, val := range lists {
-			proxyClientArr[k] = val
-		}
-		for len(portArr) < num {
-			randomNum := util.GetRandomInt(0, numKey-1)
-			info, ok := proxyClientArr[randomNum]
-			if !ok {
-				randomNum = util.GetRandomInt(0, numKey-1)
-				info, ok = proxyClientArr[randomNum]
-			}
-			minPort := info.StartPort
-			maxPort := minPort + info.PortNumb
-
-			portNum := util.GetRandomInt(minPort, maxPort)
-			if !uniqueNumbers[portNum] {
-				uniqueNumbers[portNum] = true
-				portArr[portNum] = info.Host
-			}
-		}
-		for port, host := range portArr {
-			hostStr := host + ":" + util.ItoS(port)
-			hostStrArr = append(hostStrArr, hostStr)
-
-			jsonInfo := ApiProxyJson{
-				Ip:   host,
-				Port: port,
-			}
-			hostArr = append(hostArr, jsonInfo)
-		}
+	portArr := []int{}
+	var info models.ApiProxyClientInfo
+	if country == "" || country == "global" {
+		info, err = models.GetApiProxyAll(cate)
 	} else {
-		portArr := []int{}
-		info, err := models.GetApiProxyClientByArea(country)
-		if err != nil || info.Id == 0 {
-			JsonReturnShow(c, e.ERROR, "__T_PARAM_ERROR-- info", nil)
-			return
+		info, err = models.GetApiProxyClientByArea(country, cate)
+	}
+	if err != nil || info.Id == 0 {
+		JsonReturnShow(c, e.ERROR, "__T_PARAM_ERROR-- info", nil)
+		return
+	}
+	minPort := info.StartPort
+	maxPort := minPort + info.PortNumb
+	if num > info.PortNumb {
+		num = info.PortNumb
+	}
+	portNum := minPort
+	for len(portArr) < num {
+		if !uniqueNumbers[portNum] {
+			uniqueNumbers[portNum] = true
+			portArr = append(portArr, portNum)
 		}
-
-		minPort := info.StartPort
-		maxPort := minPort + info.PortNumb
-		if num > info.PortNumb {
-			num = info.PortNumb
-		}
-		for len(portArr) < num {
-			portNum := util.GetRandomInt(minPort, maxPort)
-			if !uniqueNumbers[portNum] {
-				uniqueNumbers[portNum] = true
-				portArr = append(portArr, portNum)
-			}
-		}
-		for _, port := range portArr {
-			hostStr := info.Host + ":" + util.ItoS(port)
-			hostStrArr = append(hostStrArr, hostStr)
-
-			jsonInfo := ApiProxyJson{
-				Ip:   info.Host,
-				Port: port,
-			}
-			hostArr = append(hostArr, jsonInfo)
+		portNum++
+		if portNum > maxPort {
+			break
 		}
 	}
+	area := "all"
+	if info.Area != "" {
+		area = info.Area
+	}
+	state := "as"
+	if strings.Contains(info.Tag, "nasa") {
+		state = "na"
+	} else if strings.Contains(info.Tag, "eu") {
+		state = "eu"
+	} else if strings.Contains(info.Tag, "asa") {
+		state = "as"
+	}
+	domain := area + "-" + state + "." + setting.AppConfig.FlowApiUrl
+	for _, port := range portArr {
+		hostStr := domain + ":" + util.ItoS(port)
+		hostStrArr = append(hostStrArr, hostStr)
+
+		jsonInfo := ApiProxyJson{
+			Ip:   domain,
+			Port: port,
+		}
+		hostArr = append(hostArr, jsonInfo)
+	}
+
 	models.AddLogApiUseInfo(has.Uid, num, has.WhitelistIp, country, protocol, typeStr, lt, st)
 	hostList := strings.Join(hostStrArr, ltStr)
 	if typeStr == "txt" {
@@ -484,7 +560,7 @@ func FlowApiListsWhite(c *gin.Context) {
 	uid := userInfo.Id
 	flowType := 1
 
-	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0)
+	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0, 0, 0)
 	resList := []models.ResFlowApiWhiteApi{}
 	for _, val := range totalList {
 		info := models.ResFlowApiWhiteApi{}
@@ -545,7 +621,7 @@ func FlowApiAddWhite(c *gin.Context) {
 		return
 	}
 
-	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0)
+	totalList := models.GetFlowApiWhiteByUid(uid, flowType, "", 0, 0, 0)
 	total := len(totalList)
 	if total >= 100 {
 		JsonReturnShow(c, e.ERROR, "__T_IP_HAS_MORE_LIMIT", nil)
@@ -658,15 +734,115 @@ func ExistWhiteList(c *gin.Context) {
 	uid := user.Id
 	// IP信息
 	ip := c.ClientIP()
-	hasIp := 0
-	has, err := models.GetFlowApiWhiteByUidIp(uid, ip, 1)
-	if err == nil && has.Id > 0 {
-		hasIp = 1
+	countryHasIp := 0
+	cityHasIp := 0
+	countryHas, err := models.GetFlowApiWhiteByUidIp(uid, ip, 1)
+	if err == nil && countryHas.Id > 0 {
+		countryHasIp = 1
+	}
+
+	cityHas, err := models.GetWhiteByUidIp(uid, ip, 1)
+	if err == nil && cityHas.Id > 0 {
+		countryHasIp = 1
 	}
 	data := map[string]interface{}{
-		"ip":     ip,
-		"has_ip": hasIp,
+		"ip":             ip,
+		"country_has_ip": countryHasIp,
+		"city_has_ip":    cityHasIp,
 	}
 	JsonReturn(c, 0, "__T_SUCCESS", data)
+	return
+}
+
+// @BasePath /api/v1
+// @Summary 白名单IP-api生成域名
+// @Schemes
+// @Description 白名单IP-api生成域名
+// @Tags 个人中心
+// @Accept x-www-form-urlencoded
+// @Param session formData string false "用户登录凭证信息"
+// @Param country formData string false "国家"
+// @Param cate formData string false 类型 1 sticky ip 2 random IP
+// @Param num formData string false "数量"
+// @Produce json
+// @Router /center/white/api_domain [post]
+func ApiDomain(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	country := strings.ToLower(c.DefaultPostForm("country", ""))
+	numStr := strings.ToLower(c.DefaultPostForm("num", ""))
+	cate := strings.TrimSpace(c.DefaultPostForm("cate", "1")) //类型 1 sticky ip  2 random IP
+
+	num := util.StoI(numStr)
+	hostStrArr := []string{}
+	hostArr := []ApiProxyJson{}
+	uniqueNumbers := make(map[int]bool)
+	portArr := []int{}
+	var info models.ApiProxyClientInfo
+	var err error
+
+	if country == "" || country == "global" {
+		info, err = models.GetApiProxyAll(cate)
+	} else {
+		info, err = models.GetApiProxyClientByArea(country, cate)
+	}
+	if err != nil || info.Id == 0 {
+		JsonReturnShow(c, e.ERROR, "__T_PARAM_ERROR-- info", nil)
+		return
+	}
+
+	minPort := info.StartPort
+	maxPort := minPort + info.PortNumb
+	if num > info.PortNumb && cate == "2" {
+		num = info.PortNumb
+	}
+	portNum := minPort
+	for len(portArr) < num {
+		if cate == "2" {
+			portArr = append(portArr, minPort)
+			if len(portArr) == num {
+				break
+			}
+		} else {
+			if !uniqueNumbers[portNum] {
+				uniqueNumbers[portNum] = true
+				portArr = append(portArr, portNum)
+			}
+			portNum++
+			if portNum > maxPort {
+				break
+			}
+		}
+
+	}
+
+	area := "all"
+	if info.Area != "" {
+		area = info.Area
+	}
+	state := "as"
+	if strings.Contains(info.Tag, "nasa") {
+		state = "na"
+	} else if strings.Contains(info.Tag, "eu") {
+		state = "eu"
+	} else if strings.Contains(info.Tag, "asa") {
+		state = "as"
+	}
+	domain := area + "-" + state + "." + setting.AppConfig.FlowApiUrl
+	for _, port := range portArr {
+		hostStr := domain + ":" + util.ItoS(port)
+		hostStrArr = append(hostStrArr, hostStr)
+
+		jsonInfo := ApiProxyJson{
+			Ip:   domain,
+			Port: port,
+		}
+		hostArr = append(hostArr, jsonInfo)
+	}
+	go models.AddLogApiUseInfo(user.Id, num, c.ClientIP(), country, "", "", "", "")
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", hostArr)
 	return
 }
