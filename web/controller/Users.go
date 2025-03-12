@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"math"
 	"strings"
+	"time"
 )
 
 // @BasePath /api/v1
@@ -871,4 +872,32 @@ func GetUserUseIpNew(c *gin.Context) {
 	data["max"] = max
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", data)
 	return
+}
+
+// 查询是否存在主账户，不存在就添加
+func GetAddUserAccount(userInfo models.Users) {
+
+	// 查询该用户下面是否存在主账户 若不存在则添加账户信息
+	accountInfo := models.UserAccount{}
+	_, accountInfo = models.GetUserAccountMaster(userInfo.Id)
+
+	account := ""
+	password := ""
+	if accountInfo.Id == 0 {
+		account = userInfo.Username
+		password = util.RandStr("r", 8)
+
+		data := models.UserAccount{}
+		data.Status = 1
+		data.Remark = ""
+		data.Uid = userInfo.Id
+		data.Account = account
+		data.Password = password
+		data.Master = 1
+		data.FlowUnit = "GB"
+		data.CreateTime = int(time.Now().Unix())
+
+		err, id := models.AddProxyAccount(data)
+		fmt.Println("err_id", err, id)
+	}
 }
