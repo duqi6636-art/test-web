@@ -743,7 +743,7 @@ func ExistWhiteList(c *gin.Context) {
 
 	cityHas, err := models.GetWhiteByUidIp(uid, ip, 1)
 	if err == nil && cityHas.Id > 0 {
-		countryHasIp = 1
+		cityHasIp = 1
 	}
 	data := map[string]interface{}{
 		"ip":             ip,

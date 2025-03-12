@@ -1400,6 +1400,7 @@ func ResUserInfo(session, ip string, info models.Users) models.ResUser {
 			}
 		}
 	}
+	GetAddUserAccount(info) // 是有含有主账号 ，没有则添加
 	//5元券活动 只要用户账户里面 没有可用的 减价券，就在发一个
 	actConf := models.GetConfigVal("coupon_active_5")
 	if actConf != "" {
