@@ -96,7 +96,7 @@ func GetUserAccountAllList(uid int, account string, startTime, endTime int) (err
 	}
 
 	dbs = dbs.Where("status >= ?", 0)
-	err = dbs.Find(&lists).Error
+	err = dbs.Order("id desc").Find(&lists).Error
 	return
 }
 
@@ -112,7 +112,7 @@ func GetUserAccountList(uid int, account string) (err error, lists []UserAccount
 
 	dbs = dbs.Where("status >= ?", 0)
 	dbs = dbs.Where("master = ?", 0)
-	err = dbs.Find(&lists).Error
+	err = dbs.Order("id desc").Find(&lists).Error
 	return
 }
 
@@ -144,6 +144,7 @@ func GetUserAvailableAccount(uid int) (err error, lists []UserAccount) {
 	err = db.Table(user_account_table).
 		Where("uid = ?", uid).
 		Where("status = ?", 1).
+		Order("id desc").
 		Find(&lists).Error
 	return
 }
