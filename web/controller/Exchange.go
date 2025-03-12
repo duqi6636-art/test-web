@@ -85,23 +85,22 @@ func ExchangeCdk(c *gin.Context) {
 	}
 	flows := "0"
 	userFlows := int64(0)
-	userFlowInfo := models.GetUserFlowInfo(user.Id)  //用户流量信息
-
+	userFlowInfo := models.GetUserFlowInfo(user.Id) //用户流量信息
 
 	dynamicIspFlows := "0"
 	userDynamic := int64(0)
 	userDynamicInfo := models.GetUserDynamicIspInfo(user.Id) //用户轮转流量信息
 
 	day := 0
-	flowDay := models.GetUserFlowDayByUid(uid)		//不限量流量信息
+	flowDay := models.GetUserFlowDayByUid(uid) //不限量流量信息
 
 	if exInfo.Cate == 3 {
 		userFlows = userFlowInfo.Flows + exInfo.Value
 		flows, _ = DealFlowChar(userFlows, "GB")
-	}else if exInfo.Cate == 4 {
+	} else if exInfo.Cate == 4 {
 		userDynamic = userDynamicInfo.Flows + exInfo.Value
 		dynamicIspFlows, _ = DealFlowChar(userDynamic, "GB")
-	}else if exInfo.Cate == 5 {
+	} else if exInfo.Cate == 5 {
 		expTime := flowDay.ExpireTime + int(exInfo.Value)
 		dayInfo := 0.00
 		if flowDay.Id > 0 {
@@ -112,7 +111,7 @@ func ExchangeCdk(c *gin.Context) {
 			} else {
 				dayInfo = 1
 			}
-		}else{
+		} else {
 			dayInfo = 1
 		}
 		day = int(dayInfo)
@@ -123,11 +122,11 @@ func ExchangeCdk(c *gin.Context) {
 	cate := "isp"
 	if exInfo.Cate == 3 {
 		cate = "flow"
-	}else if exInfo.Cate == 4 {
+	} else if exInfo.Cate == 4 {
 		cate = "dynamic_isp"
-	}else if exInfo.Cate == 5 {
+	} else if exInfo.Cate == 5 {
 		cate = "unlimited"
-	}else if exInfo.Cate == 6 {
+	} else if exInfo.Cate == 6 {
 		cate = "static"
 	}
 
@@ -1103,7 +1102,7 @@ func NewGenerateList(c *gin.Context) {
 		cate = 4
 	} else if cateStr == "unlimited" {
 		cate = 5
-	}else if strings.Contains(cateStr, "static") {
+	} else if strings.Contains(cateStr, "static") {
 		cate = 6
 	}
 
@@ -1115,7 +1114,7 @@ func NewGenerateList(c *gin.Context) {
 
 	nowTime := util.GetNowInt()
 	lists := []models.ResGenerateList{}
-	cdkLists := models.GetGenerateListByCate(uid, start, end, cate, mode, timeType, cdkEmailStr, statusStr,cateStr)
+	cdkLists := models.GetGenerateListByCate(uid, start, end, cate, mode, timeType, cdkEmailStr, statusStr, cateStr)
 
 	aes_key := util.Md5(AesKey)
 	for _, v := range cdkLists {
@@ -1127,11 +1126,15 @@ func NewGenerateList(c *gin.Context) {
 		balanceStr := ""
 		if v.Cate == 2 {
 			if v.Balance > 0 {
-				balanceStr = fmt.Sprintf("%d %s", v.Balance,"IPs")
+				balanceStr = fmt.Sprintf("%d %s", v.Balance, "IPs")
+			} else {
+				balanceStr = "0 IP"
 			}
 		} else if v.Cate == 3 || v.Cate == 4 {
 			if v.Balance > 0 {
-				balanceStr = fmt.Sprintf("%d %s", v.Balance/1024/1024/1024,"GB")
+				balanceStr = fmt.Sprintf("%d %s", v.Balance/1024/1024/1024, "GB")
+			} else {
+				balanceStr = "0 GB"
 			}
 		} else if v.Cate == 5 {
 			if v.Balance > int64(nowTime) {
@@ -1153,10 +1156,14 @@ func NewGenerateList(c *gin.Context) {
 					}
 				}
 				balanceStr = fmt.Sprintf("%d %s", int(dayInfo), dayUnit)
+			} else {
+				balanceStr = "0 Day"
 			}
-		}else if v.Cate == 6 {
+		} else if v.Cate == 6 {
 			if v.Balance > 0 {
-				balanceStr = fmt.Sprintf("%d %s", v.Balance,"IP")
+				balanceStr = fmt.Sprintf("%d %s", v.Balance, "IP")
+			} else {
+				balanceStr = "0 IP"
 			}
 		}
 		confInfo, ok := configMap[cateStr]
@@ -1200,7 +1207,7 @@ func NewGenerateList(c *gin.Context) {
 	return
 }
 
-/// 获取兑换列表
+// / 获取兑换列表
 func NewRedemptionList(c *gin.Context) {
 	resCode, msg, user := DealUser(c) //处理用户信息
 	if resCode != e.SUCCESS {
@@ -1235,10 +1242,10 @@ func NewRedemptionList(c *gin.Context) {
 		cate = 4
 	} else if cateStr == "unlimited" {
 		cate = 5
-	}else if strings.Contains(cateStr, "static") {
+	} else if strings.Contains(cateStr, "static") {
 		cate = 6
 	}
-	configList := models.GetBalanceConfigList("all",0,0)
+	configList := models.GetBalanceConfigList("all", 0, 0)
 	configMap := map[string]models.ConfBalanceConfigModel{}
 	for _, v := range configList {
 		configMap[v.Cate] = v
@@ -1266,7 +1273,7 @@ func NewRedemptionList(c *gin.Context) {
 			value = v.Value / valueUnit
 			//fmt.Println("--------------",value)
 		}
-		valueStr := fmt.Sprintf("%d %s", value,unit)
+		valueStr := fmt.Sprintf("%d %s", value, unit)
 
 		usageMode := 0
 		if v.Name == "to_user" {
@@ -1349,8 +1356,8 @@ func GetUserCdkStats(c *gin.Context) {
 		valueStr := ""
 		if cate == "flow" || cate == "dynamic_isp" {
 			if v.Value > 0 {
-				value := v.Value/1024/1024/1024
-				valueStr = fmt.Sprintf("%d %s", value,"GB")
+				value := v.Value / 1024 / 1024 / 1024
+				valueStr = fmt.Sprintf("%d %s", value, "GB")
 			}
 			if v.Flows > 0 {
 				balanceStr = util.ItoS(v.Flows/1024/1024/1024) + " GB"
@@ -1358,7 +1365,7 @@ func GetUserCdkStats(c *gin.Context) {
 		} else if cate == "unlimited" {
 			if v.Value > 0 {
 				days := v.Value / 86400
-				valueStr = fmt.Sprintf("%d %s", days,"Day")
+				valueStr = fmt.Sprintf("%d %s", days, "Day")
 			}
 			if v.Flows > nowTime {
 				balance := v.Flows
@@ -1382,7 +1389,7 @@ func GetUserCdkStats(c *gin.Context) {
 			}
 		} else {
 			if v.Value > 0 {
-				valueStr = fmt.Sprintf("%d %s", v.Value,"IPs")
+				valueStr = fmt.Sprintf("%d %s", v.Value, "IPs")
 			}
 			if v.Balance > 0 {
 				balanceStr = util.ItoS(v.Balance) + " IPs"
@@ -1467,16 +1474,16 @@ func GetUserCdkStatsDownload(c *gin.Context) {
 		valueStr := ""
 		if cate == "flow" || cate == "dynamic_isp" {
 			if v.Value > 0 {
-				value := v.Value/1024/1024/1024
-				valueStr = fmt.Sprintf("%d %s", value,"GB")
+				value := v.Value / 1024 / 1024 / 1024
+				valueStr = fmt.Sprintf("%d %s", value, "GB")
 			}
 			if v.Flows > 0 {
 				balanceStr = util.ItoS(v.Flows/1024/1024/1024) + " GB"
 			}
 		} else if cate == "unlimited" {
 			if v.Value > 0 {
-				value := v.Value/86400
-				valueStr = fmt.Sprintf("%d %s", value,"Day")
+				value := v.Value / 86400
+				valueStr = fmt.Sprintf("%d %s", value, "Day")
 			}
 			if v.Flows > nowTime {
 				balance := v.Flows
@@ -1500,7 +1507,7 @@ func GetUserCdkStatsDownload(c *gin.Context) {
 			}
 		} else {
 			if v.Value > 0 {
-				valueStr = fmt.Sprintf("%d %s", v.Value,"IPs")
+				valueStr = fmt.Sprintf("%d %s", v.Value, "IPs")
 			}
 			if v.Balance > 0 {
 				balanceStr = util.ItoS(v.Balance) + " IPs"
@@ -1585,14 +1592,14 @@ func GetGenerateListDownload(c *gin.Context) {
 		cate = 4
 	} else if cateStr == "unlimited" {
 		cate = 5
-	}else if strings.Contains(cateStr, "static") {
+	} else if strings.Contains(cateStr, "static") {
 		cate = 6
 	}
 
 	nowTime := util.GetNowInt()
 
 	lists := []models.ResGenerateList{}
-	cdkLists := models.GetGenerateListByCate(uid, start, end, cate, mode, timeType, cdkEmailStr, statusStr,cateStr)
+	cdkLists := models.GetGenerateListByCate(uid, start, end, cate, mode, timeType, cdkEmailStr, statusStr, cateStr)
 
 	for _, v := range cdkLists {
 		useTime := ""
@@ -1603,18 +1610,18 @@ func GetGenerateListDownload(c *gin.Context) {
 		valueStr := ""
 		if v.Cate == 2 {
 			if v.Balance > 0 {
-				balanceStr = fmt.Sprintf("%d %s", v.Balance,"IPs")
+				balanceStr = fmt.Sprintf("%d %s", v.Balance, "IPs")
 			}
 			if v.Value > 0 {
-				valueStr = fmt.Sprintf("%d %s", v.Value,"IPs")
+				valueStr = fmt.Sprintf("%d %s", v.Value, "IPs")
 			}
 		} else if v.Cate == 3 || v.Cate == 4 {
 			if v.Balance > 0 {
-				balanceStr = fmt.Sprintf("%d %s", v.Balance/1024/1024/1024,"GB")
+				balanceStr = fmt.Sprintf("%d %s", v.Balance/1024/1024/1024, "GB")
 			}
 			if v.Value > 0 {
-				value := v.Value/1024/1024/1024
-				valueStr = fmt.Sprintf("%d %s",value,"GB")
+				value := v.Value / 1024 / 1024 / 1024
+				valueStr = fmt.Sprintf("%d %s", value, "GB")
 			}
 		} else if v.Cate == 5 {
 			if v.Balance > int64(nowTime) {
@@ -1639,7 +1646,7 @@ func GetGenerateListDownload(c *gin.Context) {
 			}
 			if v.Value > 0 {
 				days := v.Value / 86400
-				valueStr = fmt.Sprintf("%d %s",days,"Day")
+				valueStr = fmt.Sprintf("%d %s", days, "Day")
 			}
 		}
 		usageMode := 0
