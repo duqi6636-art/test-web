@@ -182,6 +182,7 @@ func AddWhitelist(c *gin.Context) {
 	remark := strings.TrimSpace(c.DefaultPostForm("remark", ""))
 	accountIdStr := strings.TrimSpace(c.DefaultPostForm("account_id", "0"))
 	hostname := strings.TrimSpace(c.DefaultPostForm("hostname", ""))
+	asn := strings.TrimSpace(c.DefaultPostForm("asn", ""))
 	if accountIdStr == "" {
 		accountIdStr = "0"
 	}
@@ -202,6 +203,10 @@ func AddWhitelist(c *gin.Context) {
 	if strings.ToLower(city) == "global" || strings.ToLower(city) == "random" {
 		city = ""
 	}
+
+	if strings.ToLower(asn) == "global" || strings.ToLower(asn) == "random" {
+		asn = ""
+	}
 	accountId := util.StoI(accountIdStr)
 
 	// 如果是主账号添加 修改为0
@@ -220,6 +225,7 @@ func AddWhitelist(c *gin.Context) {
 	//addInfo.Cate        = cate
 	addInfo.FlowType = flowType
 	addInfo.Hostname = hostname
+	addInfo.Asn = asn
 	addInfo.Minutes = minute
 	addInfo.Status = 1
 	addInfo.Remark = remark
