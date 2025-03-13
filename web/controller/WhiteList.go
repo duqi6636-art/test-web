@@ -176,6 +176,7 @@ func AddWhitelist(c *gin.Context) {
 	}
 
 	country := strings.TrimSpace(c.DefaultPostForm("country", ""))
+	state := strings.TrimSpace(c.DefaultPostForm("state", ""))
 	city := strings.TrimSpace(c.DefaultPostForm("city", ""))
 	cate := strings.TrimSpace(c.DefaultPostForm("cate", "1")) //类型 1 sticky ip  2 random IP
 	minuteStr := strings.TrimSpace(c.DefaultPostForm("minute", ""))
@@ -200,12 +201,19 @@ func AddWhitelist(c *gin.Context) {
 		country = ""
 		city = ""
 	}
+	if strings.ToLower(state) == "global" || strings.ToLower(state) == "random" {
+		state = ""
+		city = ""
+	}
 	if strings.ToLower(city) == "global" || strings.ToLower(city) == "random" {
 		city = ""
 	}
-
 	if strings.ToLower(asn) == "global" || strings.ToLower(asn) == "random" {
 		asn = ""
+	}
+	if asn != "" {
+		state = ""
+		city = ""
 	}
 	accountId := util.StoI(accountIdStr)
 
@@ -377,6 +385,10 @@ func EditWhitelist(c *gin.Context) {
 	}
 	if strings.ToLower(asn) == "global" || strings.ToLower(asn) == "random" {
 		asn = ""
+	}
+	if asn != "" {
+		state = ""
+		city = ""
 	}
 
 	params := map[string]interface{}{}
