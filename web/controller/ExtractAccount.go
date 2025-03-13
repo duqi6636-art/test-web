@@ -351,19 +351,17 @@ func GetFlowDayCountry(c *gin.Context) {
 // @Success 0 {array} models.ResExtractCountryCity{}
 // @Router /web/user/country_domain_list [post]
 func GetCountryDomainList(c *gin.Context) {
-
 	mType := strings.TrimSpace(c.DefaultPostForm("type", ""))
-
-	redisConn := models.RedisCountryCityPort.Get()
-	defer redisConn.Close()
-	redisKey := fmt.Sprintf("countryCityPort_list:type-%s", mType)
-	listStr, _ := redis.String(redisConn.Do("GET", redisKey))
-	var resData []map[string]interface{}
-	if len(listStr) > 0 {
-		json.Unmarshal([]byte(listStr), &resData)
-		JsonReturn(c, 0, "__T_SUCCESS", resData)
-		return
-	}
+	//redisConn := models.RedisCountryCityPort.Get()
+	//defer redisConn.Close()
+	//redisKey := fmt.Sprintf("countryCityPort_list:type-%s", mType)
+	//listStr, _ := redis.String(redisConn.Do("GET", redisKey))
+	//var resData []map[string]interface{}
+	//if len(listStr) > 0 {
+	//	json.Unmarshal([]byte(listStr), &resData)
+	//	JsonReturn(c, 0, "__T_SUCCESS", resData)
+	//	return
+	//}
 
 	// 获取所有国家列表
 	allCountryList := models.GetAllCountryV2("")
@@ -390,7 +388,6 @@ func GetCountryDomainList(c *gin.Context) {
 				if mType == "whitelist" {
 					portSuffix = portSuffix + "3650"
 				} else {
-
 					portSuffix = portSuffix + "3600"
 				}
 				ports = transformPorts([]string{port.Port1, port.Port2, port.Port3}, portSuffix)
@@ -398,14 +395,11 @@ func GetCountryDomainList(c *gin.Context) {
 			}
 		}
 		if len(ports) == 0 {
-
 			// 端口后缀
 			portSuffix := ":"
 			if mType == "whitelist" {
-
 				portSuffix = portSuffix + "3650"
 			} else {
-
 				portSuffix = portSuffix + "3600"
 			}
 			ports = transformPorts([]string{defaultCountryPort.Port1, defaultCountryPort.Port2, defaultCountryPort.Port3}, portSuffix)
@@ -416,10 +410,10 @@ func GetCountryDomainList(c *gin.Context) {
 		countryCityPortList = append(countryCityPortList, info)
 	}
 
-	// 存储到redis
-	res, _ := json.Marshal(countryCityPortList)
-	listStr = string(res)
-	redisConn.Do("SETEX", redisKey, 1*60*60, listStr)
+	//// 存储到redis
+	//res, _ := json.Marshal(countryCityPortList)
+	//listStr = string(res)
+	//redisConn.Do("SETEX", redisKey, 1*60*60, listStr)
 	JsonReturn(c, 0, "__T_SUCCESS", countryCityPortList)
 	return
 }
