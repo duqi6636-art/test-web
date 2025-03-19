@@ -359,10 +359,7 @@ func AddUserFlowAccount(c *gin.Context) {
 		return
 	}
 	limitFlows := int64(util.StoI(flowStr))
-	if limitFlows <= 0 {
-		JsonReturn(c, e.ERROR, "__T_FLOW_NUMBER_ERROR", nil)
-		return
-	}
+
 	if flowUnit == "" {
 		flowUnit = "GB"
 	}
@@ -376,8 +373,11 @@ func AddUserFlowAccount(c *gin.Context) {
 	}
 	accountInfo := models.UserAccount{}
 	if accountId > 0 {
-
 		accountInfo, _ = models.GetUserAccountById(accountId)
+		if limitFlows <= 0 && accountInfo.Master != 1 { //主账号可以不分配流量 20250319
+			JsonReturn(c, e.ERROR, "__T_FLOW_NUMBER_ERROR", nil)
+			return
+		}
 		if accountInfo.Uid != uid {
 			JsonReturn(c, e.ERROR, "__T_USER_INFO_ERROR", nil)
 			return
@@ -399,6 +399,10 @@ func AddUserFlowAccount(c *gin.Context) {
 			}
 		}
 	} else {
+		if limitFlows <= 0 {
+			JsonReturn(c, e.ERROR, "__T_FLOW_NUMBER_ERROR", nil)
+			return
+		}
 		_, hasAccount := models.GetUserAccount(0, username)
 		if hasAccount.Id != 0 {
 			JsonReturn(c, e.ERROR, "__T_ACCOUNT_USERNAME_EXIST", nil)
