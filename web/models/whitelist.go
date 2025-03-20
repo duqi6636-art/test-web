@@ -62,8 +62,7 @@ func GetWhitelistIpsByUid(uid, accountId, flowType int, search string, status in
 	dbs := db.Table("cm_user_whitelist_ip").
 		Where("uid =?", uid).
 		Where("account_id =?", accountId).
-		Where("flow_type =?", flowType).
-		Where("status =?", 1)
+		Where("flow_type =?", flowType)
 	if search != "" {
 		dbs = dbs.Where("whitelist_ip like ? or country =? or city =?", "%"+search+"%", search, search)
 	}
