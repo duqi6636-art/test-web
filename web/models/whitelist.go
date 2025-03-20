@@ -83,7 +83,7 @@ func GetWhitelistIpsByUid(uid, accountId, flowType int, search string, status in
 
 // 获取信息 By WhitelistIp
 func GetUserWhitelistIpById(id int) (info CmUserWhitelistIp, err error) {
-	err = db.Table("cm_user_whitelist_ip").Where("id =?", id).Where("status =?", 1).First(&info).Error
+	err = db.Table("cm_user_whitelist_ip").Where("id =?", id).Where("status >=?", 1).First(&info).Error
 	return
 }
 
