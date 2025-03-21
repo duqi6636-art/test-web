@@ -635,7 +635,7 @@ func FlowApiAddWhite(c *gin.Context) {
 	addInfo.Status = 1
 	addInfo.FlowType = flowType
 	addInfo.Remark = ""
-	addInfo.Cate = 2
+	addInfo.Cate = "2"
 	addInfo.Ip = c.ClientIP()
 	addInfo.CreateTime = util.GetNowInt()
 	err = models.AddFlowApiWhite(addInfo)
