@@ -121,7 +121,7 @@ type MdUserWhitelistApi struct {
 	FlowType    int    `json:"flow_type"`    // 状态 1 普通流量  2不限量流量
 	Remark      string `json:"remark"`       // 备注
 	Ip          string `json:"ip"`           // 用户IP
-	Cate        int    `json:"cate"`         // 类型 1 个人中心API  2 url
+	Cate        string `json:"cate"`         // 类型 1 个人中心API  2 url
 	CreateTime  int    `json:"create_time"`  // 更新时间
 }
 
