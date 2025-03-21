@@ -282,7 +282,7 @@ func AddFlowApiWhite(c *gin.Context) {
 	addInfo.FlowType = flowType
 	addInfo.Remark = remark
 	addInfo.Ip = c.ClientIP()
-	addInfo.Cate = 1
+	addInfo.Cate = "1"
 	addInfo.CreateTime = util.GetNowInt()
 	err = models.AddFlowApiWhite(addInfo)
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
@@ -635,7 +635,7 @@ func FlowApiAddWhite(c *gin.Context) {
 	addInfo.Status = 1
 	addInfo.FlowType = flowType
 	addInfo.Remark = ""
-	addInfo.Cate = 2
+	addInfo.Cate = "2"
 	addInfo.Ip = c.ClientIP()
 	addInfo.CreateTime = util.GetNowInt()
 	err = models.AddFlowApiWhite(addInfo)

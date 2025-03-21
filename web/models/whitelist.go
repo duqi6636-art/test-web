@@ -62,8 +62,7 @@ func GetWhitelistIpsByUid(uid, accountId, flowType int, search string, status in
 	dbs := db.Table("cm_user_whitelist_ip").
 		Where("uid =?", uid).
 		Where("account_id =?", accountId).
-		Where("flow_type =?", flowType).
-		Where("status =?", 1)
+		Where("flow_type =?", flowType)
 	if search != "" {
 		dbs = dbs.Where("whitelist_ip like ? or country =? or city =?", "%"+search+"%", search, search)
 	}
@@ -84,13 +83,13 @@ func GetWhitelistIpsByUid(uid, accountId, flowType int, search string, status in
 
 // 获取信息 By WhitelistIp
 func GetUserWhitelistIpById(id int) (info CmUserWhitelistIp, err error) {
-	err = db.Table("cm_user_whitelist_ip").Where("id =?", id).Where("status =?", 1).First(&info).Error
+	err = db.Table("cm_user_whitelist_ip").Where("id =?", id).Where("status >=?", 1).First(&info).Error
 	return
 }
 
 // 获取信息 By WhitelistIp
 func GetUserWhitelistIpByIp(ip string, flowType int) (info CmUserWhitelistIp, err error) {
-	err = db.Table("cm_user_whitelist_ip").Where("whitelist_ip =?", ip).Where("flow_type =?", flowType).Where("status =?", 1).First(&info).Error
+	err = db.Table("cm_user_whitelist_ip").Where("whitelist_ip =?", ip).Where("flow_type =?", flowType).Where("status >=?", 1).First(&info).Error
 	return
 }
 
@@ -122,7 +121,7 @@ type MdUserWhitelistApi struct {
 	FlowType    int    `json:"flow_type"`    // 状态 1 普通流量  2不限量流量
 	Remark      string `json:"remark"`       // 备注
 	Ip          string `json:"ip"`           // 用户IP
-	Cate        int    `json:"cate"`         // 类型 1 个人中心API  2 url
+	Cate        string `json:"cate"`         // 类型 1 个人中心API  2 url
 	CreateTime  int    `json:"create_time"`  // 更新时间
 }
 
