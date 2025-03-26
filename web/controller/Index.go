@@ -251,7 +251,6 @@ func GetUserDomain(c *gin.Context) {
 	// 查询用户分类表
 	flowCate := models.GetUserFlowCate(user.Id)
 	ispCate := models.GetUserIspCate(user.Id)
-	flowDayPool := models.GetPoolFlowDayByUid(user.Id)
 	ispCate = (ispCate % 5) + 1
 
 	// 查询用户域名列表
@@ -310,37 +309,45 @@ func GetUserDomain(c *gin.Context) {
 		}
 	}
 
+	flowDayPoolList := models.ListPoolFlowDayByUid(user.Id)
+	flowDayList := []map[string]interface{}{}
+	flowDayWhiteList := []map[string]interface{}{}
 	flowDay := map[string]interface{}{}
-	flowWhiteDay := map[string]interface{}{}
-	if flowDayPool.Id > 0 {
-		host := flowDayPool.Ip + ":" + util.ItoS(flowDayPool.Port)
-		host2 := flowDayPool.Ip + ":" + util.ItoS(flowDayPool.Port2)
-		title := host
-		title2 := host2
-		if flowDayPool.Country != "" {
-			title = fmt.Sprintf("(%s)%s", flowDayPool.Country, host)
-			title2 = fmt.Sprintf("(%s)%s", flowDayPool.Country, host2)
+	flowDayWhite := map[string]interface{}{}
+	if len(flowDayPoolList) > 0 {
+		for _, val := range flowDayPoolList {
+			host := val.Ip + ":" + util.ItoS(val.Port)
+			host2 := val.Ip + ":" + util.ItoS(val.Port2)
+			title := host
+			title2 := host2
+			if val.Country != "" {
+				title = fmt.Sprintf("(%s)%s", val.Country, host)
+				title2 = fmt.Sprintf("(%s)%s", val.Country, host2)
+			}
+			flowDay["title"] = title
+			flowDay["value"] = host
+
+			flowDayWhite["title"] = title2
+			flowDayWhite["value"] = host2
+			flowDayList = append(flowDayList, flowDay)
+			flowDayWhiteList = append(flowDayWhiteList, flowDayWhite)
 		}
-		flowDay["title"] = title
-		flowDay["value"] = host
-
-		flowWhiteDay["title"] = title2
-		flowWhiteDay["value"] = host2
-
 	} else {
 		host := "hostname:port"
 		flowDay["title"] = host
 		flowDay["value"] = host
-		flowWhiteDay["title"] = host
-		flowWhiteDay["value"] = host
+		flowDayWhite["title"] = host
+		flowDayWhite["value"] = host
+		flowDayList = append(flowDayList, flowDay)
+		flowDayWhiteList = append(flowDayWhiteList, flowDayWhite)
 	}
 
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", map[string]interface{}{
 		"isp":            ispList,
 		"flow":           flowList,
 		"whitelist":      whiteList,
-		"flow_day":       flowDay,
-		"flow_day_white": flowWhiteDay,
+		"flow_day":       flowDayList,
+		"flow_day_white": flowDayWhiteList,
 	})
 	return
 }

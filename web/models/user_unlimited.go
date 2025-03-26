@@ -48,7 +48,7 @@ func GetPoolFlowDayByIp(uid int, ip string) (info PoolFlowDayDetailModel) {
 	return
 }
 
-func GetPoolFlowDayByUid(uid int) (info PoolFlowDayModel) {
+func GetPoolFlowDayByUid_copy(uid int) (info PoolFlowDayModel) {
 	nowTime := util.GetNowInt()
 	db.Table("cm_pool_flow_day").Where("uid = ? ", uid).Where("expire_time >=? ", nowTime).Where("status =? ", 1).First(&info)
 	return
