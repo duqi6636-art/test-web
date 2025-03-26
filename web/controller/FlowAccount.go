@@ -29,6 +29,8 @@ func GetAccountInfo(c *gin.Context) {
 		JsonReturn(c, resCode, msg, nil)
 		return
 	}
+
+	resData := map[string]interface{}{} //返回信息
 	// 获取流量信息
 	flows := int64(0)
 	flowDate := "--"
@@ -66,39 +68,80 @@ func GetAccountInfo(c *gin.Context) {
 	//}
 	flowStr, flowUnit := DealFlowChar(flows, "GB")
 	flowMbStr, flowMbUnit := DealFlowChar(flows, "MB")
-	dayUnit := "Day"
-	dayExpire := "--"
-	day := 0       //剩余时间
-	dayUse := 0    //是否能用
-	dayStatus := 1 //状态
-	flowDay := models.GetUserFlowDayByUid(userInfo.Id)
-	if flowDay.Id > 0 {
-		if flowDay.ExpireTime > nowTime {
-			duration := flowDay.ExpireTime - nowTime
-			dayUnit = ""
-			dayInfo := 0.00
-			if duration > 86400 {
-				dayInfo = math.Ceil(float64(duration) / 86400)
-				dayUnit = "Days"
-				if dayInfo == 1 {
-					dayUnit = "Day"
+	flowsInfo := map[string]interface{}{}
+	flowsInfo["flow_status"] = flowStatus
+	flowsInfo["flow"] = flows
+	flowsInfo["flow_gb"] = flowStr
+	flowsInfo["unit_gb"] = flowUnit
+	flowsInfo["flow_mb"] = flowMbStr
+	flowsInfo["unit_mb"] = flowMbUnit
+	flowsInfo["flow_date"] = flowDate
+	flowsInfo["flow_expire"] = flowExpire
+	flowsInfo["send_open"] = send_open
+	flowsInfo["send_flow"] = send_flow
+	flowsInfo["send_unit"] = send_unit
+
+	resData["flows"] = flowsInfo //流量信息
+	//resData["flow_status"] = flowStatus
+	//resData["flow"] = flows
+	//resData["flow_gb"] = flowStr
+	//resData["unit_gb"] = flowUnit
+	//resData["flow_mb"] = flowMbStr
+	//resData["unit_mb"] = flowMbUnit
+	//resData["flow_date"] = flowDate
+	//resData["flow_expire"] = flowExpire
+	//resData["send_open"] = send_open
+	//resData["send_flow"] = send_flow
+	//resData["send_unit"] = send_unit
+
+	// 不限量信息 --
+	unlimited := []map[string]interface{}{}
+
+	flowDayList := models.GetUserFlowDayByUid(userInfo.Id)
+	if len(flowDayList) > 0 {
+		for _, flowDay := range flowDayList {
+			dayUnit := "Day"
+			dayExpire := "--"
+			day := 0       //剩余时间
+			dayUse := 0    //是否能用
+			dayStatus := 1 //状态
+			if flowDay.Id > 0 {
+				if flowDay.ExpireTime > nowTime {
+					duration := flowDay.ExpireTime - nowTime
+					dayUnit = ""
+					dayInfo := 0.00
+					if duration > 86400 {
+						dayInfo = math.Ceil(float64(duration) / 86400)
+						dayUnit = "Days"
+						if dayInfo == 1 {
+							dayUnit = "Day"
+						}
+					} else {
+						dayInfo = math.Ceil(float64(duration) / 3600)
+						dayUnit = "Hours"
+						if dayInfo == 1 {
+							dayUnit = "Hour"
+						}
+					}
+					day = int(dayInfo)
+
+					dayExpire = util.GetTimeStr(flowDay.ExpireTime, "d/m/Y")
+					dayUse = 1
 				}
-			} else {
-				dayInfo = math.Ceil(float64(duration) / 3600)
-				dayUnit = "Hours"
-				if dayInfo == 1 {
-					dayUnit = "Hour"
+				if flowDay.Status == 2 {
+					dayStatus = flowDay.Status
 				}
 			}
-			day = int(dayInfo)
-
-			dayExpire = util.GetTimeStr(flowDay.ExpireTime, "d/m/Y")
-			dayUse = 1
-		}
-		if flowDay.Status == 2 {
-			dayStatus = flowDay.Status
+			info := map[string]interface{}{}
+			info["day_expire"] = dayExpire
+			info["day"] = day
+			info["day_unit"] = dayUnit
+			info["day_use"] = dayUse //是否能用
+			info["day_status"] = dayStatus
+			unlimited = append(unlimited, info)
 		}
 	}
+	resData["unlimited"] = unlimited
 
 	// 获取动态Isp流量信息 -- start
 	dynamicIspFlows := int64(0)
@@ -152,25 +195,7 @@ func GetAccountInfo(c *gin.Context) {
 	dynamicIspInfo.UnitMb = flowIspMbUnit
 	// -- 动态流量信息 -- end  //
 
-	resData := map[string]interface{}{}
-	resData["flow_status"] = flowStatus
-	resData["flow"] = flows
-	resData["flow_gb"] = flowStr
-	resData["unit_gb"] = flowUnit
-	resData["flow_mb"] = flowMbStr
-	resData["unit_mb"] = flowMbUnit
-	resData["flow_date"] = flowDate
-	resData["flow_expire"] = flowExpire
-	resData["send_open"] = send_open
-	resData["send_flow"] = send_flow
-	resData["send_unit"] = send_unit
-
-	resData["day_expire"] = dayExpire
-	resData["day"] = day
-	resData["day_unit"] = dayUnit
-	resData["day_use"] = dayUse             //是否能用
 	resData["dynamic_isp"] = dynamicIspInfo //动态流量信息
-	resData["day_status"] = dayStatus
 
 	//sock5
 	resData["sock5_num"] = userInfo.Balance
@@ -248,42 +273,45 @@ func GetAccountInfoV2(c *gin.Context) {
 	// 流量信息 -- end  //
 
 	// 不限量流量信息
-	dayUnit := "Day"
-	dayExpire := "--"
-	day := 0    //剩余时间
-	dayUse := 0 //是否能用
-	flowDay := models.GetUserFlowDayByUid(userInfo.Id)
-	if flowDay.Id > 0 {
-		if flowDay.ExpireTime > nowTime {
-			duration := flowDay.ExpireTime - nowTime
-			dayUnit = ""
-			dayInfo := 0.00
-			if duration > 86400 {
-				dayInfo = math.Ceil(float64(duration) / 86400)
-				dayUnit = "Days"
-				if dayInfo == 1 {
-					dayUnit = "Day"
+	flowDayLists := models.GetUserFlowDayByUid(userInfo.Id)
+	unlimitedList := []GetUnlimitedStruct{}
+	if len(flowDayLists) > 0 {
+		for _, flowDay := range flowDayLists {
+			dayUnit := "Day"
+			dayExpire := "--"
+			day := 0    //剩余时间
+			dayUse := 0 //是否能用
+			if flowDay.ExpireTime > nowTime {
+				duration := flowDay.ExpireTime - nowTime
+				dayUnit = ""
+				dayInfo := 0.00
+				if duration > 86400 {
+					dayInfo = math.Ceil(float64(duration) / 86400)
+					dayUnit = "Days"
+					if dayInfo == 1 {
+						dayUnit = "Day"
+					}
+				} else {
+					dayInfo = math.Ceil(float64(duration) / 3600)
+					dayUnit = "Hours"
+					if dayInfo == 1 {
+						dayUnit = "Hour"
+					}
 				}
-			} else {
-				dayInfo = math.Ceil(float64(duration) / 3600)
-				dayUnit = "Hours"
-				if dayInfo == 1 {
-					dayUnit = "Hour"
-				}
-			}
-			day = int(dayInfo)
+				day = int(dayInfo)
 
-			dayExpire = util.GetTimeStr(flowDay.ExpireTime, "d/m/Y")
-			dayUse = 1
+				dayExpire = util.GetTimeStr(flowDay.ExpireTime, "d/m/Y")
+				dayUse = 1
+			}
+			unlimitedInfo := GetUnlimitedStruct{}
+			unlimitedInfo.Day = day
+			unlimitedInfo.DayUnit = dayUnit
+			unlimitedInfo.DayExpire = dayExpire
+			unlimitedInfo.DayUse = dayUse            //是否能用
+			unlimitedInfo.DayStatus = flowDay.Status //是否冻结
+			unlimitedList = append(unlimitedList, unlimitedInfo)
 		}
 	}
-
-	unlimitedInfo := GetUnlimitedStruct{}
-	unlimitedInfo.Day = day
-	unlimitedInfo.DayUnit = dayUnit
-	unlimitedInfo.DayExpire = dayExpire
-	unlimitedInfo.DayUse = dayUse            //是否能用
-	unlimitedInfo.DayStatus = flowDay.Status //是否冻结
 
 	// 获取动态Isp流量信息 -- start
 	dynamicIspFlows := int64(0)
@@ -334,7 +362,7 @@ func GetAccountInfoV2(c *gin.Context) {
 	// -- 动态流量信息 -- end  //
 
 	resData := GetAccountInfoResponse{}
-	resData.FlowDay = unlimitedInfo     //不限量信息  //新版分组展示
+	resData.FlowDay = unlimitedList     //不限量信息  //新版分组展示
 	resData.Flows = flowsInfo           //流量信息
 	resData.DynamicIsp = dynamicIspInfo //动态流量信息
 

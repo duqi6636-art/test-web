@@ -75,4 +75,9 @@ func centerRouter(router *gin.Engine) {
 	cu := router.Group("/center/unlimited")
 	cu.POST("/server_record", controller.GetUserUnlimitedLog) // 获取余额配置信息
 
+	// 不限量机器监控
+	cvm := router.Group("/center/monitor")
+	cvm.POST("/stats", controller.TencentCvmMonitor)         //实时监控
+	cvm.POST("/restart", controller.TencentCvmRestart)       //重启
+	cvm.POST("/status", controller.TencentCvmDescribeStatus) //获取服务器状态
 }

@@ -10,7 +10,6 @@ import (
 	"math"
 )
 
-
 // @BasePath /api/v1
 // @Summary 获取不限量的配置记录
 // @Schemes
@@ -29,49 +28,43 @@ func GetUserUnlimitedLog(c *gin.Context) {
 		return
 	}
 	uid := user.Id
-	logs := models.GetUserUnlimitedRecord(uid)
+	logs := models.ListPoolFlowDayByUidAll(uid)
 	resLists := []models.ResUserUnlimitedModel{}
 	nowTime := util.GetNowInt()
 	for _, log := range logs {
-		status := 2 //默认状态为成功
-		if log.StartTime  > nowTime {
-			status = 1 //待使用
-		}else{
-			if log.ExpireTime < nowTime {
-				status = 3 //已过期
-			}
+		status := 1 //默认状态为正常
+		if log.ExpireTime < nowTime {
+			status = 2 //已过期
 		}
 
 		exDate := ""
 		if log.ExpireTime > 0 {
-			exDate = util.GetTimeStr(log.ExpireTime,"d/m/Y H:i:s")
+			exDate = util.GetTimeStr(log.ExpireTime, "d/m/Y H:i:s")
 		}
 		info := models.ResUserUnlimitedModel{}
 		//info.Id 	     = log.Id
-		info.Config     = fmt.Sprintf("%d K", log.Config)
-		info.Bandwidth  = fmt.Sprintf("%d M", log.Bandwidth)
+		info.ConfigNum = log.Config
+		info.BandwidthNum = log.Bandwidth
+		info.Config = fmt.Sprintf("%d K", log.Config)
+		info.Bandwidth = fmt.Sprintf("%d M", log.Bandwidth)
 		info.ExpireTime = exDate
-		info.Ip         = log.Ip
-		info.Status     = status
+		info.Ip = log.Ip
+		info.Status = status
 
-		resLists = append(resLists,info)
+		resLists = append(resLists, info)
 	}
 	JsonReturn(c, e.SUCCESS, "success", resLists)
 	return
 }
 
-
-
-
-
 // 获取套餐信息->不限量信息数据
 func GetUnlimitedPackage(c *gin.Context) {
 	config := com.StrTo(c.DefaultPostForm("config", "0")).MustInt()
 	bandwidth := com.StrTo(c.DefaultPostForm("bandwidth", "0")).MustInt()
-	if config <= 0  {
+	if config <= 0 {
 		config = 200
 	}
-	if bandwidth <= 0  {
+	if bandwidth <= 0 {
 		config = 200
 	}
 
@@ -97,10 +90,10 @@ func GetUnlimitedPackage(c *gin.Context) {
 
 	unlimitedConfigList := models.PackageUnlimitedMap //获取无限量配置列表
 
-	configListMap := []int{} //返回并发配置列表
-	bandwidthListMap := []int{} //返回带宽配置列表
-	configMoneyMap := map[string]float64{} //配置信息
-	bandwidthMoneyMap := map[string]float64{} //带宽信息
+	configListMap := []int{}                                     //返回并发配置列表
+	bandwidthListMap := []int{}                                  //返回带宽配置列表
+	configMoneyMap := map[string]float64{}                       //配置信息
+	bandwidthMoneyMap := map[string]float64{}                    //带宽信息
 	unlimitedListArr := map[int][]models.PackageUnlimitedModel{} //不限量配置信息
 	for _, v := range unlimitedConfigList {
 		str := fmt.Sprintf("%d_%d", v.PackageId, v.Config)
@@ -143,10 +136,10 @@ func GetUnlimitedPackage(c *gin.Context) {
 					labels = infoDetail.ActLabel
 				}
 			}
-			price := vInfo.Price		//价格
-			unit := vInfo.Unit			//单价
-			showPrice := vInfo.ShowPrice  //原价
-			showUnit := vInfo.AllUnit	//原单价
+			price := vInfo.Price         //价格
+			unit := vInfo.Unit           //单价
+			showPrice := vInfo.ShowPrice //原价
+			showUnit := vInfo.AllUnit    //原单价
 			typeUnit := "Day"
 			if vInfo.Day > 1 {
 				typeUnit = "Days"
@@ -155,20 +148,20 @@ func GetUnlimitedPackage(c *gin.Context) {
 			configMoney := configMoneyMap[fmt.Sprintf("%d_%d", vInfo.Id, config)]
 			bandwidthMoney := bandwidthMoneyMap[fmt.Sprintf("%d_%d", vInfo.Id, bandwidth)]
 
-			showPrice = vInfo.ShowPrice + configMoney + bandwidthMoney  //计算套餐原单价展示
+			showPrice = vInfo.ShowPrice + configMoney + bandwidthMoney //计算套餐原单价展示
 			oldUnitPrice := showPrice / float64(vInfo.Day)
 			if oldUnitPrice > 0 {
 				//originUnit = oPrice
-				oStr := fmt.Sprintf("%.1f", math.Round(showPrice * 10) / 10)
+				oStr := fmt.Sprintf("%.1f", math.Round(showPrice*10)/10)
 				showUnit = util.StoF(oStr)
 			}
 
-			price = vInfo.Price + configMoney + bandwidthMoney  //计算套餐单价展示
+			price = vInfo.Price + configMoney + bandwidthMoney //计算套餐单价展示
 
 			unitPrice := price / float64(vInfo.Day)
 			if unitPrice > 0 {
 				//unit = math.Ceil(unitPrice)
-				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice * 10) / 10)
+				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice*10)/10)
 				unit = util.StoF(oStr)
 			}
 
@@ -211,7 +204,7 @@ func GetUnlimitedPackage(c *gin.Context) {
 			info.Fee = fee
 			info.Total = int(value) + int(give) + int(gift)
 
-			unlimitedList,_ := unlimitedListArr[vInfo.Id]
+			unlimitedList, _ := unlimitedListArr[vInfo.Id]
 			configList := []models.ResPackageUnlimited{}
 			bandwidthList := []models.ResPackageUnlimited{}
 			for _, v := range unlimitedList {
@@ -251,12 +244,11 @@ func GetUnlimitedPackage(c *gin.Context) {
 	}
 
 	resData := map[string]interface{}{
-		"config_list":  configListMap,
-		"bandwidth_list":  bandwidthListMap,
-		"package_list": resInfo,
+		"config_list":    configListMap,
+		"bandwidth_list": bandwidthListMap,
+		"package_list":   resInfo,
 	}
 
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resData)
 	return
 }
-
