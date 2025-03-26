@@ -19,7 +19,7 @@ func HandleCdkBalance() {
 		fmt.Println(err)
 		if err == nil {
 			//value := pushInfo.Number //数值
-			oldValue := 0.0     //原来余额值
+			oldValue := 0.0 //原来余额值
 			uid := pushInfo.Uid
 			//bindUid := pushInfo.BindUid
 			cateStr := pushInfo.Cate
@@ -35,13 +35,13 @@ func HandleCdkBalance() {
 
 			if cateStr == "isp" {
 				cate = 2
-			}else if cateStr == "flow" {
+			} else if cateStr == "flow" {
 				cate = 3
-			}else if cateStr == "dynamic_isp" {
+			} else if cateStr == "dynamic_isp" {
 				cate = 4
-			}else if cateStr == "unlimited" {
+			} else if cateStr == "unlimited" {
 				cate = 5
-			}else if strings.Contains(cateStr,"static") {
+			} else if strings.Contains(cateStr, "static") {
 				cate = 6
 			}
 			balanceInfo := models.GetUserBalanceByUid(uid)
@@ -99,7 +99,7 @@ func HandleCdkBalance() {
 				//	eee := models.AddUserBalanceLog(uid, 2, pushInfo.Need, cateStr, value, 1, -1, createTime)
 				//	fmt.Println(eee)
 				//}
-				if res2 == 1 && cdkType == "self"{		//写入日志
+				if res2 == 1 && cdkType == "self" { //写入日志
 					// ISP
 					if cateStr == "isp" {
 						_, userInfo := models.GetUserById(uid)
@@ -173,7 +173,7 @@ func HandleCdkBalance() {
 
 						//流量余额变动日志
 
-						models.AddDynamicIspLog(uid, 0, pushInfo.BindUsername, value, userInfo.Flows, userInfo.Flows + value, pushInfo.Ip, pushInfo.Mode, 1)
+						models.AddDynamicIspLog(uid, 0, pushInfo.BindUsername, value, userInfo.Flows, userInfo.Flows+value, pushInfo.Ip, pushInfo.Mode, 1)
 						if userInfo.ID == 0 {
 							//创建用户余额
 							socksIp := models.UserDynamicIsp{}
@@ -200,70 +200,62 @@ func HandleCdkBalance() {
 
 					// 不限量
 					if cateStr == "unlimited" {
-						flowDayInfo := models.GetUserFlowDayByUid(uid)
-						preValue := flowDayInfo.ExpireTime
+						//flowDayInfo := models.GetUserFlowDayByUid(uid)
+						//preValue := flowDayInfo.ExpireTime
 						expireTime := int(value) + createTime
-						dayNum := int(value)
+						//dayNum := int(value)
 						startTime := createTime
-						if flowDayInfo.Id == 0 {
-							//创建用户余额IP
-							addInfo := models.UserFlowDay{}
-							addInfo.Uid = uid
-							addInfo.Username = pushInfo.BindUsername
-							addInfo.Email = pushInfo.BindEmail
-							addInfo.AllDay = dayNum
-							addInfo.ExpireTime = expireTime
-							addInfo.CreateTime = createTime
-							addInfo.Status = 1
-							err,_ = models.CreateUserFlowDay(addInfo)
-						} else {
-
-							if flowDayInfo.ExpireTime > createTime {
-								startTime = flowDayInfo.ExpireTime
-							}
-							upParam := make(map[string]interface{})
-							upParam["all_day"] = dayNum + flowDayInfo.AllDay //累计总购买时间
-							upParam["pre_day"] = flowDayInfo.ExpireTime          //购买前时间
-							if flowDayInfo.ExpireTime < createTime {
-								upParam["expire_time"] = expireTime
-							} else {
-								expireTime = int(value) + flowDayInfo.ExpireTime
-								upParam["expire_time"] = expireTime
-							}
-							err = models.EditUserFlowDay(flowDayInfo.Id, upParam)
-						}
+						//if flowDayInfo.Id == 0 {
+						//	//创建用户余额IP
+						//	addInfo := models.UserFlowDay{}
+						//	addInfo.Uid = uid
+						//	addInfo.Username = pushInfo.BindUsername
+						//	addInfo.Email = pushInfo.BindEmail
+						//	addInfo.AllDay = dayNum
+						//	addInfo.ExpireTime = expireTime
+						//	addInfo.CreateTime = createTime
+						//	addInfo.Status = 1
+						//	err,_ = models.CreateUserFlowDay(addInfo)
+						//} else {
+						//
+						//	if flowDayInfo.ExpireTime > createTime {
+						//		startTime = flowDayInfo.ExpireTime
+						//	}
+						//	upParam := make(map[string]interface{})
+						//	upParam["all_day"] = dayNum + flowDayInfo.AllDay //累计总购买时间
+						//	upParam["pre_day"] = flowDayInfo.ExpireTime          //购买前时间
+						//	if flowDayInfo.ExpireTime < createTime {
+						//		upParam["expire_time"] = expireTime
+						//	} else {
+						//		expireTime = int(value) + flowDayInfo.ExpireTime
+						//		upParam["expire_time"] = expireTime
+						//	}
+						//	err = models.EditUserFlowDay(flowDayInfo.Id, upParam)
+						//}
 						// IP池信息
-						poolInfo := models.ScoreGetPoolFlowDayByUid(uid)
-						if poolInfo.Id == 0 {
-							poolInfo = models.ScoreGetPoolFlowDayByUid(0)
-							//if poolInfo.Id > 0 {
-							//	poolParam := make(map[string]interface{})
-							//	poolParam["uid"] = uid //用户信息
-							//	poolParam["expire_time"] = expireTime
-							//	err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
-							//} else {
-							//	dingMsg("预警提示 ，360不限量流量IP配置不足: 用户ID" + util.ItoS(uid) + "  CDK兑换")
-							//}
-							configNum := models.GetConfigVal("unlimited_base_config")
-							bandwidthNum := models.GetConfigVal("unlimited_base_bandwidth")
-							config := util.StoI(configNum)
-							if config == 0 {
-								config = 200
-							}
-							bandwidth := util.StoI(bandwidthNum)
-							if bandwidth == 0 {
-								bandwidth = 200
-							}
-
-							// 创建IP池队列 异步处理
-							models.AddLogUserUnlimited(uid,config,bandwidth,expireTime,int(value/86400),startTime,pushInfo.Cdkey,createTime,"")
-
-						} else {
-							poolParam := make(map[string]interface{})
-							poolParam["expire_time"] = expireTime
-							err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
+						//poolInfo := models.ScoreGetPoolFlowDayByUid(uid)
+						//if poolInfo.Id == 0 {
+						//	poolInfo = models.ScoreGetPoolFlowDayByUid(0)
+						configNum := models.GetConfigVal("unlimited_base_config")
+						bandwidthNum := models.GetConfigVal("unlimited_base_bandwidth")
+						config := util.StoI(configNum)
+						if config == 0 {
+							config = 200
 						}
-						models.AddUnlimitedModel(uid, 0, pushInfo.BindUsername, value, int64(preValue), int64(expireTime), pushInfo.Ip, pushInfo.Mode, 1)
+						bandwidth := util.StoI(bandwidthNum)
+						if bandwidth == 0 {
+							bandwidth = 200
+						}
+
+						// 创建IP池队列 异步处理
+						models.AddLogUserUnlimited(uid, config, bandwidth, expireTime, int(value/86400), startTime, pushInfo.Cdkey, createTime, "")
+
+						//} else {
+						//	poolParam := make(map[string]interface{})
+						//	poolParam["expire_time"] = expireTime
+						//	err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
+						//}
+						models.AddUnlimitedModel(uid, 0, pushInfo.BindUsername, value, 0, int64(expireTime), pushInfo.Ip, pushInfo.Mode, 1)
 
 						if err == nil {
 							res2 = 1
@@ -271,7 +263,7 @@ func HandleCdkBalance() {
 					}
 
 					// 静态IP
-					if strings.Contains(cateStr,"static") {
+					if strings.Contains(cateStr, "static") {
 						packageList := models.GetStaticPackageList()
 						packArr := map[int]int{}
 						for _, v := range packageList {
@@ -279,16 +271,16 @@ func HandleCdkBalance() {
 						}
 						exArr := strings.Split(cateStr, "-")
 						exDay := util.StoI(exArr[1])
-						if  exDay == 0 {
+						if exDay == 0 {
 							exDay = 7
 						}
-						pakId,ok := packArr[exDay]
-						if !ok{
+						pakId, ok := packArr[exDay]
+						if !ok {
 							pakId = packageList[0].Id
 						}
 						country := strings.ToLower(pushInfo.Country)
 
-						_,userStaticPak := models.GetUserStaticByPakRegion(uid, pakId,country) //查询用户静态套餐余额
+						_, userStaticPak := models.GetUserStaticByPakRegion(uid, pakId, country) //查询用户静态套餐余额
 
 						if userStaticPak.Id == 0 {
 							//创建用户余额IP
@@ -305,7 +297,7 @@ func HandleCdkBalance() {
 							staticIp.CreateTime = pushInfo.CreateTime
 							staticIp.Status = 1
 							models.AddUserStatic(staticIp)
-						}else{
+						} else {
 							upParam := make(map[string]interface{})
 							upParam["all_buy"] = int(value) + userStaticPak.AllBuy
 							upParam["all_num"] = userStaticPak.AllNum + 1
@@ -343,13 +335,12 @@ func HandleCdkBalance() {
 	}
 }
 
-
 // 处理用户余额 cate 1 减余额  2 加余额   3 恢复余额（生成的cdk 没用，禁用的时候）
 func DealUserBalance(value float64, uid, createTime int, cate int) (res int) {
 	/// 获取用户信息
 
 	balanceInfo := models.GetUserBalanceByUid(uid)
-	if cate == 1  || cate == 2 {
+	if cate == 1 || cate == 2 {
 		if (balanceInfo.Balance - value) >= 0 { //余额充足的情况才继续
 			upParam := make(map[string]interface{})
 			upParam["balance"] = balanceInfo.Balance - value
