@@ -1,7 +1,5 @@
 package models
 
-import "api-360proxy/web/pkg/util"
-
 type CmDnsDomainModel struct {
 	Id      int    `json:"id"`      // ID
 	Code    string `json:"code"`    // 国家标识
@@ -67,29 +65,4 @@ func GetUserIspCate(uid int) (cate int) {
 		cate = 0
 	}
 	return cate
-}
-
-// 不限量流量IP
-type PoolFlowDayModel struct {
-	Id      int    `json:"id"`
-	Uid     int    `json:"uid"`
-	Ip      string `json:"ip"`
-	Port    int    `json:"port"`
-	Port2   int    `json:"port2"`
-	Country string `json:"country"`
-}
-
-func GetPoolFlowDayByUid(uid int) (info PoolFlowDayModel) {
-	nowTime := util.GetNowInt()
-	db.Table("cm_pool_flow_day").Where("uid = ? ", uid).Where("expire_time >=? ", nowTime).Where("status =? ", 1).First(&info)
-	return
-}
-func ScoreGetPoolFlowDayByUid(uid int) (info PoolFlowDayModel) {
-	db.Table("cm_pool_flow_day").Where("uid = ? ", uid).Where("status =? ", 1).First(&info)
-	return
-}
-// 修改IP池信息
-func EditPoolFlowDay(id int, params interface{}) (err error) {
-	err = db.Table("cm_pool_flow_day").Where("id =?", id).Update(params).Error
-	return err
 }

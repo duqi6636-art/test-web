@@ -113,20 +113,29 @@ type UserFlowDayModel struct {
 	Uid        int    `json:"uid"`
 	Username   string `json:"username"`
 	Email      string `json:"email"`
-	AllDay     int    `json:"all_day"`     // 总购买	时间（s）
+	AllDay     int    `json:"all_day"` // 总购买	时间（s）
 	ExpireTime int    `json:"expire_time"`
-	PreDay     int    `json:"pre_day"`     // 上次购买的过期时间
+	PreDay     int    `json:"pre_day"` // 上次购买的过期时间
 	CreateTime int    `json:"create_time"`
 	Remark     string `json:"remark"` //
 	Hostname   string `json:"hostname"`
 	Status     int    `json:"status"` // 状态 1正常2禁用
 }
 
+var userFlowDayTable = "cm_user_flow_day"
+
 // 查询用户 不限时套餐信息
-func GetUserFlowDayByUid(uid int) (user UserFlowDayModel) {
-	db.Table("cm_user_flow_day").Where("uid =?", uid).First(&user)
+func GetUserFlowDayByUid_copy(uid int) (user UserFlowDayModel) {
+	db.Table(userFlowDayTable).Where("uid =?", uid).First(&user)
 	return
 }
+
+// 查询用户 不限时套餐信息
+func GetUserFlowDayByUid(uid int) (user []UserFlowDayModel) {
+	db.Table(userFlowDayTable).Where("uid =?", uid).Order("expire_time desc").Find(&user)
+	return
+}
+
 // 不限量流量套餐
 type UserFlowDay struct {
 	Id         int    `json:"id"`
@@ -140,8 +149,6 @@ type UserFlowDay struct {
 	Remark     string `json:"remark"` //
 	Status     int    `json:"status"` // 状态
 }
-
-var userFlowDayTable = "cm_user_flow_day"
 
 // 查询用户流量过期时间表
 func GetUserFlowDay(uid int) (data UserFlowDay) {
@@ -166,5 +173,3 @@ func EditUserFlowDayBy(where interface{}, params interface{}) (err error) {
 	err = db.Table(userFlowDayTable).Where(where).Update(params).Error
 	return err
 }
-
-

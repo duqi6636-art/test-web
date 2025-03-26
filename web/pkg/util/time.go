@@ -112,6 +112,22 @@ func GetTodayTime() int {
 	return int(the_time.Unix())
 }
 
+// 获取ISO8601 时间格式
+func GetIso8601Time(timestamp int64) string {
+	tNow := time.Now().Unix()
+	if timestamp == 0 {
+		timestamp = tNow
+	}
+
+	// 将时间戳转换为time.Time类型
+	t := time.Unix(timestamp, 0)
+
+	// 使用time.Time的Format方法转换为ISO 8601格式
+	iso8601 := t.Format("2006-01-02T15:04:05")
+
+	return iso8601
+}
+
 // 获取今天0点0时0分的时间戳
 func TodayStart() int {
 	currentTime := time.Now()
@@ -124,6 +140,22 @@ func TodayEnd() int {
 	currentTime := time.Now()
 	endTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, currentTime.Location())
 	return int(endTime.Unix())
+}
+
+// 根据时区 ，把A 时区的 时间日期换成B时区对映的时间戳
+// timezone A时区
+// YmdHis A时区时间
+// timeZone2 B时区时间
+func GetTimeByTimezone(timeZone, YmdHis, timeZone2 string) int64 {
+	locA, err_a := time.LoadLocation(timeZone) // 加载用户时区 - 开始时间
+	if err_a != nil {
+		return time.Now().Unix()
+	}
+	timeInA, _ := time.ParseInLocation("2006-01-02 15:04:05", YmdHis, locA) //获取时区下的 时间
+
+	locB, _ := time.LoadLocation(timeZone2) // 加载服务时区
+	stamp := timeInA.In(locB).Unix()        //获取服务时区对映的时间戳
+	return stamp
 }
 
 // int 秒 转时间量

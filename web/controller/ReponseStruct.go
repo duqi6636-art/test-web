@@ -2,14 +2,14 @@ package controller
 
 // GetAccountInfoResponse 获取账户信息返回结构
 type GetAccountInfoResponse struct {
-	FlowDay    GetUnlimitedStruct  `json:"flow_day"`    // 账户不限量信息
-	Flows      GetFlowsStruct      `json:"flows"`       // 流量类型信息
-	DynamicIsp GetFlowsStruct      `json:"dynamic_isp"` // 动态ISP流量
-	Isp        GetBalanceResponse  `json:"isp"`         // ISP流量
-	Static     []GetStaticResponse `json:"static"`      // 静态IP信息
-	IspAgent   GetBalanceResponse  `json:"isp_agent"`   // ISP代理 企业余额
-	FloWAgent  GetFowAgentResponse `json:"flow_agent"`  // 住宅代理 企业余额
-	Balance    GetBalanceInfo      `json:"balance"`     // 账户余额
+	FlowDay    []GetUnlimitedStruct `json:"flow_day"`    // 账户不限量信息
+	Flows      GetFlowsStruct       `json:"flows"`       // 流量类型信息
+	DynamicIsp GetFlowsStruct       `json:"dynamic_isp"` // 动态ISP流量
+	Isp        GetBalanceResponse   `json:"isp"`         // ISP流量
+	Static     []GetStaticResponse  `json:"static"`      // 静态IP信息
+	IspAgent   GetBalanceResponse   `json:"isp_agent"`   // ISP代理 企业余额
+	FloWAgent  GetFowAgentResponse  `json:"flow_agent"`  // 住宅代理 企业余额
+	Balance    GetBalanceInfo       `json:"balance"`     // 账户余额
 }
 
 type GetFowAgentResponse struct {
