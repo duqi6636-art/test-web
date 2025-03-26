@@ -154,51 +154,65 @@ func HandleScoreFlowDay() {
 				}
 
 				// 更新用户流量信息
-				flowDayInfo := models.GetUserFlowDayByUid(uid)
+				//flowDayInfo := models.GetUserFlowDayByUid(uid)
 				nowTime := util.GetNowInt()
 				expireTime := seconds + nowTime
-				if flowDayInfo.Id == 0 {
-					//创建用户余额IP
-					addInfo := models.UserFlowDay{}
-					addInfo.Uid = userScore.Uid
-					addInfo.Username = userScore.Username
-					addInfo.Email = userScore.Email
-					addInfo.AllDay = seconds
-					addInfo.ExpireTime = expireTime
-					addInfo.CreateTime = nowTime
-					addInfo.Status = 1
-					err, _ = models.CreateUserFlowDay(addInfo)
-
-				} else {
-					upParam := make(map[string]interface{})
-					upParam["all_day"] = seconds + flowDayInfo.AllDay //累计总购买时间
-					upParam["pre_day"] = flowDayInfo.ExpireTime          //购买前时间
-					if flowDayInfo.ExpireTime < nowTime {
-						upParam["expire_time"] = expireTime
-					} else {
-						expireTime = seconds + flowDayInfo.ExpireTime
-						upParam["expire_time"] = expireTime
-					}
-					err = models.EditUserFlowDay(flowDayInfo.Id, upParam)
+				configNum := models.GetConfigVal("unlimited_base_config")
+				bandwidthNum := models.GetConfigVal("unlimited_base_bandwidth")
+				config := util.StoI(configNum)
+				if config == 0 {
+					config = 200
 				}
-				// IP池信息
-				poolInfo := models.ScoreGetPoolFlowDayByUid(uid)
-				if poolInfo.Id == 0 {
-					poolInfo = models.ScoreGetPoolFlowDayByUid(0)
-					if poolInfo.Id > 0 {
-						poolParam := make(map[string]interface{})
-						poolParam["uid"] = uid //用户信息
-						poolParam["expire_time"] = expireTime
-						err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
-					} else {
-						dingMsg("预警提示 ，360不限量流量IP配置不足: 用户ID" + util.ItoS(uid) + "    积分兑换")
-					}
-
-				} else {
-					poolParam := make(map[string]interface{})
-					poolParam["expire_time"] = expireTime
-					err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
+				bandwidth := util.StoI(bandwidthNum)
+				if bandwidth == 0 {
+					bandwidth = 200
 				}
+
+				// 创建IP池队列 异步处理
+				models.AddLogUserUnlimited(uid, config, bandwidth, expireTime, int(value/86400), nowTime, "score_ex_"+util.ItoS(nowTime), createTime, "")
+
+				//if flowDayInfo.Id == 0 {
+				//	//创建用户余额IP
+				//	addInfo := models.UserFlowDay{}
+				//	addInfo.Uid = userScore.Uid
+				//	addInfo.Username = userScore.Username
+				//	addInfo.Email = userScore.Email
+				//	addInfo.AllDay = seconds
+				//	addInfo.ExpireTime = expireTime
+				//	addInfo.CreateTime = nowTime
+				//	addInfo.Status = 1
+				//	err, _ = models.CreateUserFlowDay(addInfo)
+				//
+				//} else {
+				//	upParam := make(map[string]interface{})
+				//	upParam["all_day"] = seconds + flowDayInfo.AllDay //累计总购买时间
+				//	upParam["pre_day"] = flowDayInfo.ExpireTime          //购买前时间
+				//	if flowDayInfo.ExpireTime < nowTime {
+				//		upParam["expire_time"] = expireTime
+				//	} else {
+				//		expireTime = seconds + flowDayInfo.ExpireTime
+				//		upParam["expire_time"] = expireTime
+				//	}
+				//	err = models.EditUserFlowDay(flowDayInfo.Id, upParam)
+				//}
+				//// IP池信息
+				//poolInfo := models.ScoreGetPoolFlowDayByUid(uid)
+				//if poolInfo.Id == 0 {
+				//	poolInfo = models.ScoreGetPoolFlowDayByUid(0)
+				//	if poolInfo.Id > 0 {
+				//		poolParam := make(map[string]interface{})
+				//		poolParam["uid"] = uid //用户信息
+				//		poolParam["expire_time"] = expireTime
+				//		err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
+				//	} else {
+				//		dingMsg("预警提示 ，360不限量流量IP配置不足: 用户ID" + util.ItoS(uid) + "    积分兑换")
+				//	}
+				//
+				//} else {
+				//	poolParam := make(map[string]interface{})
+				//	poolParam["expire_time"] = expireTime
+				//	err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
+				//}
 				if err == nil {
 					res2 = 1
 				}
@@ -224,6 +238,7 @@ func HandleScoreFlowDay() {
 		}
 	}
 }
+
 // 发送钉钉通知
 func dingMsg(msg string) {
 	phoneArr := []string{}
