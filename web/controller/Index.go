@@ -312,10 +312,10 @@ func GetUserDomain(c *gin.Context) {
 	flowDayPoolList := models.ListPoolFlowDayByUid(user.Id)
 	flowDayList := []map[string]interface{}{}
 	flowDayWhiteList := []map[string]interface{}{}
-	flowDay := map[string]interface{}{}
-	flowDayWhite := map[string]interface{}{}
 	if len(flowDayPoolList) > 0 {
 		for _, val := range flowDayPoolList {
+			flowDay := map[string]interface{}{}
+			flowDayWhite := map[string]interface{}{}
 			host := val.Ip + ":" + util.ItoS(val.Port)
 			host2 := val.Ip + ":" + util.ItoS(val.Port2)
 			title := host
@@ -333,6 +333,8 @@ func GetUserDomain(c *gin.Context) {
 			flowDayWhiteList = append(flowDayWhiteList, flowDayWhite)
 		}
 	} else {
+		flowDay := map[string]interface{}{}
+		flowDayWhite := map[string]interface{}{}
 		host := "hostname:port"
 		flowDay["title"] = host
 		flowDay["value"] = host
