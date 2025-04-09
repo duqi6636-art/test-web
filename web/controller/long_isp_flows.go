@@ -38,6 +38,14 @@ func GetLongIspMainAccount(c *gin.Context) {
 	account := ""
 	password := ""
 	if accountInfo.Id == 0 {
+		//判断是否有账号和该主账号重复，有的就随机加个字母
+		_, HasAccount := models.GetLongIspUserAccountNeqId(0, userInfo.Username)
+		if HasAccount.Id > 0 {
+			account = userInfo.Username + util.RandStr("s", 2)
+		} else {
+			account = userInfo.Username
+		}
+
 		account = userInfo.Username
 		password = util.RandStr("r", 8)
 		data.Uid = userInfo.Id
