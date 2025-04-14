@@ -77,7 +77,8 @@ func centerRouter(router *gin.Engine) {
 
 	// 不限量机器监控
 	cvm := router.Group("/center/monitor")
-	cvm.POST("/stats", controller.TencentCvmMonitor)         //实时监控
-	cvm.POST("/restart", controller.TencentCvmRestart)       //重启
-	cvm.POST("/status", controller.TencentCvmDescribeStatus) //获取服务器状态
+	cvm.POST("/stats", controller.TencentCvmMonitor)                  //实时监控
+	cvm.POST("/restart", controller.TencentCvmRestart)                //重启
+	cvm.POST("/status", controller.TencentCvmDescribeStatus)          //获取服务器状态
+	cvm.POST("/stats_download", controller.TencentCvmMonitorDownload) //实时监控数据下载
 }
