@@ -190,7 +190,7 @@ func TencentCvmMonitorDownload(c *gin.Context) {
 	} else {
 		startInt = int(util.GetTimeByTimezone(timeZone, startTime, txTimezone)) //获取时区转变后的时间戳
 		timeA := util.StoI(util.GetTimeStamp(startTime, "Y-m-d H:i:s"))
-		locSecond = startInt - timeA
+		locSecond = timeA - startInt
 	}
 	if endTime == "" {
 		endInt = nowTime
