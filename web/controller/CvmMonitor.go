@@ -147,6 +147,165 @@ func TencentCvmMonitor(c *gin.Context) {
 }
 
 // @BasePath /api/v1
+// @Summary 不限量配置使用统计
+// @Schemes
+// @Description 不限量配置使用统计
+// @Tags 个人中心 - 不限量
+// @Accept x-www-form-urlencoded
+// @Param session formData string false "用户登录凭证信息"
+// @Param host formData string true "不限量机器"
+// @Param lang formData string false "语言"
+// @Param start_time formData string false "开始时间"
+// @Param end_time formData string false "结束时间"
+// @Produce json
+// @Success 0 {} {}
+// @Router /center/monitor/stats_download [post]
+// 获取实例实时监控信息下载
+func TencentCvmMonitorDownload(c *gin.Context) {
+	host := c.DefaultPostForm("host", "")
+	if host == "" {
+		JsonReturn(c, -1, "__T_CHOOSE_HOST", gin.H{})
+		return
+	}
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	startTime := c.DefaultPostForm("start_time", "")
+	endTime := c.DefaultPostForm("end_time", "")
+	timeZone := c.DefaultPostForm("timezone", "")
+	if timeZone == "" {
+		timeZone = "Asia/Shanghai"
+	}
+
+	startInt := 0
+	endInt := 0
+	nowTime := util.GetNowInt()
+	locSecond := 0                //两个时区相差的秒数
+	txTimezone := "Asia/Shanghai" //云服务器所在时区
+	if startTime == "" {
+		startInt = util.GetTodayTime()
+	} else {
+		startInt = int(util.GetTimeByTimezone(timeZone, startTime, txTimezone)) //获取时区转变后的时间戳
+		timeA := util.StoI(util.GetTimeStamp(startTime, "Y-m-d H:i:s"))
+		locSecond = startInt - timeA
+	}
+	if endTime == "" {
+		endInt = nowTime
+	} else {
+		endInt = int(util.GetTimeByTimezone(timeZone, endTime, txTimezone)) //获取时区转变后的时间戳
+	}
+	if startInt > endInt { //置换开始时间和结束时间
+		a := startInt
+		startInt = endInt
+		endInt = a
+	}
+
+	start := util.GetIso8601Time(int64(startInt)) + "+08:00"
+	end := util.GetIso8601Time(int64(endInt)) + "+08:00"
+	hostInfo := models.GetPoolFlowDayByIp(uid, host)
+	if hostInfo.Id == 0 || hostInfo.InstanceId == "" || hostInfo.Region == "" {
+		JsonReturn(c, -1, "Config Info Error", gin.H{})
+		return
+	}
+	cateStr := map[string]string{
+		"cpu":     "CPUUsage",      // CPU
+		"traffic": "WanOuttraffic", //外网出带宽
+		"tcp":     "TcpCurrEstab",  //TCP 连接数
+		"mem":     "MemUsage",      //内存使用率
+	}
+
+	second := endInt - startInt
+	if second > 86400*30 {
+		JsonReturn(c, -1, "__T_TIME_CYCLE", gin.H{})
+		return
+	}
+
+	period := uint64(300) //时间粒度
+	if second <= 3600*2 { //1小时 使用 时间粒度为 60s
+		period = 60
+	} else if second <= 24*3600 { //小于等于 24小时  时间粒度为 300s
+		period = 300
+	} else if second <= 24*3600*7 { //小于等于 7天  时间粒度为 3600s
+		period = 3600
+	} else { //大于 7天  时间粒度为 86400s
+		period = 86400
+	}
+
+	title := []string{"Time", "Cpu", "TCP", "Mem", "Bandwidth"} //导出数据表头
+	csvData := [][]string{}
+	csvData = append(csvData, title)
+
+	type MonitorKvModel struct {
+		Cpu      float64 `json:"cpu"`
+		Tcp      float64 `json:"tcp"`
+		Mem      float64 `json:"mem"`
+		Traffic  float64 `json:"traffic"`
+		Datetime string  `json:"datetime"`
+	}
+	resInfo := ResultMonitorDataModel{}
+	for k, v := range cateStr {
+		res, msg, monitorInfo := GetTencentMonitorHandle(hostInfo.InstanceId, hostInfo.Region, v, start, end, period)
+		if res == false {
+			fmt.Println(msg)
+			JsonReturn(c, -1, "Data Empty", gin.H{})
+			return
+		}
+		dataPoint := monitorInfo.Response.DataPoints[0]
+		dataInfo := ResultMonitorDataDetailModel{}
+		dataInfo.Avg = dataPoint.AvgValues
+		dataArr := []string{}
+		for _, dv := range dataPoint.Timestamps {
+			stamp := dv + locSecond
+			tStr := util.GetTimeStr(stamp, "Y-m-d H:i:s")
+			dataArr = append(dataArr, tStr)
+		}
+		dataInfo.XData = dataArr
+		if k == "cpu" {
+			resInfo.Cpu = dataInfo
+		}
+		if k == "mem" {
+			resInfo.Mem = dataInfo
+		}
+		if k == "traffic" {
+			resInfo.Traffic = dataInfo
+		}
+		if k == "tcp" {
+			resInfo.Tcp = dataInfo
+		}
+	}
+
+	var output []MonitorKvModel
+	for i := 0; i < len(resInfo.Cpu.XData); i++ {
+		item := MonitorKvModel{
+			Cpu:      resInfo.Cpu.Avg[i],
+			Tcp:      resInfo.Tcp.Avg[i],
+			Mem:      resInfo.Mem.Avg[i],
+			Traffic:  resInfo.Traffic.Avg[i],
+			Datetime: resInfo.Cpu.XData[i],
+		}
+		output = append(output, item)
+	}
+
+	// 组合导出数据
+	for _, val := range output {
+		info := []string{}
+		info = append(info, val.Datetime)
+		info = append(info, util.FtoS2(val.Cpu, 2))
+		info = append(info, util.FtoS2(val.Tcp, 2))
+		info = append(info, util.FtoS2(val.Mem, 2))
+		info = append(info, util.FtoS2(val.Traffic, 3))
+		csvData = append(csvData, info)
+	}
+
+	err := DownloadCsv(c, host, csvData)
+	fmt.Println(err)
+	return
+}
+
+// @BasePath /api/v1
 // @Summary 不限量配置使用重启
 // @Schemes
 // @Description 不限量配置使用重启
