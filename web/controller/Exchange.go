@@ -92,7 +92,6 @@ func ExchangeCdk(c *gin.Context) {
 	userDynamicInfo := models.GetUserDynamicIspInfo(user.Id) //用户轮转流量信息
 
 	day := 0
-	flowDay := models.GetUserFlowDayByUid(uid) //不限量流量信息
 
 	if exInfo.Cate == 3 {
 		userFlows = userFlowInfo.Flows + exInfo.Value
@@ -101,20 +100,21 @@ func ExchangeCdk(c *gin.Context) {
 		userDynamic = userDynamicInfo.Flows + exInfo.Value
 		dynamicIspFlows, _ = DealFlowChar(userDynamic, "GB")
 	} else if exInfo.Cate == 5 {
-		expTime := flowDay.ExpireTime + int(exInfo.Value)
-		dayInfo := 0.00
-		if flowDay.Id > 0 {
-			if flowDay.ExpireTime > nowTime {
-				expTime = flowDay.ExpireTime + int(exInfo.Value)
-				duration := expTime - nowTime
-				dayInfo = math.Ceil(float64(duration) / 86400)
-			} else {
-				dayInfo = 1
-			}
-		} else {
-			dayInfo = 1
-		}
-		day = int(dayInfo)
+		//flowDay := models.GetUserFlowDayByUid(uid) //不限量流量信息
+		//expTime := flowDay.ExpireTime + int(exInfo.Value)
+		//dayInfo := 0.00
+		//if flowDay.Id > 0 {
+		//	if flowDay.ExpireTime > nowTime {
+		//		expTime = flowDay.ExpireTime + int(exInfo.Value)
+		//		duration := expTime - nowTime
+		//		dayInfo = math.Ceil(float64(duration) / 86400)
+		//	} else {
+		//		dayInfo = 1
+		//	}
+		//} else {
+		//	dayInfo = 1
+		//}
+		//day = int(dayInfo)
 	} else {
 		balance = exInfo.Value
 	}

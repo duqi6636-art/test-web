@@ -28,7 +28,7 @@ import (
 // @Router /center/balance/config [post]
 func BalanceConfigInfo(c *gin.Context) {
 	lang := strings.ToLower(c.DefaultPostForm("lang", "en")) //语言
-	resCode, msg, user := DealUser(c) //处理用户信息
+	resCode, msg, user := DealUser(c)                        //处理用户信息
 	if resCode != e.SUCCESS {
 		JsonReturn(c, resCode, msg, nil)
 		return
@@ -59,15 +59,15 @@ func BalanceConfigInfo(c *gin.Context) {
 	//configList := models.GetBalanceConfigList("all", 0, 0) //获取默认配置信息
 
 	//获取配置信息
-	configList := models.GetBalanceConfigList("agent",uid,0)
+	configList := models.GetBalanceConfigList("agent", uid, 0)
 	if len(configList) == 0 {
 		userLevelInfo := models.GetUserMemberByUid(uid) //获取用户等级信息
 		if userLevelInfo.Id > 0 {
-			configList = models.GetBalanceConfigList("level",0,userLevelInfo.LevelID) //获取等级配置信息
+			configList = models.GetBalanceConfigList("level", 0, userLevelInfo.LevelID) //获取等级配置信息
 		}
 	}
 	if len(configList) == 0 {
-		configList = models.GetBalanceConfigList("all",0,0) //获取默认配置信息
+		configList = models.GetBalanceConfigList("all", 0, 0) //获取默认配置信息
 	}
 
 	aes_key := util.Md5(AesKey)
@@ -301,7 +301,7 @@ func BalanceGenerateBatchCdk(c *gin.Context) {
 	}
 
 	// 写入记录
-	eee := models.AddUserBalanceLog(uid, 2, totalRequiredBalance, balance, confInfo.Cate, value, count, -1, nowTime,country)
+	eee := models.AddUserBalanceLog(uid, 2, totalRequiredBalance, balance, confInfo.Cate, value, count, -1, nowTime, country)
 	fmt.Println("add user balance log", eee)
 
 	balanceNew := balance - totalRequiredBalance
@@ -375,7 +375,7 @@ func SelfBalanceCdk(c *gin.Context) {
 		return
 	}
 	country := strings.TrimSpace(c.DefaultPostForm("country", ""))
-    cate := confInfo.Cate
+	cate := confInfo.Cate
 	// 静态参数验证
 	if strings.Contains(confInfo.Cate, "static") {
 		if country == "" {
@@ -432,7 +432,7 @@ func SelfBalanceCdk(c *gin.Context) {
 	cdkStr := util.Md5(str)
 	code := strings.ToUpper(cdkStr[0:6] + cdkStr[20:])
 	if cate == "static" {
-		code = code + "-"+ strings.ToUpper(country)
+		code = code + "-" + strings.ToUpper(country)
 	}
 	// 异步处理生成 cdk   ----start
 	info := models.PushCdkey{}
@@ -460,7 +460,7 @@ func SelfBalanceCdk(c *gin.Context) {
 	data["balance"] = fmt.Sprintf("%.2f", balanceNew)
 	if resP == nil {
 		// 写入记录
-		eee := models.AddUserBalanceLog(uid, 3, totalRequiredBalance, balance, confInfo.Cate, value, 1, -1, nowTime,country)
+		eee := models.AddUserBalanceLog(uid, 3, totalRequiredBalance, balance, confInfo.Cate, value, 1, -1, nowTime, country)
 		fmt.Println("add user balance log", eee)
 
 		JsonReturn(c, 0, "__T_EX_SUCCESS", data)
@@ -665,7 +665,11 @@ func ExchangeUnlimitedCdk(c *gin.Context) {
 	fmt.Println(resP)
 	// 异步处理生成 cdk   ----end
 
-	flowDay := models.GetUserFlowDayByUid(uid)
+	flowDayList := models.GetUserFlowDayByUid(uid)
+	flowDay := models.UserFlowDayModel{}
+	if len(flowDayList) > 0 {
+		flowDay = flowDayList[0]
+	}
 	// 不限量流量信息
 	dayUnit := "Day"
 	dayExpire := "--"
@@ -880,10 +884,10 @@ func GetUserBalanceCdkStatsDetail(c *gin.Context) {
 		if v.Value > 0 && valueUnit > 0 {
 			value = v.Value / valueUnit
 		}
-		valueStr := fmt.Sprintf("%d %s", value,unit)
+		valueStr := fmt.Sprintf("%d %s", value, unit)
 		balanceStr := ""
 		if v.Cate == "isp" {
-			_,userInfo := models.GetUserById(v.BindUid)
+			_, userInfo := models.GetUserById(v.BindUid)
 			balanceStr = fmt.Sprintf("%d %s", userInfo.Balance, unit)
 		}
 		if v.Cate == "flow" {
@@ -926,25 +930,24 @@ func GetUserBalanceCdkStatsDetail(c *gin.Context) {
 					}
 				}
 				balanceStr = fmt.Sprintf("%d %s", int(dayInfo), dayUnit)
-			}else {
+			} else {
 				balanceStr = "0 Day"
 			}
 		}
 		cateStr := v.Cate
-		if strings.Contains(cateStr,"static") {
+		if strings.Contains(cateStr, "static") {
 			exArr := strings.Split(cateStr, "-")
 			exDay := util.StoI(exArr[1])
-			if  exDay == 0 {
+			if exDay == 0 {
 				exDay = 7
 			}
 			pakId := packArr[exDay]
 			if pakId > 0 {
 				pakId = packageList[0].Id
 			}
-			userInfo,_ := models.GetUserStaticByPak(v.BindUid, pakId)
+			userInfo, _ := models.GetUserStaticByPak(v.BindUid, pakId)
 			balanceStr = fmt.Sprintf("%d %s", userInfo.Balance, unit)
 		}
-
 
 		info := StatsUserExchangeList{}
 		info.Id = v.Id

@@ -355,7 +355,7 @@ func ExchangeCdk() {
 							err = models.EditUserDynamicIspByUid(uid, upParam)
 						}
 						//流量余额变动日志
-						models.AddDynamicIspLog(uid, 0, pushInfo.BindUsername, value, userInfo.Flows, userInfo.Flows + value, pushInfo.Ip, exInfo.Mode, 1)
+						models.AddDynamicIspLog(uid, 0, pushInfo.BindUsername, value, userInfo.Flows, userInfo.Flows+value, pushInfo.Ip, exInfo.Mode, 1)
 						if err == nil {
 							res2 = 1
 						}
@@ -364,50 +364,64 @@ func ExchangeCdk() {
 					// 不限量
 					if pushInfo.Cate == "unlimited" {
 						// 获取用户信息
-						flowDayInfo := models.GetUserFlowDayByUid(uid)
+						//flowDayInfo := models.GetUserFlowDayByUid(uid)
 						expireTime := int(value) + createTime
-						dayNum := int(value)
-						if flowDayInfo.Id == 0 {
-							//创建用户余额IP
-							addInfo := models.UserFlowDay{}
-							addInfo.Uid = uid
-							addInfo.Username = pushInfo.BindUsername
-							addInfo.Email = pushInfo.BindEmail
-							addInfo.AllDay = dayNum
-							addInfo.ExpireTime = expireTime
-							addInfo.CreateTime = createTime
-							addInfo.Status = 1
-							err,_ = models.CreateUserFlowDay(addInfo)
-						} else {
-							upParam := make(map[string]interface{})
-							upParam["all_day"] = dayNum + flowDayInfo.AllDay //累计总购买时间
-							upParam["pre_day"] = flowDayInfo.ExpireTime          //购买前时间
-							if flowDayInfo.ExpireTime < createTime {
-								upParam["expire_time"] = expireTime
-							} else {
-								expireTime = int(value) + flowDayInfo.ExpireTime
-								upParam["expire_time"] = expireTime
-							}
-							err = models.EditUserFlowDay(flowDayInfo.Id, upParam)
+						//dayNum := int(value)
+						//if flowDayInfo.Id == 0 {
+						//	//创建用户余额IP
+						//	addInfo := models.UserFlowDay{}
+						//	addInfo.Uid = uid
+						//	addInfo.Username = pushInfo.BindUsername
+						//	addInfo.Email = pushInfo.BindEmail
+						//	addInfo.AllDay = dayNum
+						//	addInfo.ExpireTime = expireTime
+						//	addInfo.CreateTime = createTime
+						//	addInfo.Status = 1
+						//	err, _ = models.CreateUserFlowDay(addInfo)
+						//} else {
+						//	upParam := make(map[string]interface{})
+						//	upParam["all_day"] = dayNum + flowDayInfo.AllDay //累计总购买时间
+						//	upParam["pre_day"] = flowDayInfo.ExpireTime      //购买前时间
+						//	if flowDayInfo.ExpireTime < createTime {
+						//		upParam["expire_time"] = expireTime
+						//	} else {
+						//		expireTime = int(value) + flowDayInfo.ExpireTime
+						//		upParam["expire_time"] = expireTime
+						//	}
+						//	err = models.EditUserFlowDay(flowDayInfo.Id, upParam)
+						//}
+						//// IP池信息
+						configNum := models.GetConfigVal("unlimited_base_config")
+						bandwidthNum := models.GetConfigVal("unlimited_base_bandwidth")
+						config := util.StoI(configNum)
+						if config == 0 {
+							config = 200
 						}
-						// IP池信息
-						poolInfo := models.ScoreGetPoolFlowDayByUid(uid)
-						if poolInfo.Id == 0 {
-							poolInfo = models.ScoreGetPoolFlowDayByUid(0)
-							if poolInfo.Id > 0 {
-								poolParam := make(map[string]interface{})
-								poolParam["uid"] = uid //用户信息
-								poolParam["expire_time"] = expireTime
-								err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
-							} else {
-								dingMsg("预警提示 ，360不限量流量IP配置不足: 用户ID" + util.ItoS(uid) + "  CDK兑换")
-							}
+						bandwidth := util.StoI(bandwidthNum)
+						if bandwidth == 0 {
+							bandwidth = 200
+						}
 
-						} else {
-							poolParam := make(map[string]interface{})
-							poolParam["expire_time"] = expireTime
-							err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
-						}
+						// 创建IP池队列 异步处理
+						models.AddLogUserUnlimited(uid, config, bandwidth, expireTime, int(value/86400), createTime, pushInfo.Cdkey, createTime, "")
+
+						//poolInfo := models.ScoreGetPoolFlowDayByUid(uid)
+						//if poolInfo.Id == 0 {
+						//	poolInfo = models.ScoreGetPoolFlowDayByUid(0)
+						//	if poolInfo.Id > 0 {
+						//		poolParam := make(map[string]interface{})
+						//		poolParam["uid"] = uid //用户信息
+						//		poolParam["expire_time"] = expireTime
+						//		err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
+						//	} else {
+						//		dingMsg("预警提示 ，360不限量流量IP配置不足: 用户ID" + util.ItoS(uid) + "  CDK兑换")
+						//	}
+						//
+						//} else {
+						//	poolParam := make(map[string]interface{})
+						//	poolParam["expire_time"] = expireTime
+						//	err = models.EditPoolFlowDay(poolInfo.Id, poolParam)
+						//}
 
 						if err == nil {
 							res2 = 1
@@ -415,7 +429,7 @@ func ExchangeCdk() {
 					}
 
 					// 静态IP
-					if strings.Contains(pushInfo.Cate,"static") {
+					if strings.Contains(pushInfo.Cate, "static") {
 						packageList := models.GetStaticPackageList()
 						packArr := map[int]int{}
 						for _, v := range packageList {
@@ -423,16 +437,16 @@ func ExchangeCdk() {
 						}
 
 						exDay := exInfo.Day
-						if  exDay == 0 {
+						if exDay == 0 {
 							exDay = 7
 						}
-						pakId ,ok := packArr[exDay]
-						if !ok{
+						pakId, ok := packArr[exDay]
+						if !ok {
 							pakId = packageList[0].Id
 						}
 						country := strings.ToLower(exInfo.Region)
 
-						_,userStaticPak := models.GetUserStaticByPakRegion(uid, pakId,country) //查询用户静态套餐余额
+						_, userStaticPak := models.GetUserStaticByPakRegion(uid, pakId, country) //查询用户静态套餐余额
 
 						if userStaticPak.Id == 0 {
 							//创建用户余额IP
@@ -449,7 +463,7 @@ func ExchangeCdk() {
 							staticIp.CreateTime = pushInfo.CreateTime
 							staticIp.Status = 1
 							models.AddUserStatic(staticIp)
-						}else{
+						} else {
 							upParam := make(map[string]interface{})
 							upParam["all_buy"] = int(value) + userStaticPak.AllBuy
 							upParam["all_num"] = userStaticPak.AllNum + 1
@@ -687,7 +701,7 @@ func AddExchangeRecord(pushInfo models.PushCdkey, cate int) (res int) {
 	info := models.ExchangeList{}
 	info.Cid = 0
 	info.Mode = pushInfo.Mode
-	info.Cate = cate  // 2 ISP  3 流量
+	info.Cate = cate // 2 ISP  3 流量
 	info.Uid = pushInfo.Uid
 	info.Code = code
 	info.Name = pushInfo.CdkType
@@ -722,7 +736,7 @@ func AddExchangeRecord(pushInfo models.PushCdkey, cate int) (res int) {
 		info.Region = strings.ToLower(pushInfo.Country)
 		exArr := strings.Split(pushInfo.Cate, "-")
 		exDay := util.StoI(exArr[1])
-		if  exDay == 0 {
+		if exDay == 0 {
 			exDay = 7
 		}
 		info.Day = exDay
