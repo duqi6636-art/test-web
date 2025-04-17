@@ -279,11 +279,32 @@ func TencentCvmMonitorDownload(c *gin.Context) {
 
 	var output []MonitorKvModel
 	for i := 0; i < len(resInfo.Cpu.XData); i++ {
+		// 检查索引是否越界
+		cpu := 0.0
+		if i < len(resInfo.Cpu.Avg) {
+			cpu = resInfo.Cpu.Avg[i]
+		}
+		// 检查索引是否越界
+		tcp := 0.0
+		if i < len(resInfo.Tcp.Avg) {
+			tcp = resInfo.Tcp.Avg[i]
+		}
+		// 检查索引是否越界
+		mem := 0.0
+		if i < len(resInfo.Mem.Avg) {
+			tcp = resInfo.Mem.Avg[i]
+		}
+		// 检查索引是否越界
+		traffic := 0.0
+		if i < len(resInfo.Traffic.Avg) {
+			traffic = resInfo.Traffic.Avg[i]
+		}
+		
 		item := MonitorKvModel{
-			Cpu:      resInfo.Cpu.Avg[i],
-			Tcp:      resInfo.Tcp.Avg[i],
-			Mem:      resInfo.Mem.Avg[i],
-			Traffic:  resInfo.Traffic.Avg[i],
+			Cpu:      cpu,
+			Tcp:      tcp,
+			Mem:      mem,
+			Traffic:  traffic,
 			Datetime: resInfo.Cpu.XData[i],
 		}
 		output = append(output, item)
