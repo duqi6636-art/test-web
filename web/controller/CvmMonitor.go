@@ -292,14 +292,14 @@ func TencentCvmMonitorDownload(c *gin.Context) {
 		// 检查索引是否越界
 		mem := 0.0
 		if i < len(resInfo.Mem.Avg) {
-			tcp = resInfo.Mem.Avg[i]
+			mem = resInfo.Mem.Avg[i]
 		}
 		// 检查索引是否越界
 		traffic := 0.0
 		if i < len(resInfo.Traffic.Avg) {
 			traffic = resInfo.Traffic.Avg[i]
 		}
-		
+
 		item := MonitorKvModel{
 			Cpu:      cpu,
 			Tcp:      tcp,
