@@ -1,8 +1,8 @@
 package onfido
 
 import (
-	"api-922proxy/web/models"
-	"api-922proxy/web/service/helper"
+	"api-360proxy/web/models"
+	"api-360proxy/web/service/helper"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -15,11 +15,11 @@ import (
 )
 
 // CreateApplicant 创建申请人
-func CreateApplicant(uid int,person Person) (string,error) {
+func CreateApplicant(uid int, person Person) (string, error) {
 	//判断申请人是否存在，不存在则创建
 	userKycInfo := models.GetUserKycByUid(uid)
 	applicantId := userKycInfo.ApplicantID
-	if applicantId =="" {
+	if applicantId == "" {
 		//创建申请人
 		var uri = "https://api.eu.onfido.com/v3.6/applicants/"
 		var data = map[string]interface{}{
@@ -36,23 +36,23 @@ func CreateApplicant(uid int,person Person) (string,error) {
 		}
 
 		ofdToken := models.GetConfigVal("onfido_token")
-		resp,err := HttpPostByAuth(uri, ofdToken, data)
-		fmt.Println("resp1:",resp)
+		resp, err := HttpPostByAuth(uri, ofdToken, data)
+		fmt.Println("resp1:", resp)
 		if err != nil {
-			return "",err
+			return "", err
 		}
 
 		var respData = Applicant{}
-		err = json.Unmarshal([]byte(resp),&respData)
+		err = json.Unmarshal([]byte(resp), &respData)
 		if err != nil {
-			return "",err
+			return "", err
 		}
 		applicantId = respData.ID
 	}
-	return applicantId,nil
+	return applicantId, nil
 }
 
-func HttpPostByAuth(url string, authToken string ,data interface{}) (content string, err error) {
+func HttpPostByAuth(url string, authToken string, data interface{}) (content string, err error) {
 	jsonStr, _ := json.Marshal(data)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
@@ -75,7 +75,7 @@ func HttpPostByAuth(url string, authToken string ,data interface{}) (content str
 }
 
 // RunWorkflow 运行工作流
-func RunWorkflow(applicantId string) (WorkflowRun,error) {
+func RunWorkflow(applicantId string) (WorkflowRun, error) {
 	var respData = WorkflowRun{}
 	//创建工作流运行
 	var uri = "https://api.eu.onfido.com/v3.6/workflow_runs"
@@ -83,34 +83,34 @@ func RunWorkflow(applicantId string) (WorkflowRun,error) {
 	ofdToken := models.GetConfigVal("onfido_token")
 	redirectUrl := models.GetConfigVal("onfido_redirect_url")
 	var data = map[string]interface{}{
-		"workflow_id": ofdWorkflowId,
+		"workflow_id":  ofdWorkflowId,
 		"applicant_id": applicantId,
 		"link": map[string]string{
-			"completed_redirect_url":redirectUrl+"?IdVerifyStatus=success",
+			"completed_redirect_url": redirectUrl + "?IdVerifyStatus=success",
 		},
 	}
-	resp,err := HttpPostByAuth(uri, ofdToken, data)
+	resp, err := HttpPostByAuth(uri, ofdToken, data)
 	if err != nil {
-		return respData,err
+		return respData, err
 	}
-	err = json.Unmarshal([]byte(resp),&respData)
+	err = json.Unmarshal([]byte(resp), &respData)
 	if err != nil {
-		return respData,err
+		return respData, err
 	}
 
-	return respData,nil
+	return respData, nil
 }
 
 // DownloadDocument 下载证件图片
-func DownloadDocument(documentId string) (string,error) {
-	var uri = "https://api.eu.onfido.com/v3.6/documents/"+documentId+"/download"
+func DownloadDocument(documentId string) (string, error) {
+	var uri = "https://api.eu.onfido.com/v3.6/documents/" + documentId + "/download"
 	// 创建一个新的文件
 	appDir := helper.GetAppDir()
 	if runtime.GOOS != "windows" {
 		appDir = helper.GetCurrentPath()
 	}
 	date := time.Now().Format("2006_01_02")
-	filePath := appDir+"/static/kyc/"+date
+	filePath := appDir + "/static/kyc/" + date
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		err = os.Mkdir(filePath, 0755)
 		if err != nil {
@@ -118,22 +118,22 @@ func DownloadDocument(documentId string) (string,error) {
 			return "", errors.New(err.Error())
 		}
 	}
-	fileName := fmt.Sprintf("%d.jpeg",time.Now().Unix())
+	fileName := fmt.Sprintf("%d.jpeg", time.Now().Unix())
 	ofdToken := models.GetConfigVal("onfido_token")
-	err := helper.DownloadImage(uri,filePath+"/"+fileName,ofdToken)
+	err := helper.DownloadImage(uri, filePath+"/"+fileName, ofdToken)
 
 	if err != nil {
 		fmt.Println("下载图片:", err)
-		return "",err
+		return "", err
 	}
 	//访问地址
 	apiHref := models.GetConfigVal("onfido_api_href")
-	url := apiHref + "/static/kyc/"+date + "/" + fileName
+	url := apiHref + "/static/kyc/" + date + "/" + fileName
 
-	return url,nil
+	return url, nil
 }
 
-//创建申请人-请求参数结构体
+// 创建申请人-请求参数结构体
 type Person struct {
 	FirstName string  `json:"first_name"`
 	LastName  string  `json:"last_name"`
@@ -148,7 +148,7 @@ type Address struct {
 	Country        string `json:"country"`
 }
 
-//创建申请人-返回参数结构体
+// 创建申请人-返回参数结构体
 type AddressRes struct {
 	FlatNumber     interface{} `json:"flat_number"`
 	BuildingNumber interface{} `json:"building_number"`
@@ -165,8 +165,8 @@ type AddressRes struct {
 }
 
 type Location struct {
-	IPAddress           string `json:"ip_address"`
-	CountryOfResidence  string `json:"country_of_residence"`
+	IPAddress          string `json:"ip_address"`
+	CountryOfResidence string `json:"country_of_residence"`
 }
 
 type Applicant struct {
@@ -185,7 +185,7 @@ type Applicant struct {
 	Location    Location    `json:"location"`
 }
 
-//创建工作流运行-返回参数结构体
+// 创建工作流运行-返回参数结构体
 type Link struct {
 	CompletedRedirectURL string `json:"completed_redirect_url"`
 	ExpiredRedirectURL   string `json:"expired_redirect_url"`
@@ -195,18 +195,18 @@ type Link struct {
 }
 
 type WorkflowRun struct {
-	ID                string      `json:"id"`
-	ApplicantID       string      `json:"applicant_id"`
-	WorkflowID        string      `json:"workflow_id"`
-	WorkflowVersionID int         `json:"workflow_version_id"`
-	Status            string      `json:"status"`
-	DashboardURL      string      `json:"dashboard_url"`
+	ID                string                 `json:"id"`
+	ApplicantID       string                 `json:"applicant_id"`
+	WorkflowID        string                 `json:"workflow_id"`
+	WorkflowVersionID int                    `json:"workflow_version_id"`
+	Status            string                 `json:"status"`
+	DashboardURL      string                 `json:"dashboard_url"`
 	Output            map[string]interface{} `json:"output"`
-	Reasons           []string    `json:"reasons"`
-	Error             interface{} `json:"error"`
-	CreatedAt         string      `json:"created_at"`
-	UpdatedAt         string      `json:"updated_at"`
-	Link              Link        `json:"link"`
+	Reasons           []string               `json:"reasons"`
+	Error             interface{}            `json:"error"`
+	CreatedAt         string                 `json:"created_at"`
+	UpdatedAt         string                 `json:"updated_at"`
+	Link              Link                   `json:"link"`
 }
 
 type WebhookReqCommonParam struct {
@@ -299,11 +299,11 @@ type WebhookReqTaskDocumentParam struct {
 				SubResult  string `json:"sub_result"`
 				Uuid       string `json:"uuid"`
 				Properties struct {
-					DocumentType   	string `json:"document_type"`
-					IssuingCountry 	string `json:"issuing_country"`
-					FirstName 		string `json:"first_name"`
-					LastName  		string `json:"last_name"`
-					DocumentNumber  string `json:"document_number"`
+					DocumentType   string `json:"document_type"`
+					IssuingCountry string `json:"issuing_country"`
+					FirstName      string `json:"first_name"`
+					LastName       string `json:"last_name"`
+					DocumentNumber string `json:"document_number"`
 				} `json:"properties"`
 			} `json:"output"`
 			WorkflowRunId string `json:"workflow_run_id"`
