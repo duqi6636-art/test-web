@@ -1,8 +1,8 @@
 package tencent
 
 import (
-	"api-922proxy/web/models"
-	"api-922proxy/web/pkg/util"
+	"api-360proxy/web/models"
+	"api-360proxy/web/pkg/util"
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
