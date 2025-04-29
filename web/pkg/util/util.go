@@ -321,3 +321,17 @@ func HttpPostMultiPart(url string, path string, file multipart.File, fileName st
 	content = string(result)
 	return
 }
+
+func GenerateRandomString(length int) string {
+	// 字符集，包含字母和数字
+	charSet := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	rand.Seed(time.Now().UnixNano()) // 初始化随机数种子
+
+	// 创建一个长度为 length 的字符串
+	randomStr := make([]byte, length)
+	for i := 0; i < length; i++ {
+		randomStr[i] = charSet[rand.Intn(len(charSet))] // 从字符集中随机选择一个字符
+	}
+
+	return string(randomStr)
+}
