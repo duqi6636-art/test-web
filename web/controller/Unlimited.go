@@ -31,6 +31,14 @@ func GetUserUnlimitedLog(c *gin.Context) {
 	logs := models.ListPoolFlowDayByUidAll(uid)
 	resLists := []models.ResUserUnlimitedModel{}
 	nowTime := util.GetNowInt()
+	unlimitedCon := models.GetConfigVal("unlimited_concurrency_unit") //并发单位
+	unlimitedBws := models.GetConfigVal("unlimited_bandwidth_unit")   //带宽单位
+	if unlimitedCon == "" {
+		unlimitedCon = "K"
+	}
+	if unlimitedBws == "" {
+		unlimitedBws = "Mbps"
+	}
 	for _, log := range logs {
 		status := 1 //默认状态为正常
 		if log.ExpireTime < nowTime {
@@ -41,12 +49,13 @@ func GetUserUnlimitedLog(c *gin.Context) {
 		if log.ExpireTime > 0 {
 			exDate = util.GetTimeStr(log.ExpireTime, "d/m/Y H:i:s")
 		}
+
 		info := models.ResUserUnlimitedModel{}
 		//info.Id 	     = log.Id
 		info.ConfigNum = log.Config
 		info.BandwidthNum = log.Bandwidth
-		info.Config = fmt.Sprintf("%d K", log.Config)
-		info.Bandwidth = fmt.Sprintf("%d M", log.Bandwidth)
+		info.Config = fmt.Sprintf("%d %s", log.Config, unlimitedCon)
+		info.Bandwidth = fmt.Sprintf("%d %s", log.Bandwidth, unlimitedBws)
 		info.ExpireTime = exDate
 		info.Ip = log.Ip
 		info.Status = status
