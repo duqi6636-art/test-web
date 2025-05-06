@@ -481,7 +481,7 @@ func GetFaceUrl(c *gin.Context) {
 	}
 
 	//获取用户人脸信息
-	orderNo := "922kyx" + util.GetOrderId()
+	orderNo := "cherrykyx" + util.GetOrderId()
 	userId := util.ItoS(userInfo.Id)
 
 	faceUrl, err, faceId := tencent.GetH5FaceId(orderNo, name, idNo, userId)
