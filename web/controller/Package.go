@@ -270,9 +270,9 @@ func GetFlowDayPackageList(c *gin.Context) {
 				oStr := fmt.Sprintf("%.1f", math.Round(showPrice*10)/10)
 				showUnit = util.StoF(oStr)
 			}
-			fmt.Println("showPrice:", showPrice)
-			fmt.Println("configMoney:", configMoney)
-			fmt.Println("bandwidthMoney:", bandwidthMoney)
+			//fmt.Println("showPrice:", showPrice)
+			//fmt.Println("configMoney:", configMoney)
+			//fmt.Println("bandwidthMoney:", bandwidthMoney)
 
 			price = vInfo.Price + configMoney + bandwidthMoney //计算套餐单价展示
 			unitPrice := price / float64(vInfo.Day)
@@ -460,7 +460,7 @@ func GetFlowDayPackageList(c *gin.Context) {
 			unlimitedPortInfo.Total = int(value) + int(give) + int(gift)
 			unlimitedPortInfo.Default = vInfo.Default
 
-			dayStr := util.ItoS(vInfo.Day) + "Days"
+			dayStr := util.ItoS(vInfo.Day) + " " + typeUnit
 			unlimitedPortList[dayStr] = append(unlimitedPortList[dayStr], unlimitedPortInfo)
 		}
 	}
