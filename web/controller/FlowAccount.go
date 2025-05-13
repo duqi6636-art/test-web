@@ -82,17 +82,6 @@ func GetAccountInfo(c *gin.Context) {
 	flowsInfo["send_unit"] = send_unit
 
 	resData["flows"] = flowsInfo //流量信息
-	//resData["flow_status"] = flowStatus
-	//resData["flow"] = flows
-	//resData["flow_gb"] = flowStr
-	//resData["unit_gb"] = flowUnit
-	//resData["flow_mb"] = flowMbStr
-	//resData["unit_mb"] = flowMbUnit
-	//resData["flow_date"] = flowDate
-	//resData["flow_expire"] = flowExpire
-	//resData["send_open"] = send_open
-	//resData["send_flow"] = send_flow
-	//resData["send_unit"] = send_unit
 
 	// 不限量信息 --
 	unlimited := []map[string]interface{}{}
@@ -142,6 +131,50 @@ func GetAccountInfo(c *gin.Context) {
 		}
 	}
 	resData["unlimited"] = unlimited
+
+	// 获取不限量端口套餐信息 -- start
+	unlimitedPortList := models.GetUserFlowDayPortByUid(userInfo.Id)
+	unlimitedPort := []map[string]interface{}{}
+	if len(unlimitedPortList) > 0 {
+		for _, flowDayPort := range unlimitedPortList {
+			dayUnit := "Day"
+			dayExpire := "--"
+			day := 0    //剩余时间
+			dayUse := 0 //是否能用
+			if flowDayPort.ID > 0 {
+				if flowDayPort.ExpiredTime > nowTime {
+					duration := flowDayPort.ExpiredTime - nowTime
+					dayUnit = ""
+					dayInfo := 0.00
+					if duration > 86400 {
+						dayInfo = math.Ceil(float64(duration) / 86400)
+						dayUnit = "Days"
+						if dayInfo == 1 {
+							dayUnit = "Day"
+						}
+					} else {
+						dayInfo = math.Ceil(float64(duration) / 3600)
+						dayUnit = "Hours"
+						if dayInfo == 1 {
+							dayUnit = "Hour"
+						}
+					}
+					day = int(dayInfo)
+
+					dayExpire = util.GetTimeStr(flowDayPort.ExpiredTime, "d/m/Y")
+					dayUse = 1
+				}
+			}
+			info := map[string]interface{}{}
+			info["day_expire"] = dayExpire
+			info["day"] = day
+			info["day_unit"] = dayUnit
+			info["day_use"] = dayUse //是否能用
+			unlimitedPort = append(unlimitedPort, info)
+		}
+	}
+	resData["unlimited_port"] = unlimitedPort
+	// 获取不限量端口套餐信息 -- end
 
 	// 获取动态Isp流量信息 -- start
 	dynamicIspFlows := int64(0)

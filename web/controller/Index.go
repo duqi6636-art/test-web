@@ -357,12 +357,24 @@ func GetUserDomain(c *gin.Context) {
 		flowDayWhiteList = append(flowDayWhiteList, flowDayWhite)
 	}
 
+	unlimitedPortList := models.GetUserUnlimitedPortByUid(user.Id)
+	unlimitedPortListResult := []map[string]interface{}{}
+	for _, port := range unlimitedPortList {
+		unlimitedPort := map[string]interface{}{}
+		unlimitedPort["ip"] = port.Ip
+		unlimitedPort["port"] = port.Port
+		unlimitedPort["expire_time"] = util.GetTimeStr(port.ExpiredTime, "Y.m.d")
+		unlimitedPort["label"] = port.Ip + "(" + util.GetTimeStr(port.ExpiredTime, "Y.m.d") + ")"
+		unlimitedPortListResult = append(unlimitedPortListResult, unlimitedPort)
+	}
+
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", map[string]interface{}{
 		"isp":            ispList,
 		"flow":           flowList,
 		"whitelist":      whiteList,
 		"flow_day":       flowDayList,
 		"flow_day_white": flowDayWhiteList,
+		"unlimited_port": unlimitedPortListResult,
 	})
 	return
 }
