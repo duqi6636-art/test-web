@@ -174,10 +174,10 @@ func GetDynamicISPPackageList(c *gin.Context) {
 func GetFlowDayPackageList(c *gin.Context) {
 	config := com.StrTo(c.DefaultPostForm("config", "0")).MustInt()
 	bandwidth := com.StrTo(c.DefaultPostForm("bandwidth", "0")).MustInt()
-	if config <= 0  {
+	if config <= 0 {
 		config = 200
 	}
-	if bandwidth <= 0  {
+	if bandwidth <= 0 {
 		bandwidth = 200
 	}
 
@@ -203,10 +203,10 @@ func GetFlowDayPackageList(c *gin.Context) {
 
 	unlimitedConfigList := models.PackageUnlimitedMap //获取无限量配置列表
 
-	configListMap := []int{} //返回并发配置列表
-	bandwidthListMap := []int{} //返回带宽配置列表
-	configMoneyMap := map[string]float64{} //配置信息
-	bandwidthMoneyMap := map[string]float64{} //带宽信息
+	configListMap := []int{}                                     //返回并发配置列表
+	bandwidthListMap := []int{}                                  //返回带宽配置列表
+	configMoneyMap := map[string]float64{}                       //配置信息
+	bandwidthMoneyMap := map[string]float64{}                    //带宽信息
 	unlimitedListArr := map[int][]models.PackageUnlimitedModel{} //不限量配置信息
 	for _, v := range unlimitedConfigList {
 		str := fmt.Sprintf("%d_%d", v.PackageId, v.Config)
@@ -250,10 +250,10 @@ func GetFlowDayPackageList(c *gin.Context) {
 				}
 			}
 
-			price := vInfo.Price		//价格
-			unit := vInfo.Unit			//单价
-			showPrice := vInfo.ShowPrice  //原价
-			showUnit := vInfo.AllUnit	//原单价
+			price := vInfo.Price         //价格
+			unit := vInfo.Unit           //单价
+			showPrice := vInfo.ShowPrice //原价
+			showUnit := vInfo.AllUnit    //原单价
 
 			typeUnit := "Day"
 			if vInfo.Day > 1 {
@@ -263,23 +263,23 @@ func GetFlowDayPackageList(c *gin.Context) {
 			configMoney := configMoneyMap[fmt.Sprintf("%d_%d", vInfo.Id, config)]
 			bandwidthMoney := bandwidthMoneyMap[fmt.Sprintf("%d_%d", vInfo.Id, bandwidth)]
 
-			showPrice = vInfo.ShowPrice + configMoney + bandwidthMoney  //计算套餐原单价展示
+			showPrice = vInfo.ShowPrice + configMoney + bandwidthMoney //计算套餐原单价展示
 			oldUnitPrice := showPrice / float64(vInfo.Day)
 			if oldUnitPrice > 0 {
 				//originUnit = oPrice
-				oStr := fmt.Sprintf("%.1f", math.Round(showPrice * 10) / 10)
+				oStr := fmt.Sprintf("%.1f", math.Round(showPrice*10)/10)
 				showUnit = util.StoF(oStr)
 			}
-			fmt.Println("showPrice:", showPrice)
-			fmt.Println("configMoney:", configMoney)
-			fmt.Println("bandwidthMoney:", bandwidthMoney)
+			//fmt.Println("showPrice:", showPrice)
+			//fmt.Println("configMoney:", configMoney)
+			//fmt.Println("bandwidthMoney:", bandwidthMoney)
 
-			price = vInfo.Price + configMoney + bandwidthMoney  //计算套餐单价展示
+			price = vInfo.Price + configMoney + bandwidthMoney //计算套餐单价展示
 			unitPrice := price / float64(vInfo.Day)
 			fmt.Println("price:", price)
 			if unitPrice > 0 {
 				//unit = math.Ceil(unitPrice)
-				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice * 10) / 10)
+				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice*10)/10)
 				unit = util.StoF(oStr)
 			}
 
@@ -322,7 +322,7 @@ func GetFlowDayPackageList(c *gin.Context) {
 			info.Fee = fee
 			info.Total = int(value) + int(give) + int(gift)
 
-			unlimitedList,_ := unlimitedListArr[vInfo.Id]
+			unlimitedList, _ := unlimitedListArr[vInfo.Id]
 			configList := []models.ResPackageUnlimited{}
 			bandwidthList := []models.ResPackageUnlimited{}
 			for _, v := range unlimitedList {
@@ -361,10 +361,115 @@ func GetFlowDayPackageList(c *gin.Context) {
 		}
 	}
 
+	unlimitedPortPakType := "flow_day_port"
+	unlimitedPortPackageList, ok := models.PackageListMap[unlimitedPortPakType]
+	if !ok {
+		_, unlimitedPortPackageList = models.GetPackageListFlow(unlimitedPortPakType, 0)
+	}
+
+	unlimitedPortList := map[string][]models.UnlimitedPackageListModel{}
+	unlimitedPortInfo := models.UnlimitedPackageListModel{}
+	if len(unlimitedPortPackageList) > 0 {
+		for _, vInfo := range unlimitedPortPackageList {
+			// 文案配置
+			infoDetail := models.PackageTextMap[lang+"_"+util.ItoS(vInfo.Id)]
+			corner := vInfo.Corner
+			corner2 := vInfo.ActTitle
+			actDesc := vInfo.ActDesc
+			labels := ""
+			if infoDetail.Id > 0 {
+				if infoDetail.Corner != "" {
+					corner = infoDetail.Corner
+				}
+				if infoDetail.ActTitle != "" {
+					corner2 = infoDetail.ActTitle
+				}
+				if infoDetail.ActDesc != "" {
+					actDesc = infoDetail.ActDesc
+				}
+				if infoDetail.ActLabel != "" {
+					labels = infoDetail.ActLabel
+				}
+			}
+
+			price := vInfo.Price         //价格
+			unit := vInfo.Unit           //单价
+			showPrice := vInfo.ShowPrice //原价
+			showUnit := vInfo.AllUnit    //原单价
+
+			typeUnit := "Day"
+			if vInfo.Day > 1 {
+				typeUnit = "Days"
+			}
+
+			showPrice = vInfo.ShowPrice //计算套餐原单价展示
+			oldUnitPrice := showPrice / float64(vInfo.Day)
+			if oldUnitPrice > 0 {
+				//originUnit = oPrice
+				oStr := fmt.Sprintf("%.1f", math.Round(showPrice*10)/10)
+				showUnit = util.StoF(oStr)
+			}
+			fmt.Println("showPrice:", showPrice)
+
+			price = vInfo.Price //计算套餐单价展示
+			unitPrice := price / float64(vInfo.Day)
+			fmt.Println("price:", price)
+			if unitPrice > 0 {
+				//unit = math.Ceil(unitPrice)
+				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice*10)/10)
+				unit = util.StoF(oStr)
+			}
+
+			value := vInfo.Value
+			give := vInfo.Give
+			gift := vInfo.Gift
+
+			value = int64(value / 86400)
+			give = int64(give / 86400)
+			gift = int64(gift / 86400)
+			subName := vInfo.SubName
+
+			fee := 0.0
+			if vInfo.Price < feeMoney { //如果套餐金额小于3000美元，则不收取手续费 来自新版 20240912需求
+				fee = math.Floor(vInfo.Price*feeRatio*100) / 100
+			} else {
+				fee = 0
+			}
+
+			unlimitedPortInfo.Id = vInfo.Id
+			unlimitedPortInfo.Code = vInfo.Code
+			unlimitedPortInfo.Name = vInfo.Name
+			unlimitedPortInfo.SubName = subName
+			unlimitedPortInfo.Price = price
+			unlimitedPortInfo.ShowPrice = showPrice
+			unlimitedPortInfo.Corner = corner
+			unlimitedPortInfo.ActTitle = corner2
+			unlimitedPortInfo.ActDesc = actDesc
+			unlimitedPortInfo.ActLabel = labels
+			unlimitedPortInfo.Default = vInfo.Default
+			unlimitedPortInfo.IsHot = vInfo.IsHot
+			unlimitedPortInfo.TypeUnit = typeUnit
+			unlimitedPortInfo.Unit = unit
+			unlimitedPortInfo.ShowUnit = showUnit
+			unlimitedPortInfo.Currency = "$"
+			unlimitedPortInfo.Value = int(value)
+			unlimitedPortInfo.Give = int(give)
+			unlimitedPortInfo.Gift = int(gift)
+			unlimitedPortInfo.Day = vInfo.Day
+			unlimitedPortInfo.Fee = fee
+			unlimitedPortInfo.Total = int(value) + int(give) + int(gift)
+			unlimitedPortInfo.Default = vInfo.Default
+
+			dayStr := util.ItoS(vInfo.Day) + " " + typeUnit
+			unlimitedPortList[dayStr] = append(unlimitedPortList[dayStr], unlimitedPortInfo)
+		}
+	}
+
 	resData := map[string]interface{}{
-		"config_list":  configListMap,
-		"bandwidth_list":  bandwidthListMap,
-		"flow_day": resInfo,
+		"config_list":    configListMap,
+		"bandwidth_list": bandwidthListMap,
+		"flow_day":       resInfo,
+		"flow_day_port":  unlimitedPortList,
 	}
 
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resData)
