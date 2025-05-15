@@ -265,6 +265,7 @@ func UnlimitedFeedback(c *gin.Context) {
 	content := c.DefaultPostForm("content", "")
 	config := c.DefaultPostForm("config", "")
 	bandwidth := c.DefaultPostForm("bandwidth", "")
+	cate := c.DefaultPostForm("cate", "")
 	if email == "" {
 		JsonReturn(c, e.ERROR, "__T_EMAIL_IS_MUST", nil)
 		return
@@ -274,9 +275,19 @@ func UnlimitedFeedback(c *gin.Context) {
 	//	return
 	//}
 
-	if email == "" || config == "" || bandwidth == "" {
-		JsonReturn(c, -1, "__T_UNLIMITED_CONFIG_EMPTY", nil)
-		return
+	if cate == "" {
+		cate = "不限量套餐定制"
+	}
+	if cate == "不限量套餐定制" {
+		if config == "" || bandwidth == "" {
+			JsonReturn(c, -1, "__T_UNLIMITED_CONFIG_EMPTY", nil)
+			return
+		}
+	} else {
+		if config == "" {
+			JsonReturn(c, -1, "__T_UNLIMITED_CONFIG_EMPTY", nil)
+			return
+		}
 	}
 	uid := 0
 	if params.Session != "" {
@@ -286,7 +297,7 @@ func UnlimitedFeedback(c *gin.Context) {
 	nowTime := util.GetNowInt()
 	ipInfo, _ := ipdat.IPDat.GetIpInfo(ip)
 	fb := models.FeedbackWeb{
-		Cate:       "不限量套餐定制",
+		Cate:       cate,
 		Content:    content,
 		Platform:   "web",
 		Email:      email,
