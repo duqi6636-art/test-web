@@ -174,6 +174,14 @@ func AddWhitelist(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "__T_IP_HAS_USED", nil)
 		return
 	}
+	if flowType == 4 {
+		ipCount := models.GetUserWhitelistIpCountByFlowType(uid, flowType)
+		countLimit := models.GetUserWhitelistIpCountLimitByFlowType(uid, flowType)
+		if ipCount >= countLimit {
+			JsonReturn(c, e.ERROR, "__T_WHITELIST_IP_COUNT_LIMIT", nil)
+			return
+		}
+	}
 
 	country := strings.TrimSpace(c.DefaultPostForm("country", ""))
 	state := strings.TrimSpace(c.DefaultPostForm("state", ""))
