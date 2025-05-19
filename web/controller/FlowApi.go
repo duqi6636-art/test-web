@@ -421,7 +421,7 @@ func ExtractIp(c *gin.Context) {
 	typeStr := strings.ToLower(c.DefaultQuery("type", ""))
 	lt := strings.ToLower(c.DefaultQuery("lt", ""))
 	st := strings.ToLower(c.DefaultQuery("st", ""))
-	cate := strings.TrimSpace(c.DefaultPostForm("cate", "1")) //类型 1 sticky ip  2 random IP
+	cate := strings.TrimSpace(c.DefaultQuery("cate", "1")) //类型 1 sticky ip  2 random IP
 	if protocol == "" {
 		protocol = "http"
 	}
