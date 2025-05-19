@@ -369,6 +369,7 @@ func GetFlowDayPackageList(c *gin.Context) {
 
 	unlimitedPortList := map[string][]models.UnlimitedPackageListModel{}
 	unlimitedPortInfo := models.UnlimitedPackageListModel{}
+	oneDay := models.UnlimitedPackageListModel{}
 	if len(unlimitedPortPackageList) > 0 {
 		for _, vInfo := range unlimitedPortPackageList {
 			// 文案配置
@@ -409,11 +410,11 @@ func GetFlowDayPackageList(c *gin.Context) {
 				oStr := fmt.Sprintf("%.1f", math.Round(showPrice*10)/10)
 				showUnit = util.StoF(oStr)
 			}
-			fmt.Println("showPrice:", showPrice)
+			//fmt.Println("showPrice:", showPrice)
 
 			price = vInfo.Price //计算套餐单价展示
 			unitPrice := price / float64(vInfo.Day)
-			fmt.Println("price:", price)
+			//fmt.Println("price:", price)
 			if unitPrice > 0 {
 				//unit = math.Ceil(unitPrice)
 				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice*10)/10)
@@ -459,9 +460,24 @@ func GetFlowDayPackageList(c *gin.Context) {
 			unlimitedPortInfo.Fee = fee
 			unlimitedPortInfo.Total = int(value) + int(give) + int(gift)
 			unlimitedPortInfo.Default = vInfo.Default
+			unlimitedPortInfo.Sort = vInfo.Sort
 
-			dayStr := util.ItoS(vInfo.Day) + " " + typeUnit
-			unlimitedPortList[dayStr] = append(unlimitedPortList[dayStr], unlimitedPortInfo)
+			if vInfo.Day > 1 {
+				dayStr := util.ItoS(vInfo.Day) + " " + typeUnit
+				unlimitedPortList[dayStr] = append(unlimitedPortList[dayStr], unlimitedPortInfo)
+			} else {
+				oneDay = unlimitedPortInfo
+			}
+		}
+		// 组合接1天试用套餐
+		for kStr, _ := range unlimitedPortList {
+			unlimitedPortList[kStr] = append(unlimitedPortList[kStr], oneDay)
+		}
+		for _, val := range unlimitedPortList {
+			// 排序
+			sort.SliceStable(val, func(i, j int) bool {
+				return val[i].Sort > val[j].Sort
+			})
 		}
 	}
 

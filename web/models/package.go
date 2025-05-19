@@ -464,6 +464,7 @@ type UnlimitedPackageListModel struct {
 	ShowUnit      float64               `json:"show_unit"`
 	Fee           float64               `json:"fee"` //手续费
 	Currency      string                `json:"currency"`
+	Sort          int                   `json:"sort"`        //排序
 	Gift          int                   `json:"gift"`        //推荐支付赠送
 	Give          int                   `json:"give"`        //用户赠送
 	Total         int                   `json:"total"`       //总量
