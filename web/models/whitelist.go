@@ -1,6 +1,9 @@
 package models
 
-import "api-360proxy/web/pkg/util"
+import (
+	"api-360proxy/pay/models"
+	"api-360proxy/web/pkg/util"
+)
 
 type CmUserWhitelistIp struct {
 	Id          int    `json:"id"`
@@ -108,6 +111,12 @@ func DeleteUserWhitelist(id int) (err error) {
 func GetWhiteByUidIp(uid int, ip string, cate int) (info MdUserWhitelistApi, err error) {
 	err = db.Table("cm_user_whitelist_ip").Where("uid =?", uid).Where("whitelist_ip =?", ip).Where("flow_type =?", cate).Where("status >?", 0).First(&info).Error
 	return
+}
+
+func GetUserWhitelistIpCountByFlowType(uid int, flowType int) int {
+	info := 0
+	db.Table("cm_user_whitelist_ip").Where("uid =?", uid).Where("flow_type =?", flowType).Where("status >?", 0).Count(&info)
+	return info
 }
 
 // API -提取流量API白名单
@@ -240,4 +249,32 @@ func GetApiProxyClientByArea(area string, cate string) (proxyClient ApiProxyClie
 		Where("area = ?", area).
 		First(&proxyClient).Error
 	return
+}
+
+// CmUserWhitelistIpCount undefined
+type CmUserWhitelistIpCount struct {
+	ID        int    `json:"id" gorm:"id"`
+	Uid       int    `json:"uid" gorm:"uid"`
+	FlowType  int    `json:"flow_type" gorm:"flow_type"` // 1 流量2不限量带宽 4 不限量端口 3长效
+	Num       int    `json:"num" gorm:"num"`
+	Admin     string `json:"admin" gorm:"admin"`
+	CreatedAt int    `json:"created_at" gorm:"created_at"`
+}
+
+// TableName 表名称
+func (*CmUserWhitelistIpCount) TableName() string {
+	return "cm_user_whitelist_ip_count"
+}
+
+func GetUserWhitelistIpCountLimitByFlowType(uid int, flowType int) int {
+	info := CmUserWhitelistIpCount{}
+	db.Table("cm_user_whitelist_ip_count").Where("uid =?", uid).Where("flow_type =?", flowType).First(&info)
+	if info.ID > 0 {
+		return info.Num
+	}
+	defaulut := models.GetConfigV("unlimited_port_white_count")
+	if defaulut == "" {
+		defaulut = "5"
+	}
+	return util.StoI(defaulut)
 }
