@@ -94,3 +94,67 @@ func GetUserUnlimitedRecord(uid int) (data []UserUnlimitedModel) {
 	db.Table("log_user_unlimited").Where("uid = ?", uid).Order("id DESC").Find(&data)
 	return
 }
+
+// 不限量预警
+
+type UnlimitedEarlyWarning struct {
+	Id     int    `json:"id"`
+	Uid    int    `json:"uid"`
+	Email  string `json:"email"`
+	Status int    `json:"status"`
+}
+
+type UnlimitedEarlyWarningDetail struct {
+	Id          int    `json:"id"`
+	Uid         int    `json:"uid"`
+	Ip          string `json:"ip"`
+	Status      int    `json:"status"`
+	InstanceId  string `json:"instance_id"`
+	Cpu         int    `json:"cpu"`
+	Memory      int    `json:"memory"`
+	Bandwidth   int    `json:"bandwidth"`
+	Concurrency int    `json:"concurrency"`
+	Duration    int    `json:"duration"` // 持续时间
+	SendTime    int64  `json:"send_time"`
+	UpdateTime  int64  `json:"update_time"`
+	CreateTime  int64  `json:"create_time"`
+}
+
+const (
+	unlimitedEarlyWarningTable       = "cm_user_unlimited_early_warning"
+	unlimitedEarlyWarningDetailTable = "cm_unlimited_early_warning_details"
+)
+
+func (u *UnlimitedEarlyWarning) Insert() {
+	db.Table(unlimitedEarlyWarningTable).Create(u)
+}
+
+func (u *UnlimitedEarlyWarning) GetByUid() {
+	db.Table(unlimitedEarlyWarningTable).Where("uid = ?", u.Uid).First(u)
+}
+
+func (u *UnlimitedEarlyWarning) Update() {
+	db.Table(unlimitedEarlyWarningTable).Where("id = ?", u.Id).Update(u)
+}
+
+func (u *UnlimitedEarlyWarningDetail) Insert() {
+	db.Table(unlimitedEarlyWarningDetailTable).Create(u)
+}
+
+func (u *UnlimitedEarlyWarningDetail) GetByUidAndInstanceId() {
+	db.Table(unlimitedEarlyWarningDetailTable).Where("uid = ? AND instance_id = ?", u.Uid, u.InstanceId).First(u)
+}
+
+func (u *UnlimitedEarlyWarningDetail) Update() {
+	db.Table(unlimitedEarlyWarningDetailTable).Where("id = ? AND uid = ?", u.Id, u.Uid).Update(u)
+}
+
+func (u *UnlimitedEarlyWarningDetail) Delete() {
+	db.Table(unlimitedEarlyWarningDetailTable).Where("id = ? AND uid = ?", u.Id, u.Uid).Delete(u)
+}
+
+func (u *UnlimitedEarlyWarningDetail) GetAll() []UnlimitedEarlyWarningDetail {
+	var list = make([]UnlimitedEarlyWarningDetail, 0)
+	db.Table(unlimitedEarlyWarningDetailTable).Where("uid = ? ", u.Uid).Find(&list)
+	return list
+}

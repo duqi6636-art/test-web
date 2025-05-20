@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
 	"math"
+	"time"
 )
 
 // @BasePath /api/v1
@@ -260,4 +261,162 @@ func GetUnlimitedPackage(c *gin.Context) {
 
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resData)
 	return
+}
+
+// 设置不限量预警开关和邮件
+
+func SettingEarlyWarning(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	status := com.StrTo(c.DefaultPostForm("status", "0")).MustInt()
+	email := c.DefaultPostForm("email", "")
+	if email == "" {
+		JsonReturn(c, e.ERROR, "__T_EMAIL_ERROR", nil)
+		return
+	}
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	var uew = models.UnlimitedEarlyWarning{Uid: user.Id, Status: status, Email: email}
+	uew.GetByUid()
+	if uew.Id <= 0 {
+		uew.Insert()
+	} else {
+		uew.Update()
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
+}
+
+// 获取不限量预警开关和邮件
+
+func GetEarlyWarning(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	var uew = models.UnlimitedEarlyWarning{Uid: user.Id}
+	uew.GetByUid()
+	if uew.Id <= 0 {
+		uew = models.UnlimitedEarlyWarning{Uid: user.Id, Status: 0, Email: user.Email}
+		uew.Insert()
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", uew)
+}
+
+// 添加预警
+
+func AddEarlyWarningDetail(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	status := com.StrTo(c.DefaultPostForm("status", "0")).MustInt()
+	cpu := com.StrTo(c.DefaultPostForm("cpu", "0")).MustInt()
+	memory := com.StrTo(c.DefaultPostForm("memory", "0")).MustInt()
+	bandwidth := com.StrTo(c.DefaultPostForm("bandwidth", "0")).MustInt()
+	concurrency := com.StrTo(c.DefaultPostForm("concurrency", "0")).MustInt()
+	duration := com.StrTo(c.DefaultPostForm("duration", "0")).MustInt()
+	instanceMap := c.PostFormMap("instance_data")
+	if cpu <= 0 || memory <= 0 || bandwidth <= 0 || concurrency <= 0 || duration <= 0 {
+		JsonReturn(c, e.ERROR, "__T_PARAMETERS_ERROR", nil)
+		return
+	}
+	if len(instanceMap) <= 0 {
+		JsonReturn(c, e.ERROR, "__T_PARAMETERS_INSTANCE_DATA_ERROR", nil)
+		return
+	}
+	var uew = models.UnlimitedEarlyWarningDetail{Uid: user.Id}
+	var now = time.Now().Unix()
+	for insId, ip := range instanceMap {
+		uew.InstanceId = insId
+		uew.GetByUidAndInstanceId()
+		if uew.Id > 0 {
+			JsonReturn(c, e.ERROR, "__T_REPEAT_ADDITION_INSTANCE_ID", nil)
+			return
+		}
+		uew = models.UnlimitedEarlyWarningDetail{
+			Uid:         user.Id,
+			Ip:          ip,
+			Status:      status,
+			InstanceId:  insId,
+			Cpu:         cpu,
+			Memory:      memory,
+			Bandwidth:   bandwidth,
+			Concurrency: concurrency,
+			Duration:    duration,
+			SendTime:    0,
+			UpdateTime:  now,
+			CreateTime:  now,
+		}
+		uew.Insert()
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
+}
+
+// 修改预警
+
+func ChangeEarlyWarningDetail(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	status := com.StrTo(c.DefaultPostForm("status", "0")).MustInt()
+	cpu := com.StrTo(c.DefaultPostForm("cpu", "0")).MustInt()
+	memory := com.StrTo(c.DefaultPostForm("memory", "0")).MustInt()
+	bandwidth := com.StrTo(c.DefaultPostForm("bandwidth", "0")).MustInt()
+	concurrency := com.StrTo(c.DefaultPostForm("concurrency", "0")).MustInt()
+	duration := com.StrTo(c.DefaultPostForm("duration", "0")).MustInt()
+	id := com.StrTo(c.PostForm("id")).MustInt()
+	if cpu <= 0 || memory <= 0 || bandwidth <= 0 || concurrency <= 0 || duration <= 0 {
+		JsonReturn(c, e.ERROR, "__T_PARAMETERS_ERROR", nil)
+		return
+	}
+	if id <= 0 {
+		JsonReturn(c, e.ERROR, "__T_PARAMETERS_ID_ERROR", nil)
+		return
+	}
+	now := time.Now().Unix()
+	uew := models.UnlimitedEarlyWarningDetail{
+		Id:          id,
+		Uid:         user.Id,
+		Status:      status,
+		Cpu:         cpu,
+		Memory:      memory,
+		Bandwidth:   bandwidth,
+		Concurrency: concurrency,
+		Duration:    duration,
+		UpdateTime:  now,
+	}
+	uew.Update()
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
+}
+
+// 删除预警
+
+func DelEarlyWarningDetail(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	id := com.StrTo(c.DefaultPostForm("id", "0")).MustInt()
+	uew := models.UnlimitedEarlyWarningDetail{Id: id, Uid: user.Id}
+	uew.Delete()
+	JsonReturn(c, e.SUCCESS, "__SUCCESS", nil)
+}
+
+// 获取预警详情
+
+func GetEarlyWarningDetailList(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uew := models.UnlimitedEarlyWarningDetail{Uid: user.Id}
+	list := uew.GetAll()
+	JsonReturn(c, e.SUCCESS, "__SUCCESS", list)
 }
