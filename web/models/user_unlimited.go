@@ -145,6 +145,10 @@ func (u *UnlimitedEarlyWarningDetail) GetByUidAndInstanceId() {
 	db.Table(unlimitedEarlyWarningDetailTable).Where("uid = ? AND instance_id = ?", u.Uid, u.InstanceId).First(u)
 }
 
+func (u *UnlimitedEarlyWarningDetail) GetByIdAndUId() {
+	db.Table(unlimitedEarlyWarningDetailTable).Where("id = ? AND uid = ?", u.Id, u.Uid).First(u)
+}
+
 func (u *UnlimitedEarlyWarningDetail) Update() {
 	db.Table(unlimitedEarlyWarningDetailTable).Where("id = ? AND uid = ?", u.Id, u.Uid).Save(u)
 }
