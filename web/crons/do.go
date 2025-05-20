@@ -12,11 +12,14 @@ func GoCron() {
 
 	if setting.AppConfig.SendEmailSwitch == 1 {
 		_ = c.AddFunc("5 */10 * * * *", func() { //每10分钟的第5秒执行
-			CheckDoSending() // 设置 用户 发送邮件
-			CheckLongIspDoSending()// 长效Isp设置 用户 发送邮件
+			CheckDoSending()        // 设置 用户 发送邮件
+			CheckLongIspDoSending() // 长效Isp设置 用户 发送邮件
 		})
-		_ = c.AddFunc("6 */5 * * * *", func() {	//每5分钟的第6秒执行
-			MarketDoSending()		// 邮件营销
+		_ = c.AddFunc("6 */5 * * * *", func() { //每5分钟的第6秒执行
+			MarketDoSending() // 邮件营销
+		})
+		_ = c.AddFunc("* */2 * * * *", func() {
+			UnlimitedEarlyWarning() // 不限量邮件预警
 		})
 	}
 	c.Start()
