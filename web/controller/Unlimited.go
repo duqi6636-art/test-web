@@ -379,17 +379,20 @@ func ChangeEarlyWarningDetail(c *gin.Context) {
 		return
 	}
 	now := time.Now().Unix()
-	uew := models.UnlimitedEarlyWarningDetail{
-		Id:          id,
-		Uid:         user.Id,
-		Status:      status,
-		Cpu:         cpu,
-		Memory:      memory,
-		Bandwidth:   bandwidth,
-		Concurrency: concurrency,
-		Duration:    duration,
-		UpdateTime:  now,
+	uew := models.UnlimitedEarlyWarningDetail{Id: id, Uid: user.Id}
+	uew.GetByIdAndUId()
+	if uew.Id <= 0 {
+		JsonReturn(c, e.ERROR, "__T_PARAMETERS_ID_ERROR", nil)
+		return
 	}
+	uew.Status = status
+	uew.Cpu = cpu
+	uew.Memory = memory
+	uew.Bandwidth = bandwidth
+	uew.Concurrency = concurrency
+	uew.Duration = duration
+	uew.SendTime = 0
+	uew.UpdateTime = now
 	uew.Update()
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
 }
