@@ -85,9 +85,8 @@ func UnlimitedEarlyWarning() {
 				detList = append(detList, det)
 			}
 		}
-		// TODO 需要修改email_type和vars参数
 		if len(detList) > 0 {
-			vars["details"] = strings.Join(detList, "\n")
+			vars["detail"] = strings.Join(detList, "\n")
 			// 发送邮件
 			if defaultEmail == "" {
 				result := email.AwsSendEmail(uew.Email, 10, vars, "unlimited_early_warning_email")
