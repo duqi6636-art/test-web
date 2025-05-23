@@ -363,8 +363,8 @@ func GetUserDomain(c *gin.Context) {
 		unlimitedPort := map[string]interface{}{}
 		unlimitedPort["ip"] = port.Ip
 		unlimitedPort["port"] = port.Port
-		unlimitedPort["expire_time"] = util.GetTimeStr(port.ExpiredTime, "Y.m.d")
-		unlimitedPort["label"] = port.Ip + "(" + util.GetTimeStr(port.ExpiredTime, "Y.m.d") + ")"
+		unlimitedPort["expire_time"] = util.GetTimeStr(port.ExpiredTime, "Y.m.d H:i:s")
+		unlimitedPort["label"] = port.Ip + "(" + util.GetTimeStr(port.ExpiredTime, "Y.m.d H:i:s") + ")"
 		unlimitedPortListResult = append(unlimitedPortListResult, unlimitedPort)
 	}
 

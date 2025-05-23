@@ -161,7 +161,7 @@ func GetAccountInfo(c *gin.Context) {
 					}
 					day = int(dayInfo)
 
-					dayExpire = util.GetTimeStr(flowDayPort.ExpiredTime, "d/m/Y")
+					dayExpire = util.GetTimeStr(flowDayPort.ExpiredTime, "d/m/Y H:i:s")
 					dayUse = 1
 				}
 			}

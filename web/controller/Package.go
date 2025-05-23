@@ -866,6 +866,7 @@ func GetLowPrice(c *gin.Context) {
 	price["isp_business"] = models.GetLowPrice("agent")
 	price["dynamic_isp"] = models.GetLowPrice("dynamic_isp")
 	price["flow_day"] = models.GetLowPrice("flow_day")
+	price["flow_day_port"] = models.GetLowPrice("flow_day_port")
 	price["static_7day"] = models.GetStaticLowPrice(7)
 	price["static_30day"] = models.GetStaticLowPrice(30)
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", price)
