@@ -7,14 +7,13 @@ import (
 )
 
 type Database struct {
-	Type            string `ini:"TYPE"`
-	Host            string `ini:"HOST"`
-	User            string `ini:"USER"`
-	Password        string `ini:"PASSWORD"`
-	DbName          string `ini:"NAME"`
-	CherryLogDbName string `ini:"CHERRY_LOG_DATABASE"` // 增加数据库
-	TablePrefix     string `ini:"TABLE_PREFIX"`
-	RmHost          string `ini:"RM_HOST"`
+	Type        string `ini:"TYPE"`
+	Host        string `ini:"HOST"`
+	User        string `ini:"USER"`
+	Password    string `ini:"PASSWORD"`
+	DbName      string `ini:"NAME"`
+	TablePrefix string `ini:"TABLE_PREFIX"`
+	RmHost      string `ini:"RM_HOST"`
 }
 
 type App struct {
