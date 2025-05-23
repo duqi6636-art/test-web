@@ -18,7 +18,7 @@ func GoCron() {
 		_ = c.AddFunc("6 */5 * * * *", func() { //每5分钟的第6秒执行
 			MarketDoSending() // 邮件营销
 		})
-		_ = c.AddFunc("* */2 * * * *", func() {
+		_ = c.AddFunc("* */2 * * * *", func() { // 每2分钟执行一次
 			UnlimitedEarlyWarning() // 不限量邮件预警
 		})
 	}
