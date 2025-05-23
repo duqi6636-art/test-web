@@ -1,6 +1,9 @@
 package models
 
-import "api-360proxy/web/pkg/util"
+import (
+	"api-360proxy/web/db/clickhousedb"
+	"api-360proxy/web/pkg/util"
+)
 
 // 不限量流量IP
 type PoolFlowDayModel struct {
@@ -137,6 +140,12 @@ func (u *UnlimitedEarlyWarning) Update() {
 	db.Table(unlimitedEarlyWarningTable).Where("id = ?", u.Id).Update(u)
 }
 
+func GetUnlimitedEarlyWarningList(query string, args []interface{}) []UnlimitedEarlyWarning {
+	var list = make([]UnlimitedEarlyWarning, 0)
+	db.Table(unlimitedEarlyWarningTable).Where(query, args...).Find(&list)
+	return list
+}
+
 func (u *UnlimitedEarlyWarningDetail) Insert() {
 	db.Table(unlimitedEarlyWarningDetailTable).Create(u)
 }
@@ -160,5 +169,42 @@ func (u *UnlimitedEarlyWarningDetail) Delete() {
 func (u *UnlimitedEarlyWarningDetail) GetAll() []UnlimitedEarlyWarningDetail {
 	var list = make([]UnlimitedEarlyWarningDetail, 0)
 	db.Table(unlimitedEarlyWarningDetailTable).Where("uid = ? ", u.Uid).Find(&list)
+	return list
+}
+
+// 不限量服务器数据 st_user_unlimited_cvm
+
+type UserUnlimitedCvm struct {
+	UID          uint32  `json:"uid"`           // 用户id
+	Username     string  `json:"username"`      // 用户名
+	Host         string  `json:"host"`          // host
+	InsID        string  `json:"ins_id"`        // 实例ID
+	Config       uint32  `json:"config"`        // 机器配置
+	Bandwidth    uint32  `json:"bandwidth"`     // 机器带宽
+	CpuAvg       float64 `json:"cpu_avg"`       // CPU平均值
+	CpuMin       float64 `json:"cpu_min"`       // CPU最小值
+	CpuMax       float64 `json:"cpu_max"`       // CPU最大值
+	MemAvg       float64 `json:"mem_avg"`       // 内存平均值
+	MemMin       float64 `json:"mem_min"`       // 内存最小值
+	MemMax       float64 `json:"mem_max"`       // 内存最大值
+	BandwidthAvg float64 `json:"bandwidth_avg"` // 带宽使用平均值
+	BandwidthMin float64 `json:"bandwidth_min"` // 带宽使用最小值
+	BandwidthMax float64 `json:"bandwidth_max"` // 带宽使用最大值
+	OutAvg       float64 `json:"out_avg"`       // 出带宽利用率平均值
+	OutMin       float64 `json:"out_min"`       // 出带宽利用率最小值
+	OutMax       float64 `json:"out_max"`       // 出带宽利用率最大值
+	TcpAvg       float64 `json:"tcp_avg"`       // TCP连接数平均值
+	TcpMin       float64 `json:"tcp_min"`       // TCP连接数最小值
+	TcpMax       float64 `json:"tcp_max"`       // TCP连接数最大值
+	Today        uint32  `json:"today"`         // 当天时间
+	Period       uint32  `json:"period"`        // 当前时间
+	CreateTime   uint32  `json:"create_time"`   // 写入时间
+}
+
+const stUserUnlimitedCvm = "st_user_unlimited_cvm"
+
+func GetUserUnlimitedCvmList(query string, args []interface{}) []UserUnlimitedCvm {
+	var list = make([]UserUnlimitedCvm, 0)
+	clickhousedb.ClickhouseCherryLogDb.Table(stUserUnlimitedCvm).Where(query, args...).Find(&list)
 	return list
 }
