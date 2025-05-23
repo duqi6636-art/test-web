@@ -40,6 +40,10 @@ func UnlimitedEarlyWarning() {
 			afterDuration := now.Add(-time.Duration(detail.Duration) * time.Minute).Unix()
 			args = []interface{}{detail.Uid, detail.InstanceId, afterDuration}
 			cvmList := models.GetUserUnlimitedCvmList(query, args)
+			// 没有读取到数据不发送
+			if len(cvmList) <= 0 {
+				continue
+			}
 			var isSendMap = map[string]bool{"cpu": true, "memory": true, "bandwidth": true, "concurrency": true}
 			for _, cvm := range cvmList {
 				if cvm.CpuAvg < float64(detail.Cpu) {
@@ -58,9 +62,6 @@ func UnlimitedEarlyWarning() {
 				}
 			}
 
-			if len(isSendMap) > 0 {
-				det += detail.Ip
-			}
 			var infoList = make([]string, 0)
 			for key, val := range isSendMap {
 				if val {
@@ -74,14 +75,13 @@ func UnlimitedEarlyWarning() {
 					case "concurrency":
 						infoList = append(infoList, "concurrency utilization")
 					}
-
 					// 更新一下发送的时间
 					detail.SendTime = now.Unix()
 					detail.Update()
 				}
 			}
-			if len(det) > 0 {
-				det += fmt.Sprintf(" (%v)", strings.Join(infoList, ","))
+			if len(infoList) > 0 {
+				det += fmt.Sprintf("%v (%v)", detail.Ip, strings.Join(infoList, ","))
 				detList = append(detList, det)
 			}
 		}
