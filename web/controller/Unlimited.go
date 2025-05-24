@@ -65,7 +65,6 @@ func GetUserUnlimitedLog(c *gin.Context) {
 
 			resLists = append(resLists, info)
 		}
-		JsonReturn(c, e.SUCCESS, "success", resLists)
 	} else {
 		logList := models.GetUserFlowDayPortByUid(uid)
 		for _, log := range logList {
