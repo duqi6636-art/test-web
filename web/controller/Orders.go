@@ -33,7 +33,7 @@ func UserOrderListBy(c *gin.Context) {
 	}
 	lists := models.GetOrderListBy(uid, start, end, pStatus, pak_type)
 
-	_,confPayLists := models.GetPayPlatConfList()
+	_, confPayLists := models.GetPayPlatConfList()
 	confPayArr := map[int]string{}
 	for _, v := range confPayLists {
 		confPayArr[v.Id] = v.ShowName
@@ -65,12 +65,15 @@ func UserOrderListBy(c *gin.Context) {
 			pakType = "Socks5 Proxies (Business)"
 			char = "IPs"
 		} else if v.PakType == "flow_day" {
-			pakType = "Unlimited Residential Proxies"
+			pakType = "Unlimited Residential Proxies(Bandwidth)"
+			char = "Day"
+		} else if v.PakType == "flow_day_port" {
+			pakType = "Unlimited Residential Proxies(Port)"
 			char = "Day"
 		} else if v.PakType == "dynamic_isp" {
 			pakType = "Dynamic ISP Proxies"
 			char = "GB"
-		}  else if v.PakType == "balance" {
+		} else if v.PakType == "balance" {
 			pakType = "Balance Recharge"
 			char = ""
 		} else {
@@ -92,9 +95,9 @@ func UserOrderListBy(c *gin.Context) {
 			}
 		}
 
-		patMethod,okp := confPayArr[v.PayPlat]
+		patMethod, okp := confPayArr[v.PayPlat]
 		if !okp {
-			patMethod = "Other "+util.ItoS(v.PayPlat)
+			patMethod = "Other " + util.ItoS(v.PayPlat)
 		}
 		info := models.ResSocksOrder{}
 		info.PakId = v.PakId
