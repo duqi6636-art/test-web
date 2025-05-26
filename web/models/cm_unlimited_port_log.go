@@ -9,6 +9,8 @@ type CmUnlimitedPortLog struct {
 	Username    string `json:"username" gorm:"username"`         // username
 	Ip          string `json:"ip" gorm:"ip"`                     // 机器ip\r\n
 	Port        int    `json:"port" gorm:"port"`                 // 端口
+	Region      string `json:"region" gorm:"region"`             // 国家
+	Minute      int    `json:"minute" gorm:"minute"`             // 时间
 	ExpiredTime int    `json:"expired_time" gorm:"c"`            // 过期时间
 	CreatedTime int    `json:"created_time" gorm:"created_time"` // 创建时间
 }
