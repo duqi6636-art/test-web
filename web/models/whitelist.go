@@ -115,7 +115,9 @@ func GetWhiteByUidIp(uid int, ip string, cate int) (info MdUserWhitelistApi, err
 
 func GetUserWhitelistIpCountByFlowType(uid int, flowType int) int {
 	info := 0
-	db.Table("cm_user_whitelist_ip").Where("uid =?", uid).Where("flow_type =?", flowType).Where("status >?", 0).Count(&info)
+	db.Table("cm_user_whitelist_ip").Where("uid =?", uid).
+		Where("flow_type =?", flowType).
+		Where("status  = ?", 1).Count(&info)
 	return info
 }
 
