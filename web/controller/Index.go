@@ -334,12 +334,16 @@ func GetUserDomain(c *gin.Context) {
 				status = 0
 			}
 			flowDay["title"] = title
+			flowDay["ip"] = val.Ip
+			flowDay["port"] = val.Port
 			flowDay["value"] = host
 			flowDay["status"] = status
 
 			flowDayWhite["title"] = title2
 			flowDayWhite["value"] = host2
 			flowDayWhite["status"] = status
+			flowDayWhite["ip"] = val.Ip
+			flowDayWhite["port"] = val.Port2
 			flowDayList = append(flowDayList, flowDay)
 			flowDayWhiteList = append(flowDayWhiteList, flowDayWhite)
 		}
@@ -349,9 +353,13 @@ func GetUserDomain(c *gin.Context) {
 		host := "hostname:port"
 		flowDay["title"] = host
 		flowDay["value"] = host
+		flowDay["ip"] = "hostname"
+		flowDay["port"] = "port"
 		flowDay["status"] = 0
 		flowDayWhite["title"] = host
 		flowDayWhite["value"] = host
+		flowDayWhite["ip"] = "hostname"
+		flowDayWhite["port"] = "port"
 		flowDayWhite["status"] = 0
 		flowDayList = append(flowDayList, flowDay)
 		flowDayWhiteList = append(flowDayWhiteList, flowDayWhite)
