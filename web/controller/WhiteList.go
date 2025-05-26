@@ -570,10 +570,15 @@ func WhitelistDownload(c *gin.Context) {
 		for _, v := range lists {
 			linshi := []string{}
 			linshi = append(linshi, v.WhitelistIp)
-			linshi = append(linshi, "City")
+			if v.FlowType == 2 {
+				linshi = append(linshi, "Bandwidth")
+			} else if v.FlowType == 4 {
+				linshi = append(linshi, "Port")
+			} else {
+				linshi = append(linshi, "City")
+			}
 			linshi = append(linshi, util.GetTimeStr(v.CreateTime, "d/m/Y H:i"))
 			linshi = append(linshi, v.Remark)
-
 			csvData = append(csvData, linshi)
 		}
 
