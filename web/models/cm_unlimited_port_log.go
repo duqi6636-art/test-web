@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 // CmUnlimitedPortLog undefined
 type CmUnlimitedPortLog struct {
 	ID          int    `json:"id" gorm:"id"`
@@ -26,6 +28,17 @@ func InsertUnlimitedPortLog(logs CmUnlimitedPortLog) error {
 // 查询用户 不限时端口套餐信息
 func GetUserFlowDayPortByUid(uid int) (user []CmUnlimitedPortLog) {
 	db.Table(userFlowDayPortTable).Where("uid =?", uid).Order("expired_time desc").Limit(1).Find(&user)
+	return
+}
+
+// 查询用户 可用不限时端口套餐信息
+func GetUserCanFlowDayPortByUid(uid int, num int) (user []CmUnlimitedPortLog) {
+	db.Table(userFlowDayPortTable).Where("uid =?", uid).
+		Where("expired_time >?", time.Now().Unix()).
+		Where("status  = ?", 1).
+		Order("expired_time desc").
+		Limit(num).
+		Find(&user)
 	return
 }
 
