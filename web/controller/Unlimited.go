@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
 	"math"
+	"strings"
 )
 
 // @BasePath /api/v1
@@ -27,40 +28,62 @@ func GetUserUnlimitedLog(c *gin.Context) {
 		JsonReturn(c, resCode, msg, nil)
 		return
 	}
+
+	flowType := c.DefaultPostForm("flow_type", "2")
 	uid := user.Id
-	logs := models.ListPoolFlowDayByUidAll(uid)
-	resLists := []models.ResUserUnlimitedModel{}
 	nowTime := util.GetNowInt()
-	unlimitedCon := models.GetConfigVal("unlimited_concurrency_unit") //并发单位
-	unlimitedBws := models.GetConfigVal("unlimited_bandwidth_unit")   //带宽单位
-	if unlimitedCon == "" {
-		unlimitedCon = "K"
-	}
-	if unlimitedBws == "" {
-		unlimitedBws = "Mbps"
-	}
-	for _, log := range logs {
-		status := 1 //默认状态为正常
-		if log.ExpireTime < nowTime {
-			status = 2 //已过期
+	resLists := []models.ResUserUnlimitedModel{}
+	if flowType == "2" {
+		logs := models.ListPoolFlowDayByUidAll(uid)
+		unlimitedCon := models.GetConfigVal("unlimited_concurrency_unit") //并发单位
+		unlimitedBws := models.GetConfigVal("unlimited_bandwidth_unit")   //带宽单位
+		if unlimitedCon == "" {
+			unlimitedCon = "K"
 		}
-
-		exDate := ""
-		if log.ExpireTime > 0 {
-			exDate = util.GetTimeStr(log.ExpireTime, "d/m/Y H:i:s")
+		if unlimitedBws == "" {
+			unlimitedBws = "Mbps"
 		}
+		for _, log := range logs {
+			status := 1 //默认状态为正常
+			if log.ExpireTime < nowTime {
+				status = 2 //已过期
+			}
 
-		info := models.ResUserUnlimitedModel{}
-		//info.Id 	     = log.Id
-		info.ConfigNum = log.Config
-		info.BandwidthNum = log.Bandwidth
-		info.Config = fmt.Sprintf("%d %s", log.Config, unlimitedCon)
-		info.Bandwidth = fmt.Sprintf("%d %s", log.Bandwidth, unlimitedBws)
-		info.ExpireTime = exDate
-		info.Ip = log.Ip
-		info.Status = status
+			exDate := ""
+			if log.ExpireTime > 0 {
+				exDate = util.GetTimeStr(log.ExpireTime, "d/m/Y H:i:s")
+			}
 
-		resLists = append(resLists, info)
+			info := models.ResUserUnlimitedModel{}
+			//info.Id 	     = log.Id
+			info.ConfigNum = log.Config
+			info.BandwidthNum = log.Bandwidth
+			info.Config = fmt.Sprintf("%d %s", log.Config, unlimitedCon)
+			info.Bandwidth = fmt.Sprintf("%d %s", log.Bandwidth, unlimitedBws)
+			info.ExpireTime = exDate
+			info.Ip = log.Ip
+			info.Status = status
+
+			resLists = append(resLists, info)
+		}
+	} else {
+		logList := models.GetUserFlowDayPortByUid(uid)
+		for _, log := range logList {
+			exDate := ""
+			if log.ExpiredTime > 0 {
+				exDate = util.GetTimeStr(log.ExpiredTime, "d/m/Y H:i:s")
+			}
+			status := 1 //默认状态为正常
+			if log.ExpiredTime < nowTime {
+				status = 2 //已过期
+			}
+			info := models.ResUserUnlimitedModel{}
+			info.ExpireTime = exDate
+			info.Ip = log.Ip
+			info.Port = log.Port
+			info.Status = status
+			resLists = append(resLists, info)
+		}
 	}
 	JsonReturn(c, e.SUCCESS, "success", resLists)
 	return
@@ -259,5 +282,33 @@ func GetUnlimitedPackage(c *gin.Context) {
 	}
 
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resData)
+	return
+}
+
+func GetUnlimitedPortDomain(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	numStr := strings.ToLower(c.DefaultPostForm("num", ""))
+	num := util.StoI(numStr)
+
+	// 获取用户不限量端口
+	userPortLogList := models.GetUserCanFlowDayPortByUid(user.Id, num)
+	hostArr := []ApiProxyJson{}
+	for _, log := range userPortLogList {
+		if log.ExpiredTime < util.GetNowInt() {
+			continue
+		}
+		//端口 +1000为白名单端口
+		jsonInfo := ApiProxyJson{
+			Ip:   log.Ip,
+			Port: log.Port + 1000,
+		}
+		hostArr = append(hostArr, jsonInfo)
+
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", hostArr)
 	return
 }

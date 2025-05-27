@@ -86,6 +86,7 @@ type ResUserUnlimitedModel struct {
 	BandwidthNum int    `json:"bandwidth_num"` // 类型 带宽
 	ExpireTime   string `json:"expire_time"`   // 过期时间
 	Ip           string `json:"ip"`            // 不限量IP
+	Port         int    `json:"port"`          // 不限量IP
 	Status       int    `json:"status"`        // 状态 1待使用 2已使用 3已过期
 }
 
