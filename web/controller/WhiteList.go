@@ -497,6 +497,16 @@ func SetWhitelistStatus(c *gin.Context) {
 	} else {
 		status = 2
 	}
+
+	if has.FlowType == 4 {
+		ipCount := models.GetUserWhitelistIpCountByFlowType(uid, 4)
+		countLimit := models.GetUserWhitelistIpCountLimitByFlowType(uid, 4)
+		if ipCount >= countLimit {
+			JsonReturn(c, e.ERROR, "__T_WHITELIST_IP_COUNT_LIMIT", nil)
+			return
+		}
+	}
+
 	params := map[string]interface{}{}
 	params["status"] = status
 	params["update_time"] = util.GetNowInt()
