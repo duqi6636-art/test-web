@@ -403,7 +403,7 @@ func ExchangeCdk() {
 						}
 
 						// 创建IP池队列 异步处理
-						models.AddLogUserUnlimited(uid, config, bandwidth, expireTime, int(value/86400), createTime, pushInfo.Cdkey, createTime, "")
+						models.AddLogUserUnlimited(uid, config, bandwidth, expireTime, int(value/86400), createTime, pushInfo.Cdkey, createTime, "", "flow_day")
 
 						//poolInfo := models.ScoreGetPoolFlowDayByUid(uid)
 						//if poolInfo.Id == 0 {
