@@ -45,6 +45,6 @@ func GetUserCanFlowDayPortByUid(uid int, num int) (user []CmUnlimitedPortLog) {
 }
 
 func GetUserUnlimitedPortByUid(uid int) (user []CmUnlimitedPortLog) {
-	db.Table(userFlowDayPortTable).Where("uid =?", uid).Order("port asc").Find(&user)
+	db.Table(userFlowDayPortTable).Where("uid =?", uid).Order("created_time desc").Find(&user)
 	return
 }
