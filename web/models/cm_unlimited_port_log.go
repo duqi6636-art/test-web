@@ -32,7 +32,7 @@ func GetUserFlowDayPortByUid(uid int) (user []CmUnlimitedPortLog) {
 	db.Table(userFlowDayPortTable).
 		Where("uid =?", uid).
 		Where("expired_time >?", util.GetNowInt()).
-		Order("created_time desc").Find(&user)
+		Order("expired_time desc").Find(&user)
 	return
 }
 
