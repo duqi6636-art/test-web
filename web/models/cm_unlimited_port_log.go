@@ -29,7 +29,10 @@ func InsertUnlimitedPortLog(logs CmUnlimitedPortLog) error {
 
 // 查询用户 不限时端口套餐信息
 func GetUserFlowDayPortByUid(uid int) (user []CmUnlimitedPortLog) {
-	db.Table(userFlowDayPortTable).Where("uid =?", uid).Order("expired_time desc").Find(&user)
+	db.Table(userFlowDayPortTable).
+		Where("uid =?", uid).
+		Where("expired_time >?", util.GetNowInt()).
+		Order("created_time desc").Find(&user)
 	return
 }
 
