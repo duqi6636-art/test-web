@@ -1,5 +1,7 @@
 package models
 
+import "api-360proxy/web/pkg/util"
+
 // CmUnlimitedPortLog undefined
 type CmUnlimitedPortLog struct {
 	ID          int    `json:"id" gorm:"id"`
@@ -43,6 +45,8 @@ func GetUserCanFlowDayPortByUid(uid int, num int, expiredTime int) (user []CmUnl
 }
 
 func GetUserUnlimitedPortByUid(uid int) (user []CmUnlimitedPortLog) {
-	db.Table(userFlowDayPortTable).Where("uid =?", uid).Order("created_time desc").Find(&user)
+	db.Table(userFlowDayPortTable).Where("uid =?", uid).
+		Where("expired_time >?", util.GetNowInt()).
+		Order("created_time desc").Find(&user)
 	return
 }
