@@ -1323,3 +1323,46 @@ func ClickCouponPopup(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", gin.H{})
 	return
 }
+
+func GetCoupon(c *gin.Context) {
+	resCode, msg, userInfo := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, e.SUCCESS, msg, nil)
+		return
+	}
+	code := c.DefaultPostForm("code", "")
+
+	_, couponInfo := models.GetCouponByCode(code)
+	if couponInfo.Id == 0 || couponInfo.Cate != "click" {
+		JsonReturn(c, e.ERROR, "__T_COUPON_NOT_EXIST", nil)
+		return
+	}
+
+	models.AddCoupon(models.CouponList{
+		Cid:          couponInfo.Id,
+		Code:         couponInfo.Code,
+		Name:         couponInfo.Name,
+		BindUid:      userInfo.Id,
+		BindUsername: userInfo.Username,
+		Status:       1,
+		UseTime:      0,
+		Title:        couponInfo.Title,
+		Type:         couponInfo.Type,
+		Value:        couponInfo.Value,
+		UserType:     couponInfo.UserType,
+		UseType:      couponInfo.UseType,
+		Meals:        couponInfo.Meals,
+		Expire:       util.GetNowInt() + couponInfo.ExpiryDay*86400,
+		ExpiryDay:    couponInfo.ExpiryDay,
+		UseCycle:     couponInfo.UseCycle,
+		UseNumber:    couponInfo.UseNumber,
+		Platform:     couponInfo.Platform,
+		GroupId:      couponInfo.GroupId,
+		CreateTime:   util.GetNowInt(),
+		Cron:         couponInfo.Cron,
+		Cate:         couponInfo.Cate,
+	})
+
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", gin.H{})
+	return
+}

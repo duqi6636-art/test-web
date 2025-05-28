@@ -49,6 +49,7 @@ func centerRouter(router *gin.Engine) {
 	coupon.POST("/my_coupons_list", controller.GetMyCouponListByPakId) // 获取优惠券下拉列表接口
 	coupon.POST("/popup", controller.GetCouponPopup)                   // 优惠券弹窗
 	coupon.POST("/popup_click", controller.ClickCouponPopup)           // 优惠券弹窗点击
+	coupon.POST("/get_coupon", controller.GetCoupon)                   // 领取优惠卷
 
 	cdk := router.Group("/center/cdk")
 	cdk.POST("/ex/generate_list", controller.NewGenerateList)                  // cdk 生成列表
