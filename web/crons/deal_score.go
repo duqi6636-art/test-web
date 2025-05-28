@@ -169,7 +169,7 @@ func HandleScoreFlowDay() {
 				}
 
 				// 创建IP池队列 异步处理
-				models.AddLogUserUnlimited(uid, config, bandwidth, expireTime, int(value/86400), nowTime, "score_ex_"+util.ItoS(nowTime), createTime, "")
+				models.AddLogUserUnlimited(uid, config, bandwidth, expireTime, int(value/86400), nowTime, "score_ex_"+util.ItoS(nowTime), createTime, "", "flow_day")
 
 				//if flowDayInfo.Id == 0 {
 				//	//创建用户余额IP
