@@ -365,6 +365,11 @@ func GetUserDomain(c *gin.Context) {
 		flowDayWhiteList = append(flowDayWhiteList, flowDayWhite)
 	}
 
+	countryList := models.GetAllFlowDayCountry("")
+	countryMap := map[string]string{}
+	for _, country := range countryList {
+		countryMap[country.Country] = country.Img
+	}
 	unlimitedPortList := models.GetUserUnlimitedPortByUid(user.Id)
 	unlimitedPortListResult := []map[string]interface{}{}
 	for _, port := range unlimitedPortList {
@@ -372,6 +377,7 @@ func GetUserDomain(c *gin.Context) {
 		unlimitedPort["ip"] = port.Ip
 		unlimitedPort["port"] = port.Port
 		unlimitedPort["region"] = port.Region
+		unlimitedPort["img"] = countryMap[port.Region]
 		unlimitedPort["expired"] = port.ExpiredTime
 		unlimitedPort["minute"] = port.Minute
 		unlimitedPort["expire_time"] = util.GetTimeStr(port.ExpiredTime, "Y.m.d H:i:s")
