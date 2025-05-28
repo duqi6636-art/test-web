@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 // CmUnlimitedPortLog undefined
 type CmUnlimitedPortLog struct {
 	ID          int    `json:"id" gorm:"id"`
@@ -34,9 +32,9 @@ func GetUserFlowDayPortByUid(uid int) (user []CmUnlimitedPortLog) {
 }
 
 // 查询用户 可用不限时端口套餐信息
-func GetUserCanFlowDayPortByUid(uid int, num int) (user []CmUnlimitedPortLog) {
+func GetUserCanFlowDayPortByUid(uid int, num int, expiredTime int) (user []CmUnlimitedPortLog) {
 	db.Table(userFlowDayPortTable).Where("uid =?", uid).
-		Where("expired_time >?", time.Now().Unix()).
+		Where("expired_time = ?", expiredTime).
 		Where("status  = ?", 1).
 		Order("expired_time desc").
 		Limit(num).

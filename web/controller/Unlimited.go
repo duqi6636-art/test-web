@@ -292,10 +292,11 @@ func GetUnlimitedPortDomain(c *gin.Context) {
 		return
 	}
 	numStr := strings.ToLower(c.DefaultPostForm("num", ""))
+	expired := c.DefaultPostForm("expired", "")
 	num := util.StoI(numStr)
 
 	// 获取用户不限量端口
-	userPortLogList := models.GetUserCanFlowDayPortByUid(user.Id, num)
+	userPortLogList := models.GetUserCanFlowDayPortByUid(user.Id, num, util.StoI(expired))
 	hostArr := []ApiProxyJson{}
 	for _, log := range userPortLogList {
 		if log.ExpiredTime < util.GetNowInt() {
