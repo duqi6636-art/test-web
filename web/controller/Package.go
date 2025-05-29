@@ -289,7 +289,7 @@ func GetFlowDayPackageList(c *gin.Context) {
 			//fmt.Println("price:", price)
 			if unitPrice > 0 {
 				//unit = math.Ceil(unitPrice)
-				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice*10)/10)
+				oStr := fmt.Sprintf("%.0f", math.Floor(unitPrice)) //20250529 舍去小数
 				unit = util.StoF(oStr)
 			}
 
@@ -428,7 +428,7 @@ func GetFlowDayPackageList(c *gin.Context) {
 			//fmt.Println("price:", price)
 			if unitPrice > 0 {
 				//unit = math.Ceil(unitPrice)
-				oStr := fmt.Sprintf("%.0f", math.Round(unitPrice*10)/10)
+				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice*10)/10)
 				unit = util.StoF(oStr)
 			}
 
