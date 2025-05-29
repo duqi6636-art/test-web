@@ -274,15 +274,6 @@ func GetFlowDayPackageList(c *gin.Context) {
 			//fmt.Println("configMoney:", configMoney)
 			//fmt.Println("bandwidthMoney:", bandwidthMoney)
 
-			price = vInfo.Price + configMoney + bandwidthMoney //计算套餐单价展示
-			unitPrice := price / float64(vInfo.Day)
-			fmt.Println("price:", price)
-			if unitPrice > 0 {
-				//unit = math.Ceil(unitPrice)
-				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice*10)/10)
-				unit = util.StoF(oStr)
-			}
-
 			value := vInfo.Value
 			give := vInfo.Give
 			gift := vInfo.Gift
@@ -290,6 +281,18 @@ func GetFlowDayPackageList(c *gin.Context) {
 			value = int64(value / 86400)
 			give = int64(give / 86400)
 			gift = int64(gift / 86400)
+
+			price = vInfo.Price + configMoney + bandwidthMoney //计算套餐单价展示
+
+			tDay := vInfo.Day + int(gift) + int(give)
+			unitPrice := price / float64(tDay)
+			//fmt.Println("price:", price)
+			if unitPrice > 0 {
+				//unit = math.Ceil(unitPrice)
+				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice*10)/10)
+				unit = util.StoF(oStr)
+			}
+
 			subName := vInfo.SubName
 
 			fee := 0.0
@@ -411,16 +414,6 @@ func GetFlowDayPackageList(c *gin.Context) {
 				showUnit = util.StoF(oStr)
 			}
 			//fmt.Println("showPrice:", showPrice)
-
-			price = vInfo.Price //计算套餐单价展示
-			unitPrice := price / float64(vInfo.Day)
-			//fmt.Println("price:", price)
-			if unitPrice > 0 {
-				//unit = math.Ceil(unitPrice)
-				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice*10)/10)
-				unit = util.StoF(oStr)
-			}
-
 			value := vInfo.Value
 			give := vInfo.Give
 			gift := vInfo.Gift
@@ -428,6 +421,17 @@ func GetFlowDayPackageList(c *gin.Context) {
 			value = int64(value / 86400)
 			give = int64(give / 86400)
 			gift = int64(gift / 86400)
+
+			price = vInfo.Price //计算套餐单价展示
+			tDay := vInfo.Day + int(gift) + int(give)
+			unitPrice := price / float64(tDay)
+			//fmt.Println("price:", price)
+			if unitPrice > 0 {
+				//unit = math.Ceil(unitPrice)
+				oStr := fmt.Sprintf("%.1f", math.Round(unitPrice*10)/10)
+				unit = util.StoF(oStr)
+			}
+
 			subName := vInfo.SubName
 
 			fee := 0.0
