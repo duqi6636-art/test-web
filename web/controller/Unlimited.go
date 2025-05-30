@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -320,17 +321,25 @@ func AddEarlyWarningDetail(c *gin.Context) {
 	bandwidth := com.StrTo(c.DefaultPostForm("bandwidth", "0")).MustInt()
 	concurrency := com.StrTo(c.DefaultPostForm("concurrency", "0")).MustInt()
 	duration := com.StrTo(c.DefaultPostForm("duration", "0")).MustInt()
-	instanceMap := c.PostFormMap("instance_data")
+	instanceList := c.DefaultPostForm("instance_data", "")
 	if cpu <= 0 || memory <= 0 || bandwidth <= 0 || concurrency <= 0 || duration <= 0 {
 		JsonReturn(c, e.ERROR, "__T_PARAMETERS_ERROR", nil)
 		return
 	}
-	if len(instanceMap) <= 0 {
+	if len(instanceList) <= 0 {
 		JsonReturn(c, e.ERROR, "__T_PARAMETERS_INSTANCE_DATA_ERROR", nil)
 		return
 	}
+	insIPList := strings.Split(instanceList, ",")
 	var now = time.Now().Unix()
-	for insId, ip := range instanceMap {
+	for _, val := range insIPList {
+		v := strings.Split(val, ":")
+		if len(v) != 2 {
+			JsonReturn(c, e.ERROR, "__T_PARAMETERS_INSTANCE_DATA_ERROR", nil)
+			return
+		}
+		insId := v[0]
+		ip := v[1]
 		var uew = models.UnlimitedEarlyWarningDetail{Uid: user.Id, InstanceId: insId}
 		uew.GetByUidAndInstanceId()
 		if uew.Id > 0 {
