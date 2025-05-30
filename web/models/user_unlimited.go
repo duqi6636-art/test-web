@@ -206,6 +206,6 @@ const stUserUnlimitedCvm = "st_user_unlimited_cvm"
 
 func GetUserUnlimitedCvmList(query string, args []interface{}) []UserUnlimitedCvm {
 	var list = make([]UserUnlimitedCvm, 0)
-	clickhousedb.ClickhouseCherryLogDb.Table(stUserUnlimitedCvm).Where(query, args...).Find(&list)
+	clickhousedb.ClickhouseDb.Table(stUserUnlimitedCvm).Where(query, args...).Find(&list)
 	return list
 }

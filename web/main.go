@@ -19,7 +19,6 @@ func init() {
 	models.StatisticsDbSetup()
 	//初始化clickhouse数据库
 	clickhousedb.InitClickhouseDb()
-	clickhousedb.InitClickhouseCherryLogDb()
 	models.CreateDatabaseTables()
 }
 
