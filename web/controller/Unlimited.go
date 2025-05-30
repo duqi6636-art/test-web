@@ -329,10 +329,9 @@ func AddEarlyWarningDetail(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "__T_PARAMETERS_INSTANCE_DATA_ERROR", nil)
 		return
 	}
-	var uew = models.UnlimitedEarlyWarningDetail{Uid: user.Id}
 	var now = time.Now().Unix()
 	for insId, ip := range instanceMap {
-		uew.InstanceId = insId
+		var uew = models.UnlimitedEarlyWarningDetail{Uid: user.Id, InstanceId: insId}
 		uew.GetByUidAndInstanceId()
 		if uew.Id > 0 {
 			JsonReturn(c, e.ERROR, "__T_REPEAT_ADDITION_INSTANCE_ID", nil)
