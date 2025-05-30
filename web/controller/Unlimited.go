@@ -282,6 +282,8 @@ func SettingEarlyWarning(c *gin.Context) {
 	if uew.Id <= 0 {
 		uew.Insert()
 	} else {
+		uew.Status = status
+		uew.Email = email
 		uew.Update()
 	}
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
