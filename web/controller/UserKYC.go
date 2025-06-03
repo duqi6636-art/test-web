@@ -481,7 +481,7 @@ func GetFaceUrl(c *gin.Context) {
 	}
 
 	//获取用户人脸信息
-	orderNo := "922kyx" + util.GetOrderId()
+	orderNo := "cherrykyx" + util.GetOrderId()
 	userId := util.ItoS(userInfo.Id)
 
 	faceUrl, err, faceId := tencent.GetH5FaceId(orderNo, name, idNo, userId)
@@ -542,9 +542,13 @@ func GetFaceUrl(c *gin.Context) {
 	return
 }
 
-// @BasePath /api/v1
 func GetKycCountry(c *gin.Context) {
 	countryList := models.GetAllCountry(0, "")
+	countryList = append(countryList, models.ExtractCountry{
+		Name:    "China",
+		Country: "CN",
+		Sort:    0,
+	})
 	JsonReturn(c, e.SUCCESS, "", countryList) //返回人脸信息
 	return
 }
