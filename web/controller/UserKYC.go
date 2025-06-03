@@ -542,9 +542,13 @@ func GetFaceUrl(c *gin.Context) {
 	return
 }
 
-// @BasePath /api/v1
 func GetKycCountry(c *gin.Context) {
 	countryList := models.GetAllCountry(0, "")
+	countryList = append(countryList, models.ExtractCountry{
+		Name:    "China",
+		Country: "CN",
+		Sort:    0,
+	})
 	JsonReturn(c, e.SUCCESS, "", countryList) //返回人脸信息
 	return
 }
