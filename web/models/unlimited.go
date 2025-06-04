@@ -1,6 +1,5 @@
 package models
 
-
 // 不限量异步队列记录
 type ListUserUnlimitedModel struct {
 	Id         int    `json:"id"`
@@ -16,10 +15,11 @@ type ListUserUnlimitedModel struct {
 	Status     int    `json:"status"`      // 状态 1 正常 2冻结
 	CreateTime int    `json:"create_time"` // 操作时间(购买)
 	ExecData   string `json:"exec_data"`   // 订单配置
+	PakType    string `json:"pak_type"`    // 套餐类型
 }
 
 // 用户不限量配置修改记录
-func AddLogUserUnlimited(uid int, config, bandwidth, expire_time int, day, startTime int, orderId string, createTime int, data string) (err error) {
+func AddLogUserUnlimited(uid int, config, bandwidth, expire_time int, day, startTime int, orderId string, createTime int, data, pak_type string) (err error) {
 	info := ListUserUnlimitedModel{
 		Uid:        uid,
 		Config:     config,
@@ -33,9 +33,9 @@ func AddLogUserUnlimited(uid int, config, bandwidth, expire_time int, day, start
 		Status:     0, //0待处理 1已开实例 2已经分配IP  3需要手动操作
 		CreateTime: createTime,
 		ExecData:   data,
+		PakType:    pak_type,
 	}
 	var tableName = "list_user_unlimited"
 	err = db.Table(tableName).Create(&info).Error
 	return
 }
-

@@ -174,6 +174,14 @@ func AddWhitelist(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "__T_IP_HAS_USED", nil)
 		return
 	}
+	if flowType == 4 {
+		ipCount := models.GetUserWhitelistIpCountByFlowType(uid, flowType)
+		countLimit := models.GetUserWhitelistIpCountLimitByFlowType(uid, flowType)
+		if ipCount >= countLimit {
+			JsonReturn(c, e.ERROR, "__T_WHITELIST_IP_COUNT_LIMIT", nil)
+			return
+		}
+	}
 
 	country := strings.TrimSpace(c.DefaultPostForm("country", ""))
 	state := strings.TrimSpace(c.DefaultPostForm("state", ""))
@@ -486,9 +494,18 @@ func SetWhitelistStatus(c *gin.Context) {
 	status := 0
 	if statusStr == "on" {
 		status = 1
+		if has.FlowType == 4 {
+			ipCount := models.GetUserWhitelistIpCountByFlowType(uid, 4)
+			countLimit := models.GetUserWhitelistIpCountLimitByFlowType(uid, 4)
+			if ipCount > countLimit {
+				JsonReturn(c, e.ERROR, "__T_WHITELIST_IP_COUNT_LIMIT", nil)
+				return
+			}
+		}
 	} else {
 		status = 2
 	}
+
 	params := map[string]interface{}{}
 	params["status"] = status
 	params["update_time"] = util.GetNowInt()
@@ -562,10 +579,15 @@ func WhitelistDownload(c *gin.Context) {
 		for _, v := range lists {
 			linshi := []string{}
 			linshi = append(linshi, v.WhitelistIp)
-			linshi = append(linshi, "City")
+			if v.FlowType == 2 {
+				linshi = append(linshi, "Bandwidth")
+			} else if v.FlowType == 4 {
+				linshi = append(linshi, "Port")
+			} else {
+				linshi = append(linshi, "City")
+			}
 			linshi = append(linshi, util.GetTimeStr(v.CreateTime, "d/m/Y H:i"))
 			linshi = append(linshi, v.Remark)
-
 			csvData = append(csvData, linshi)
 		}
 

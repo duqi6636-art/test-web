@@ -71,6 +71,12 @@ func GetTimeStr(t int, formate string) string {
 	if formate == "Y-m-d" {
 		formateStr = "2006-01-02"
 	}
+	if formate == "Y.m.d" {
+		formateStr = "2006.01.02"
+	}
+	if formate == "Y.m.d H:i:s" {
+		formateStr = "2006.01.02 15:04:05"
+	}
 	if formate == "Y-m-d H:i" {
 		formateStr = "2006-01-02 15:04"
 	}

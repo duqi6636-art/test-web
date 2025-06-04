@@ -248,7 +248,7 @@ func HandleCdkBalance() {
 						}
 
 						// 创建IP池队列 异步处理
-						models.AddLogUserUnlimited(uid, config, bandwidth, expireTime, int(value/86400), startTime, pushInfo.Cdkey, createTime, "")
+						models.AddLogUserUnlimited(uid, config, bandwidth, expireTime, int(value/86400), startTime, pushInfo.Cdkey, createTime, "", "flow_day")
 
 						//} else {
 						//	poolParam := make(map[string]interface{})

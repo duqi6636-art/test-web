@@ -334,12 +334,16 @@ func GetUserDomain(c *gin.Context) {
 				status = 0
 			}
 			flowDay["title"] = title
+			flowDay["ip"] = val.Ip
+			flowDay["port"] = val.Port
 			flowDay["value"] = host
 			flowDay["status"] = status
 
 			flowDayWhite["title"] = title2
 			flowDayWhite["value"] = host2
 			flowDayWhite["status"] = status
+			flowDayWhite["ip"] = val.Ip
+			flowDayWhite["port"] = val.Port2
 			flowDayList = append(flowDayList, flowDay)
 			flowDayWhiteList = append(flowDayWhiteList, flowDayWhite)
 		}
@@ -349,12 +353,36 @@ func GetUserDomain(c *gin.Context) {
 		host := "hostname:port"
 		flowDay["title"] = host
 		flowDay["value"] = host
+		flowDay["ip"] = "hostname"
+		flowDay["port"] = "port"
 		flowDay["status"] = 0
 		flowDayWhite["title"] = host
 		flowDayWhite["value"] = host
+		flowDayWhite["ip"] = "hostname"
+		flowDayWhite["port"] = "port"
 		flowDayWhite["status"] = 0
 		flowDayList = append(flowDayList, flowDay)
 		flowDayWhiteList = append(flowDayWhiteList, flowDayWhite)
+	}
+
+	countryList := models.GetAllFlowDayCountry("")
+	countryMap := map[string]string{}
+	for _, country := range countryList {
+		countryMap[country.Country] = country.Img
+	}
+	unlimitedPortList := models.GetUserUnlimitedPortByUid(user.Id)
+	unlimitedPortListResult := []map[string]interface{}{}
+	for _, port := range unlimitedPortList {
+		unlimitedPort := map[string]interface{}{}
+		unlimitedPort["ip"] = port.Ip
+		unlimitedPort["port"] = port.Port
+		unlimitedPort["region"] = port.Region
+		unlimitedPort["img"] = countryMap[port.Region]
+		unlimitedPort["expired"] = port.ExpiredTime
+		unlimitedPort["minute"] = port.Minute
+		unlimitedPort["expire_time"] = util.GetTimeStr(port.ExpiredTime, "Y.m.d H:i:s")
+		unlimitedPort["label"] = port.Ip + "(" + util.GetTimeStr(port.ExpiredTime, "Y.m.d H:i:s") + ")"
+		unlimitedPortListResult = append(unlimitedPortListResult, unlimitedPort)
 	}
 
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", map[string]interface{}{
@@ -363,6 +391,7 @@ func GetUserDomain(c *gin.Context) {
 		"whitelist":      whiteList,
 		"flow_day":       flowDayList,
 		"flow_day_white": flowDayWhiteList,
+		"unlimited_port": unlimitedPortListResult,
 	})
 	return
 }
