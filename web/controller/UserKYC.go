@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -532,10 +533,10 @@ func GetFaceUrl(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "__T_FAIL-- "+err.Error(), nil)
 		return
 	}
-
-	faceQrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + faceUrl
+	faceUrlNew := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/kyc_qrcode?id=" + util.MdEncode(userId, MdKey)
+	faceQrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + faceUrlNew
 	data := map[string]interface{}{
-		"face_url": faceUrl,
+		"face_url": faceUrlNew,
 		"qrcode":   faceQrcode,
 	}
 	JsonReturn(c, e.SUCCESS, "", data) //返回人脸信息
@@ -551,4 +552,16 @@ func GetKycCountry(c *gin.Context) {
 	})
 	JsonReturn(c, e.SUCCESS, "", countryList) //返回人脸信息
 	return
+}
+
+func KycQrcode(c *gin.Context) {
+	uidStrCode := c.Query("id")
+	uidStr := util.MdDecode(uidStrCode, MdKey)
+	uid := util.StoI(uidStr)
+	kyeInfo := models.GetUserKycByUid(uid)
+	if kyeInfo.Uid > 0 {
+		//跳转到人脸核验页面
+		c.Redirect(http.StatusFound, kyeInfo.LinkUrl)
+		return
+	}
 }

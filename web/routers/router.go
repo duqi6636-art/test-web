@@ -21,6 +21,7 @@ func InitRouter() *gin.Engine {
 	r.Static("/upload", "./upload")
 	r.GET("/", controller.Index)
 	r.GET("qrcode", controller.Qrcode)
+	r.GET("kyc_qrcode", controller.KycQrcode)
 	r.GET("/web/connect", controllers.Connect) //接口联通测试
 	systemApi := r.Group("/api/", middleware.AreaMiddleware())
 	{
