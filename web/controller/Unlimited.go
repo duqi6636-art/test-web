@@ -359,8 +359,9 @@ func AddEarlyWarningDetail(c *gin.Context) {
 			JsonReturn(c, e.ERROR, "__T_PARAMETERS_INSTANCE_DATA_ERROR", nil)
 			return
 		}
-		insId := v[0]
 		ip := v[1]
+		info := models.GetPoolFlowDayByIp(user.Id, ip)
+		insId := info.InstanceId
 		var uew = models.UnlimitedEarlyWarningDetail{Uid: user.Id, InstanceId: insId}
 		uew.GetByUidAndInstanceId()
 		if uew.Id > 0 {
