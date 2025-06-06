@@ -57,11 +57,6 @@ func IdVerifyStepOne(c *gin.Context) {
 
 	first_name := strings.TrimSpace(c.DefaultPostForm("first_name", ""))
 	last_name := strings.TrimSpace(c.DefaultPostForm("last_name", ""))
-	//var p RealNameAuthForm
-	//if err := c.Bind(&p); err != nil {
-	//	JsonReturn(c, e.ERROR, err.Error(), nil)
-	//	return
-	//}
 	if first_name == "" {
 		JsonReturn(c, e.ERROR, "__T_FIRST_NAME_ERR", nil)
 		return
@@ -170,10 +165,10 @@ func IdVerifyStepTwo(c *gin.Context) {
 	}
 	if userKycInfo.LinkUrl != "" {
 		// 生成二维码
-		qrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + userKycInfo.LinkUrl
-		data["step"] = ""
-		data["face_url"] = userKycInfo.LinkUrl
-		data["qrcode"] = qrcode
+		faceUrlNew := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/kyc_qrcode?id=" + util.MdEncode(util.ItoS(uid), MdKey)
+		faceQrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + faceUrlNew
+		data["face_url"] = faceUrlNew
+		data["qrcode"] = faceQrcode
 		JsonReturn(c, e.SUCCESS, "__T_SUCCESS", data)
 		return
 	}
@@ -193,12 +188,14 @@ func IdVerifyStepTwo(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "__T_FAIL-- "+err.Error(), nil)
 		return
 	}
-	// 生成二维码
-	qrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + url
 
-	data["step"] = ""
-	data["face_url"] = url
-	data["qrcode"] = qrcode
+	// 生成二维码
+	faceUrlNew := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/kyc_qrcode?id=" + util.MdEncode(util.ItoS(uid), MdKey)
+	faceQrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + faceUrlNew
+
+	data["face_url"] = faceUrlNew
+	data["qrcode"] = faceQrcode
+
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", data)
 	return
 }
