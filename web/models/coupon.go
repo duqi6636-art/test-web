@@ -133,6 +133,13 @@ func GetCouponById(id int) (err error, coupon Coupon) {
 	return
 }
 
+// 获取信息
+func GetCouponByCode(code string) (err error, coupon Coupon) {
+	dbt := db.Table("cm_coupon").Where("code = ?", code).Where("status = ?", 1)
+	err = dbt.First(&coupon).Error
+	return
+}
+
 // 获取根据用户类型获取可用优惠券
 func GetCouponListByUserType(uid int, userType string) (err error, num int) {
 
