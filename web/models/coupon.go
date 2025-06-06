@@ -202,7 +202,7 @@ func GetCouponListByPakId(uid, pak_id int, types string) (err error, info []Coup
 		dbt = dbt.Where("`type` = ?", types)
 	}
 	if pak_id > 0 {
-		dbt = dbt.Where("FIND_IN_SET(? ,meals)", pak_id)
+		dbt = dbt.Where("FIND_IN_SET(? ,meals) or meals = ''", pak_id)
 	}
 	err = dbt.Find(&info).Error
 	return
