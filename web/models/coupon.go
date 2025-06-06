@@ -133,6 +133,13 @@ func GetCouponById(id int) (err error, coupon Coupon) {
 	return
 }
 
+// 获取信息
+func GetCouponByCode(code string) (err error, coupon Coupon) {
+	dbt := db.Table("cm_coupon").Where("code = ?", code).Where("status = ?", 1)
+	err = dbt.First(&coupon).Error
+	return
+}
+
 // 获取根据用户类型获取可用优惠券
 func GetCouponListByUserType(uid int, userType string) (err error, num int) {
 
@@ -195,7 +202,7 @@ func GetCouponListByPakId(uid, pak_id int, types string) (err error, info []Coup
 		dbt = dbt.Where("`type` = ?", types)
 	}
 	if pak_id > 0 {
-		dbt = dbt.Where("FIND_IN_SET(? ,meals)", pak_id)
+		dbt = dbt.Where("FIND_IN_SET(? ,meals) or meals = ''", pak_id)
 	}
 	err = dbt.Find(&info).Error
 	return
