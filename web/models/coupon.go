@@ -246,6 +246,13 @@ func GetCouponByCid(uid, cid int) (info CouponList) {
 }
 
 // 获取 根据cid获取 cdk
+func GetHasCouponByCid(uid, cid int) (info CouponList) {
+	dbt := db.Table(couponListTable).Where("bind_uid = ?", uid).Where("cid = ?", cid)
+	dbt.First(&info)
+	return
+}
+
+// 获取 根据cid获取 cdk
 func GetCouponByCidCount(uid, cid int) (info []CouponList) {
 	dbt := db.Table(couponListTable).Where("bind_uid = ?", uid).Where("cid = ?", cid)
 	dbt.Where("status = ?", 1).Find(&info)
