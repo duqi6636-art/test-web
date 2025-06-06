@@ -607,13 +607,13 @@ func RedeemCoupons(c *gin.Context) {
 	}
 
 	// 同一分组下只可兑换一次cdk
-	if couponInfo.GroupId > 0 {
-		cdkInfo, _ := models.GetCdkByGroupId(uid, couponInfo.GroupId)
-		if cdkInfo.Id != 0 && couponInfo.Cid != cdkInfo.Cid {
-			JsonReturn(c, -1, "__T_COUPON_USED_LIMIT", nil)
-			return
-		}
-	}
+	//if couponInfo.GroupId > 0 {
+	//	cdkInfo, _ := models.GetCdkByGroupId(uid, couponInfo.GroupId)
+	//	if cdkInfo.Id != 0 && couponInfo.Cid != cdkInfo.Cid {
+	//		JsonReturn(c, -1, "__T_COUPON_USED_LIMIT", nil)
+	//		return
+	//	}
+	//}
 
 	if couponInfo.UserType != "all" {
 		if couponInfo.UserType == "agent" {
