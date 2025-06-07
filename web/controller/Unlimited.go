@@ -334,6 +334,8 @@ func SettingEarlyWarning(c *gin.Context) {
 	if uew.Id <= 0 {
 		uew.Insert()
 	} else {
+		uew.Status = status
+		uew.Email = email
 		uew.Update()
 	}
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
@@ -370,19 +372,27 @@ func AddEarlyWarningDetail(c *gin.Context) {
 	bandwidth := com.StrTo(c.DefaultPostForm("bandwidth", "0")).MustInt()
 	concurrency := com.StrTo(c.DefaultPostForm("concurrency", "0")).MustInt()
 	duration := com.StrTo(c.DefaultPostForm("duration", "0")).MustInt()
-	instanceMap := c.PostFormMap("instance_data")
+	instanceList := c.DefaultPostForm("instance_data", "")
 	if cpu <= 0 || memory <= 0 || bandwidth <= 0 || concurrency <= 0 || duration <= 0 {
 		JsonReturn(c, e.ERROR, "__T_PARAMETERS_ERROR", nil)
 		return
 	}
-	if len(instanceMap) <= 0 {
+	if len(instanceList) <= 0 {
 		JsonReturn(c, e.ERROR, "__T_PARAMETERS_INSTANCE_DATA_ERROR", nil)
 		return
 	}
-	var uew = models.UnlimitedEarlyWarningDetail{Uid: user.Id}
+	insIPList := strings.Split(instanceList, ",")
 	var now = time.Now().Unix()
-	for insId, ip := range instanceMap {
-		uew.InstanceId = insId
+	for _, val := range insIPList {
+		v := strings.Split(val, ":")
+		if len(v) != 2 {
+			JsonReturn(c, e.ERROR, "__T_PARAMETERS_INSTANCE_DATA_ERROR", nil)
+			return
+		}
+		ip := v[1]
+		info := models.GetPoolFlowDayByIp(user.Id, ip)
+		insId := info.InstanceId
+		var uew = models.UnlimitedEarlyWarningDetail{Uid: user.Id, InstanceId: insId}
 		uew.GetByUidAndInstanceId()
 		if uew.Id > 0 {
 			JsonReturn(c, e.ERROR, "__T_REPEAT_ADDITION_INSTANCE_ID", nil)
@@ -431,17 +441,20 @@ func ChangeEarlyWarningDetail(c *gin.Context) {
 		return
 	}
 	now := time.Now().Unix()
-	uew := models.UnlimitedEarlyWarningDetail{
-		Id:          id,
-		Uid:         user.Id,
-		Status:      status,
-		Cpu:         cpu,
-		Memory:      memory,
-		Bandwidth:   bandwidth,
-		Concurrency: concurrency,
-		Duration:    duration,
-		UpdateTime:  now,
+	uew := models.UnlimitedEarlyWarningDetail{Id: id, Uid: user.Id}
+	uew.GetByIdAndUId()
+	if uew.Id <= 0 {
+		JsonReturn(c, e.ERROR, "__T_PARAMETERS_ID_ERROR", nil)
+		return
 	}
+	uew.Status = status
+	uew.Cpu = cpu
+	uew.Memory = memory
+	uew.Bandwidth = bandwidth
+	uew.Concurrency = concurrency
+	uew.Duration = duration
+	uew.SendTime = 0
+	uew.UpdateTime = now
 	uew.Update()
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
 }
