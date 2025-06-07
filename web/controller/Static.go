@@ -527,7 +527,7 @@ func BatchUseStatic(c *gin.Context) {
 		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
 		return
 	}
-	resInfo := make([]models.ResUserStaticIp, 0)
+	resInfo := make(map[int]models.ResUserStaticIp)
 	for _, val := range snList {
 		id := util.StoI(util.MdDecode(val, MdKey))
 		_, ipInfo := models.GetStaticIpById(id)
@@ -575,7 +575,7 @@ func BatchUseStatic(c *gin.Context) {
 				info.PakName = vp.Name
 				info.ExpireDay = vp.Value
 				info.Balance = ipNum
-				resInfo = append(resInfo, info)
+				resInfo[info.Id] = info
 			}
 		}
 	}
@@ -794,6 +794,7 @@ func BatchBeforeRecharge(c *gin.Context) {
 			info.ExpireTime = util.GetTimeStr(expireTime, "d-m-Y")
 			resInfo.List = append(resInfo.List, info)
 		}
+		resList = append(resList, resInfo)
 	}
 	JsonReturn(c, 0, "success", resList)
 	return
@@ -882,15 +883,22 @@ func BatchIpRecharge(c *gin.Context) {
 		JsonReturn(c, resCode, msg, nil)
 		return
 	}
-	staticId := util.StoI(c.DefaultPostForm("static_id", "0")) //购买的长效套餐ID
-	ids := c.PostFormArray("ids")                              //待续费的ID
-	if len(ids) <= 0 || staticId <= 0 {
+	//staticId := util.StoI(c.DefaultPostForm("static_id", "0")) //购买的长效套餐ID
+	ids := c.DefaultPostForm("ids", "") //待续费的ID 格式：staticId:id,staticId1:id1,staticId2:id2
+
+	if len(ids) <= 0 {
 		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
 		return
 	}
+	list := strings.Split(ids, ",")
 	uid := user.Id
-	for _, val := range ids {
-		id := util.StoI(val)
+	for _, val := range list {
+		idList := strings.Split(val, ":")
+		if len(idList) < 2 {
+			continue
+		}
+		staticId := util.StoI(idList[0])
+		id := util.StoI(idList[1])
 		// 提取记录
 		err_l, ipLog := models.GetIpStaticIpById(id)
 		if err_l != nil || ipLog.Id == 0 {
