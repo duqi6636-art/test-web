@@ -16,37 +16,28 @@ func InitRouter() *gin.Engine {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORSMiddleware())
-	// r.Delims("[[", "]]")
-	// r.LoadHTMLGlob("views/*")
-	//r.LoadHTMLGlob("views/**/*")
-	//r.HTMLRender = templateRender.LoadTemplates("./views")
-	// 加载404错误页面
-	//r.NoRoute(func(c *gin.Context) {
-	//	//c.HTML(http.StatusOK, "404.html", gin.H{})
-	//	r.GET("404", controller.Index404)
-	//})
 	//加载静态资源，例如网页的css、js
 	r.Static("/static", "./static")
 	r.Static("/upload", "./upload")
 	r.GET("/", controller.Index)
 	r.GET("qrcode", controller.Qrcode)
 	r.GET("/web/connect", controllers.Connect) //接口联通测试
-	//if setting.RunMode == "debug" {
-	//	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	//}
 	systemApi := r.Group("/api/", middleware.AreaMiddleware())
 	{
 		systemApi.GET("f5", controller.FreshCache)
 	}
 
 	systemApi.GET("userMemberUpdate", controller.FreshUserMemberLevel)
+
+	r.GET("/notify/onfido", controller.IdVerifyNotify)        //认证通知接口
+	r.POST("/notify/onfido", controller.IdVerifyNotify)       //认证通知接口
+	r.GET("/notify/tencent_kyc", controller.TencentKycNotify) //认证通知接口
 	//官网接口
 	webRouter(r)
 	// 个人中心相关
 	centerRouter(r)
 	//代理管理器
 	proxyManageRouter(r)
-
 	// swagger文档访问
 	r.GET("/MzYwc3dhZ2dlcg/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	return r

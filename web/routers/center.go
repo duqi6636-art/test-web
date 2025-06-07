@@ -75,6 +75,13 @@ func centerRouter(router *gin.Engine) {
 	cu := router.Group("/center/unlimited")
 	cu.POST("/server_record", controller.GetUserUnlimitedLog)  // 获取余额配置信息
 	cu.POST("/port_domain", controller.GetUnlimitedPortDomain) // 获取端口白名单地址
+	// 不限量预警
+	cu.POST("/early_warning", controller.GetEarlyWarning)                        // 获取预警开关和联系方式
+	cu.POST("/early_warning/setting", controller.SettingEarlyWarning)            // 设置预警的开关和联系方式
+	cu.POST("/early_warning/detail_add", controller.AddEarlyWarningDetail)       // 添加预警详情
+	cu.POST("/early_warning/detail_change", controller.ChangeEarlyWarningDetail) // 修改预警详情
+	cu.POST("/early_warning/detail_list", controller.GetEarlyWarningDetailList)  // 获取预警详情
+	cu.POST("/early_warning/detail_del", controller.DelEarlyWarningDetail)       // 删除预警详情
 
 	// 不限量机器监控
 	cvm := router.Group("/center/monitor")
