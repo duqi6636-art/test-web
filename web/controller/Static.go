@@ -539,11 +539,9 @@ func BatchUseStatic(c *gin.Context) {
 		code := strings.ToLower(ipInfo.Country)
 		err, balanceInfo := models.GetUserStaticByPakRegion(uid, staticId, code)
 		if err != nil || balanceInfo.Id == 0 {
-			JsonReturn(c, -1, "__T_IP_BALANCE_LOW", nil)
 			continue
 		} else {
 			if balanceInfo.Balance < 1 {
-				JsonReturn(c, -1, "__T_IP_BALANCE_LOW", nil)
 				continue
 			}
 		}
@@ -899,6 +897,9 @@ func BatchIpRecharge(c *gin.Context) {
 		}
 		staticId := util.StoI(idList[0])
 		id := util.StoI(idList[1])
+		if staticId == 0 {
+			continue
+		}
 		// 提取记录
 		err_l, ipLog := models.GetIpStaticIpById(id)
 		if err_l != nil || ipLog.Id == 0 {
