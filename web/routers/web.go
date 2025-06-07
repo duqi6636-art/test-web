@@ -180,8 +180,11 @@ func webRouter(router *gin.Engine) {
 	statics.POST("/region", controller.GetRegion)                      // 国家地区城市
 	statics.POST("/pools", controller.StaticIpList)                    // 静态IP池列表
 	statics.POST("/use", controller.UseStatic)                         // 提取使用
+	statics.POST("/batch_use", controller.BatchUseStatic)              // 批量提取使用
 	statics.POST("/check_info", controller.BeforeRecharge)             // 提取续费
+	statics.POST("/batch_check_info", controller.BatchBeforeRecharge)  // 批量提取续费
 	statics.POST("/recharge", controller.IpRecharge)                   // 提取续费
+	statics.POST("/batch_recharge", controller.BatchIpRecharge)        // 批量提取续费
 	statics.POST("/set_account", controller.SetIPAccount)              // 编辑信息
 	statics.POST("/del", controller.DelStatic)                         // 删除过期静态IP
 	statics.POST("/use_list", controller.GetUsedStaticIpList)          // 获取已提取使用列表
