@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -56,11 +57,6 @@ func IdVerifyStepOne(c *gin.Context) {
 
 	first_name := strings.TrimSpace(c.DefaultPostForm("first_name", ""))
 	last_name := strings.TrimSpace(c.DefaultPostForm("last_name", ""))
-	//var p RealNameAuthForm
-	//if err := c.Bind(&p); err != nil {
-	//	JsonReturn(c, e.ERROR, err.Error(), nil)
-	//	return
-	//}
 	if first_name == "" {
 		JsonReturn(c, e.ERROR, "__T_FIRST_NAME_ERR", nil)
 		return
@@ -169,10 +165,10 @@ func IdVerifyStepTwo(c *gin.Context) {
 	}
 	if userKycInfo.LinkUrl != "" {
 		// 生成二维码
-		qrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + userKycInfo.LinkUrl
-		data["step"] = ""
-		data["face_url"] = userKycInfo.LinkUrl
-		data["qrcode"] = qrcode
+		faceUrlNew := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/kyc_qrcode?id=" + util.MdEncode(util.ItoS(uid), MdKey)
+		faceQrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + faceUrlNew
+		data["face_url"] = faceUrlNew
+		data["qrcode"] = faceQrcode
 		JsonReturn(c, e.SUCCESS, "__T_SUCCESS", data)
 		return
 	}
@@ -192,12 +188,14 @@ func IdVerifyStepTwo(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "__T_FAIL-- "+err.Error(), nil)
 		return
 	}
-	// 生成二维码
-	qrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + url
 
-	data["step"] = ""
-	data["face_url"] = url
-	data["qrcode"] = qrcode
+	// 生成二维码
+	faceUrlNew := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/kyc_qrcode?id=" + util.MdEncode(util.ItoS(uid), MdKey)
+	faceQrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + faceUrlNew
+
+	data["face_url"] = faceUrlNew
+	data["qrcode"] = faceQrcode
+
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", data)
 	return
 }
@@ -481,7 +479,7 @@ func GetFaceUrl(c *gin.Context) {
 	}
 
 	//获取用户人脸信息
-	orderNo := "922kyx" + util.GetOrderId()
+	orderNo := "cherrykyx" + util.GetOrderId()
 	userId := util.ItoS(userInfo.Id)
 
 	faceUrl, err, faceId := tencent.GetH5FaceId(orderNo, name, idNo, userId)
@@ -532,19 +530,35 @@ func GetFaceUrl(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "__T_FAIL-- "+err.Error(), nil)
 		return
 	}
-
-	faceQrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + faceUrl
+	faceUrlNew := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/kyc_qrcode?id=" + util.MdEncode(userId, MdKey)
+	faceQrcode := strings.TrimRight(models.GetConfigV("API_DOMAIN_URL"), "/") + "/qrcode?data=" + faceUrlNew
 	data := map[string]interface{}{
-		"face_url": faceUrl,
+		"face_url": faceUrlNew,
 		"qrcode":   faceQrcode,
 	}
 	JsonReturn(c, e.SUCCESS, "", data) //返回人脸信息
 	return
 }
 
-// @BasePath /api/v1
 func GetKycCountry(c *gin.Context) {
 	countryList := models.GetAllCountry(0, "")
+	countryList = append(countryList, models.ExtractCountry{
+		Name:    "China",
+		Country: "CN",
+		Sort:    0,
+	})
 	JsonReturn(c, e.SUCCESS, "", countryList) //返回人脸信息
 	return
+}
+
+func KycQrcode(c *gin.Context) {
+	uidStrCode := c.Query("id")
+	uidStr := util.MdDecode(uidStrCode, MdKey)
+	uid := util.StoI(uidStr)
+	kyeInfo := models.GetUserKycByUid(uid)
+	if kyeInfo.Uid > 0 {
+		//跳转到人脸核验页面
+		c.Redirect(http.StatusFound, kyeInfo.LinkUrl)
+		return
+	}
 }
