@@ -4,6 +4,7 @@ import (
 	"api-360proxy/web/e"
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
@@ -517,8 +518,10 @@ func BatchUseStatic(c *gin.Context) {
 			return
 		}
 	}
-	snList := c.PostFormArray("sn_list")
-	if len(snList) <= 0 {
+	sn := c.DefaultPostForm("sn_list", "")
+	var snList = make([]string, 0)
+	err := json.Unmarshal([]byte(sn), &snList)
+	if len(snList) <= 0 || err != nil {
 		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
 		return
 	}
@@ -779,14 +782,16 @@ func BatchBeforeRecharge(c *gin.Context) {
 		JsonReturn(c, resCode, msg, nil)
 		return
 	}
-	ips := c.PostFormArray("ips") //待续费的ID
-	if len(ips) <= 0 {
+	ips := c.DefaultPostForm("ips", "") //待续费的ID
+	var ipsList = make([]string, 0)
+	err := json.Unmarshal([]byte(ips), &ipsList)
+	if len(ipsList) <= 0 || err != nil {
 		JsonReturn(c, -1, "IP info Error", nil)
 		return
 	}
 	resList := make([]ResBatchBeforeRecharge, 0)
 	uid := user.Id
-	for _, ip := range ips {
+	for _, ip := range ipsList {
 		err_l, ipLog := models.GetIpStaticIp(uid, ip)
 		if err_l != nil || ipLog.Id == 0 {
 			continue
@@ -916,6 +921,7 @@ func BatchIpRecharge(c *gin.Context) {
 	}
 	list := strings.Split(ids, ",")
 	uid := user.Id
+	var count int
 	for _, val := range list {
 		idList := strings.Split(val, ":")
 		if len(idList) < 2 {
@@ -951,9 +957,14 @@ func BatchIpRecharge(c *gin.Context) {
 		}
 		// 开始扣费
 		_ = models.Recharge(c.ClientIP(), ipLog, balanceInfo)
-
+		count++
 	}
-	JsonReturn(c, 0, "__T_SUCCESS", nil)
+	if count > 0 {
+		JsonReturn(c, 0, "__T_SUCCESS", nil)
+	} else {
+		JsonReturn(c, e.ERROR, "__T_IP_BALANCE_LOW", nil)
+	}
+
 }
 
 // 删除
