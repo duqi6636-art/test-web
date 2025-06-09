@@ -8,6 +8,7 @@ type ExtractCountry struct {
 	Img     string `json:"img"`
 	Keyword string `json:"keyword"`
 	Sort    int    `json:"sort"`
+	Num     int    `json:"num"`
 }
 
 // 获取所有国家数据
@@ -74,6 +75,7 @@ type ExtractCity struct {
 	Country string `json:"country"`
 	Status  int    `json:"status"`
 	State   string `json:"state"`
+	Num     int    `json:"num"`
 }
 
 // 获取所有城市数据
