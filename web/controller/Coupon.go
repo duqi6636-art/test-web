@@ -607,7 +607,7 @@ func RedeemCoupons(c *gin.Context) {
 	}
 
 	// 同一张只能兑换一次
-	cdkInfo := models.GetHasCouponByCid(uid, couponInfo.Id)
+	cdkInfo := models.GetHasCouponByCid(uid, couponInfo.Cid)
 	if cdkInfo.Id != 0 {
 		JsonReturn(c, -1, "__T_COUPON_USED_LIMIT", nil)
 		return
