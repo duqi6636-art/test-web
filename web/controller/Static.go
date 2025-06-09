@@ -790,8 +790,11 @@ func BatchBeforeRecharge(c *gin.Context) {
 		return
 	}
 	resMap := make(map[string][]ResBatchBeforeRecharge)
+	resInfoMap := make(map[string]ResBatchBeforeRecharge)
 	var balanceMap = make(map[string]map[string]int)
 	uid := user.Id
+	var expireDayList = []int{7, 30}
+	//var resInfoMap =
 	for _, ip := range ipsList {
 		err_l, ipLog := models.GetIpStaticIp(uid, ip)
 		if err_l != nil || ipLog.Id == 0 {
@@ -808,24 +811,34 @@ func BatchBeforeRecharge(c *gin.Context) {
 			expire = nowTime
 		}
 		balance := 0
+		var resInfo = ResBatchBeforeRecharge{
+			Country: ipLog.Country,
+			Ip:      ipLog.Ip,
+		}
+		for _, expireDay := range expireDayList {
+			resInfo.ExpireTime = util.GetTimeStr(expire+expireDay*86400, "d-m-Y")
+			resInfo.RechargeId = fmt.Sprintf("%v:%v", 0, ipLog.Id)
+			key := fmt.Sprintf("%v_%v", ip, expireDay)
+			resInfoMap[key] = resInfo
+		}
 
 		for _, v := range balanceList {
-			var resInfo = ResBatchBeforeRecharge{
-				Country: ipLog.Country,
-				Ip:      ipLog.Ip,
-			}
+
 			balance = balance + v.Balance
+
 			expireTime := expire + v.ExpireDay*86400
 			resInfo.Id = v.Id
 			resInfo.PakName = util.ItoS(v.ExpireDay) + " Day"
 			resInfo.ExpireDay = v.ExpireDay
 			resInfo.ExpireTime = util.GetTimeStr(expireTime, "d-m-Y")
 			resInfo.RechargeId = fmt.Sprintf("%v:%v", v.Id, ipLog.Id)
-			if val, ok := resMap[resInfo.PakName]; ok {
-				resMap[resInfo.PakName] = append(val, resInfo)
-			} else {
-				resMap[resInfo.PakName] = append(val, resInfo)
-			}
+			//if val, ok := resMap[resInfo.PakName]; ok {
+			//	resMap[resInfo.PakName] = append(val, resInfo)
+			//} else {
+			//	resMap[resInfo.PakName] = append(val, resInfo)
+			//}
+			key := fmt.Sprintf("%v_%v", ip, v.ExpireDay)
+			resInfoMap[key] = resInfo
 			if val, ok := balanceMap[resInfo.PakName]; ok {
 				if v, ok := val[ipLog.Country]; ok {
 					val[ipLog.Country] = v + balance
@@ -836,8 +849,16 @@ func BatchBeforeRecharge(c *gin.Context) {
 				balanceMap[resInfo.PakName] = map[string]int{ipLog.Country: balance}
 			}
 		}
-
 	}
+
+	for _, resInfo := range resInfoMap {
+		if val, ok := resMap[resInfo.PakName]; ok {
+			resMap[resInfo.PakName] = append(val, resInfo)
+		} else {
+			resMap[resInfo.PakName] = append(val, resInfo)
+		}
+	}
+
 	JsonReturn(c, 0, "success", map[string]interface{}{"balance": balanceMap, "res": resMap})
 	return
 }
