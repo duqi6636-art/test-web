@@ -767,13 +767,12 @@ func BeforeRecharge(c *gin.Context) {
 }
 
 type ResBatchBeforeRecharge struct {
-	Id         int               `json:"id"`
-	PakName    string            `json:"pak_name"`    // 套餐类型
-	Country    string            `json:"country"`     // 国家
-	Ip         string            `json:"ip"`          // ip
-	ExpireDay  int               `json:"expire_day"`  // 过期天数
-	ExpireTime string            `json:"expire_time"` // 过期时间
-	List       []ResUserStaticIp `json:"list"`
+	Id         int    `json:"id"`
+	PakName    string `json:"pak_name"`    // 套餐类型
+	Country    string `json:"country"`     // 国家
+	Ip         string `json:"ip"`          // ip
+	ExpireDay  int    `json:"expire_day"`  // 过期天数
+	ExpireTime string `json:"expire_time"` // 过期时间
 }
 
 func BatchBeforeRecharge(c *gin.Context) {
@@ -789,7 +788,8 @@ func BatchBeforeRecharge(c *gin.Context) {
 		JsonReturn(c, -1, "IP info Error", nil)
 		return
 	}
-	resList := make([]ResBatchBeforeRecharge, 0)
+	resMap := make(map[string][]ResBatchBeforeRecharge)
+	var balanceMap = make(map[string]int)
 	uid := user.Id
 	for _, ip := range ipsList {
 		err_l, ipLog := models.GetIpStaticIp(uid, ip)
@@ -807,25 +807,31 @@ func BatchBeforeRecharge(c *gin.Context) {
 			expire = nowTime
 		}
 		balance := 0
-		var resInfo = ResBatchBeforeRecharge{
-			Country: ipLog.Country,
-			Ip:      ipLog.Ip,
-			List:    []ResUserStaticIp{},
-		}
+
 		for _, v := range balanceList {
+			var resInfo = ResBatchBeforeRecharge{
+				Country: ipLog.Country,
+				Ip:      ipLog.Ip,
+			}
 			balance = balance + v.Balance
 			expireTime := expire + v.ExpireDay*86400
-			info := ResUserStaticIp{}
-			info.Id = v.Id
-			info.PakName = util.ItoS(v.ExpireDay) + " Day"
-			info.Balance = v.Balance
-			info.ExpireDay = v.ExpireDay
-			info.ExpireTime = util.GetTimeStr(expireTime, "d-m-Y")
-			resInfo.List = append(resInfo.List, info)
+			resInfo.Id = v.Id
+			resInfo.PakName = util.ItoS(v.ExpireDay) + " Day"
+			resInfo.ExpireDay = v.ExpireDay
+			resInfo.ExpireTime = util.GetTimeStr(expireTime, "d-m-Y")
+			if val, ok := resMap[resInfo.PakName]; ok {
+				resMap[resInfo.PakName] = append(val, resInfo)
+			} else {
+				resMap[resInfo.PakName] = append(val, resInfo)
+			}
 		}
-		resList = append(resList, resInfo)
+		if v, ok := balanceMap[ipLog.Country]; ok {
+			balanceMap[ipLog.Country] = v + balance
+		} else {
+			balanceMap[ipLog.Country] = balance
+		}
 	}
-	JsonReturn(c, 0, "success", resList)
+	JsonReturn(c, 0, "success", map[string]interface{}{"balance": balanceMap, "res": resMap})
 	return
 }
 
