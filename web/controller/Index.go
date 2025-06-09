@@ -44,6 +44,9 @@ func CheckIsCn(c *gin.Context) {
 	}
 	res["timestamp"] = util.GetNowInt()
 	res["hour_timestamp"] = util.GetTodayHour()
+
+	captchaSwitch := strings.TrimSpace(models.GetConfigVal("CaptchaRegisterSwitch")) // 滑块验证注册开关 由原来的开关变成 类型配置  1 滑块验证  2 google人机验证
+	res["register_captcha"] = util.StoI(captchaSwitch)
 	JsonReturn(c, 0, "__T_SUCCESS", res)
 	return
 }
