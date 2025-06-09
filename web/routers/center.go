@@ -49,6 +49,7 @@ func centerRouter(router *gin.Engine) {
 	coupon.POST("/my_coupons_list", controller.GetMyCouponListByPakId) // 获取优惠券下拉列表接口
 	coupon.POST("/popup", controller.GetCouponPopup)                   // 优惠券弹窗
 	coupon.POST("/popup_click", controller.ClickCouponPopup)           // 优惠券弹窗点击
+	coupon.POST("/get_coupon", controller.GetCoupon)                   // 领取优惠卷
 
 	cdk := router.Group("/center/cdk")
 	cdk.POST("/ex/generate_list", controller.NewGenerateList)                  // cdk 生成列表
@@ -73,8 +74,15 @@ func centerRouter(router *gin.Engine) {
 	cb.POST("/stats_detail", controller.GetUserBalanceCdkStatsDetail)     // 统计使用记录详情
 	// 不限量相关
 	cu := router.Group("/center/unlimited")
-	cu.POST("/server_record", controller.GetUserUnlimitedLog)  // 获取余额配置信息
-	cu.POST("/port_domain", controller.GetUnlimitedPortDomain) // 获取端口白名单地址
+	// 不限量预警
+	cu.POST("/early_warning", controller.GetEarlyWarning)                        // 获取预警开关和联系方式
+	cu.POST("/early_warning/setting", controller.SettingEarlyWarning)            // 设置预警的开关和联系方式
+	cu.POST("/early_warning/detail_add", controller.AddEarlyWarningDetail)       // 添加预警详情
+	cu.POST("/early_warning/detail_change", controller.ChangeEarlyWarningDetail) // 修改预警详情
+	cu.POST("/early_warning/detail_list", controller.GetEarlyWarningDetailList)  // 获取预警详情
+	cu.POST("/early_warning/detail_del", controller.DelEarlyWarningDetail)       // 删除预警详情
+	cu.POST("/server_record", controller.GetUserUnlimitedLog)                    // 获取余额配置信息
+	cu.POST("/port_domain", controller.GetUnlimitedPortDomain)                   // 获取端口白名单地址
 
 	// 不限量机器监控
 	cvm := router.Group("/center/monitor")

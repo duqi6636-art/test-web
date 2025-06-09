@@ -209,4 +209,12 @@ func webRouter(router *gin.Engine) {
 	mp.POST("/version", controller.VersionCheck)          // 版本检查
 	mp.POST("/feedback", controller.FeedbackAgentManager) // 代理管理器用户反馈
 	mp.POST("/github_login", controller.MPGithubLogin)    // GitHub登录
+
+	//实名认证 接口
+	kyc := router.Group("/user_kyc")
+	kyc.POST("/verify/step_one", controller.IdVerifyStepOne)     // 认证第一步
+	kyc.POST("/verify/step_two", controller.IdVerifyStepTwo)     // 认证第二步
+	kyc.POST("/verify/step_three", controller.IdVerifyStepThree) // 检测验证结果
+	kyc.POST("/verify/get_face_url", controller.GetFaceUrl)      // 获取腾讯人脸核验链接
+	kyc.POST("/verify/get_country", controller.GetKycCountry)    // 获取国家列表
 }

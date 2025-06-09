@@ -113,6 +113,54 @@ func GetTimeStr(t int, formate string) string {
 	return now_time.Format(formateStr)
 }
 
+func GetTime64Str(t int64, formate string) string {
+	now_time := time.Now()
+	formateStr := "20060102150405"
+	if formate == "Ym" {
+		formateStr = "200601"
+	}
+	if formate == "Y-m-d" {
+		formateStr = "2006-01-02"
+	}
+	if formate == "Ymd" {
+		formateStr = "20060102"
+	}
+	if formate == "Y-m-d H" {
+		formateStr = "2006-01-02 15"
+	}
+	if formate == "Y-m-d H:i" {
+		formateStr = "2006-01-02 15:04"
+	}
+	if formate == "Y/m/d H:i" {
+		formateStr = "2006/01/02 15:04"
+	}
+	if formate == "Y/m/d" {
+		formateStr = "2006/01/02"
+	}
+	if formate == "Y/m/d H:i:s" {
+		formateStr = "2006/01/02 15:04:05"
+	}
+	if formate == "Y-m-d H:i:s" {
+		formateStr = "2006-01-02 15:04:05"
+	}
+	if formate == "d-m-Y" {
+		formateStr = "02-01-2006"
+	}
+	if formate == "d/m/Y" {
+		formateStr = "2/01/2006"
+	}
+	if formate == "d/m/Y H:i" {
+		formateStr = "2/01/2006 15:04"
+	}
+	if formate == "d/m/Y H:i:s" {
+		formateStr = "2/01/2006 15:04:05"
+	}
+	if t > 0 {
+		now_time = time.Unix(t, 0)
+	}
+	return now_time.Format(formateStr)
+}
+
 func GetTodayTime() int {
 	the_time, _ := time.ParseInLocation("2006-01-02", GetTimeStr(0, "Y-m-d"), time.Local)
 	return int(the_time.Unix())
