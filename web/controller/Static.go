@@ -818,6 +818,8 @@ func BatchBeforeRecharge(c *gin.Context) {
 		for _, expireDay := range expireDayList {
 			resInfo.ExpireTime = util.GetTimeStr(expire+expireDay*86400, "d-m-Y")
 			resInfo.RechargeId = fmt.Sprintf("%v:%v", 0, ipLog.Id)
+			resInfo.ExpireDay = expireDay
+			resInfo.PakName = util.ItoS(expireDay) + " Day"
 			key := fmt.Sprintf("%v_%v", ip, expireDay)
 			resInfoMap[key] = resInfo
 		}
