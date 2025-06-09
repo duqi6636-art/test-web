@@ -528,6 +528,30 @@ func BatchUseStatic(c *gin.Context) {
 		return
 	}
 	resInfo := make(map[int]models.ResUserStaticIp)
+	_, staticInfoList := models.GetUserStaticIp(uid) //用户购买记录
+	packageList := models.GetStaticPackageList()
+	userBalance := map[int]int{}
+	for _, vu := range staticInfoList {
+		if vu.PakRegion != "all" {
+			balance, ok := userBalance[vu.PakId]
+			if !ok {
+				balance = 0
+			}
+			userBalance[vu.PakId] = vu.Balance + balance
+		}
+	}
+	for _, vp := range packageList {
+		info := models.ResUserStaticIp{}
+		info.Id = vp.Id
+		ipNum, ok := userBalance[vp.Id]
+		if !ok {
+			ipNum = 0
+		}
+		info.PakName = vp.Name
+		info.ExpireDay = vp.Value
+		info.Balance = ipNum
+		resInfo[info.Id] = info
+	}
 	for _, val := range snList {
 		id := util.StoI(util.MdDecode(val, MdKey))
 		_, ipInfo := models.GetStaticIpById(id)
@@ -549,11 +573,9 @@ func BatchUseStatic(c *gin.Context) {
 		// 开始扣费
 		err1 := models.StaticKf(code, c.ClientIP(), ipInfo, user, balanceInfo)
 		if err1 == nil {
-			_, staticInfo := models.GetUserStaticIp(uid) //用户购买记录
-			packageList := models.GetStaticPackageList()
 
 			userBalance := map[int]int{}
-			for _, vu := range staticInfo {
+			for _, vu := range staticInfoList {
 				if vu.PakRegion != "all" {
 					balance, ok := userBalance[vu.PakId]
 					if !ok {
