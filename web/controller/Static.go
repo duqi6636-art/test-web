@@ -822,7 +822,15 @@ func BatchBeforeRecharge(c *gin.Context) {
 			resInfo.PakName = util.ItoS(expireDay) + " Day"
 			key := fmt.Sprintf("%v_%v", ip, expireDay)
 			resInfoMap[key] = resInfo
-			balanceMap[resInfo.PakName] = map[string]int{ipLog.Country: balance}
+			if val, ok := balanceMap[resInfo.PakName]; ok {
+				if v, ok := val[ipLog.Country]; ok {
+					val[ipLog.Country] = v + balance
+				} else {
+					val[ipLog.Country] = balance
+				}
+			} else {
+				balanceMap[resInfo.PakName] = map[string]int{ipLog.Country: balance}
+			}
 		}
 
 		for _, v := range balanceList {
