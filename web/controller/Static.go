@@ -771,6 +771,7 @@ type ResBatchBeforeRecharge struct {
 	PakName    string `json:"pak_name"`    // 套餐类型
 	Country    string `json:"country"`     // 国家
 	Ip         string `json:"ip"`          // ip
+	RechargeId string `json:"recharge_id"` // 续费需要的id
 	ExpireDay  int    `json:"expire_day"`  // 过期天数
 	ExpireTime string `json:"expire_time"` // 过期时间
 }
@@ -819,6 +820,7 @@ func BatchBeforeRecharge(c *gin.Context) {
 			resInfo.PakName = util.ItoS(v.ExpireDay) + " Day"
 			resInfo.ExpireDay = v.ExpireDay
 			resInfo.ExpireTime = util.GetTimeStr(expireTime, "d-m-Y")
+			resInfo.RechargeId = fmt.Sprintf("%v:%v", v.Id, ipLog.Id)
 			if val, ok := resMap[resInfo.PakName]; ok {
 				resMap[resInfo.PakName] = append(val, resInfo)
 			} else {
