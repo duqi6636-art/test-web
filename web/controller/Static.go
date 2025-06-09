@@ -790,7 +790,7 @@ func BatchBeforeRecharge(c *gin.Context) {
 		return
 	}
 	resMap := make(map[string][]ResBatchBeforeRecharge)
-	var balanceMap = make(map[string]int)
+	var balanceMap = make(map[string]map[string]int)
 	uid := user.Id
 	for _, ip := range ipsList {
 		err_l, ipLog := models.GetIpStaticIp(uid, ip)
@@ -826,12 +826,17 @@ func BatchBeforeRecharge(c *gin.Context) {
 			} else {
 				resMap[resInfo.PakName] = append(val, resInfo)
 			}
+			if val, ok := balanceMap[resInfo.PakName]; ok {
+				if v, ok := val[ipLog.Country]; ok {
+					val[ipLog.Country] = v + balance
+				} else {
+					val[ipLog.Country] = balance
+				}
+			} else {
+				balanceMap[resInfo.PakName] = map[string]int{ipLog.Country: balance}
+			}
 		}
-		if v, ok := balanceMap[ipLog.Country]; ok {
-			balanceMap[ipLog.Country] = v + balance
-		} else {
-			balanceMap[ipLog.Country] = balance
-		}
+
 	}
 	JsonReturn(c, 0, "success", map[string]interface{}{"balance": balanceMap, "res": resMap})
 	return
