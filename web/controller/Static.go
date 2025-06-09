@@ -577,7 +577,11 @@ func BatchUseStatic(c *gin.Context) {
 			}
 		}
 	}
-	JsonReturn(c, 0, "__T_SUCCESS", resInfo)
+	var resList = make([]models.ResUserStaticIp, 0)
+	for _, val := range resInfo {
+		resList = append(resList, val)
+	}
+	JsonReturn(c, 0, "__T_SUCCESS", resList)
 	return
 }
 
