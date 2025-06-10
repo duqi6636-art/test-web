@@ -123,6 +123,9 @@ func GetCity(c *gin.Context) {
 	if country != "" || state != "" {
 		cityLists := models.GetCityByCountry(country, state, city)
 		for _, v := range cityLists {
+			if v.Num < 10 {
+				continue
+			}
 			resLists = append(resLists, v)
 		}
 	}
@@ -379,6 +382,9 @@ func GetCountryDomainList(c *gin.Context) {
 	var countryCityPortList []models.ResExtractCountryCity
 
 	for _, v := range allCountryList {
+		if v.Num < 10 {
+			continue
+		}
 		info := models.ResExtractCountryCity{}
 		info.Name = v.Name
 		info.Country = v.Country
