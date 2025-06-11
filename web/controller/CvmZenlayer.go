@@ -13,11 +13,13 @@ import (
 // 重启实例
 func RebootInstances(hostInfo models.PoolFlowDayDetailModel) (bool, string) {
 	secretKeyId := models.GetConfigVal("Zenlayer_SecretKeyId")             //
-	secretKeyPassword := models.GetConfigVal("zenlayer_SecretKeyPassword") //
-
-	client, _ := zec.NewClientWithSecretKey(secretKeyId, secretKeyPassword)
+	secretKeyPassword := models.GetConfigVal("Zenlayer_SecretKeyPassword") //
 	instanceIds := []string{}
 	instanceIds = []string{hostInfo.InstanceId}
+	fmt.Println("instanceIds:", instanceIds)
+
+	client, _ := zec.NewClientWithSecretKey(secretKeyId, secretKeyPassword)
+
 	// Prepare the request
 	request := zec.NewRebootInstancesRequest()
 	request.InstanceIds = instanceIds
@@ -88,6 +90,35 @@ func DescribeInstances(c *gin.Context) {
 
 	//request.ZoneId = "na-west-1a" // 实例所在节点ID
 	response, err := client.DescribeInstances(request)
+
+	if err != nil {
+		log.Fatalf("Error creating ZEC instances: %v", err)
+	}
+	// Handle the response
+	if response.Response.RequestId == "" {
+		log.Fatalf("API request failed: %#v", response.Response)
+	}
+
+	fmt.Printf("Successfully: %#v\n", response.Response)
+	fmt.Printf("Successfully. Request ID: %#v\n", response.Response.RequestId)
+
+	JsonReturn(c, 0, "__T_SUCCESS", response.Response)
+	return
+
+}
+
+// 获取实例状态
+func DescribeInstancesStatus1(c *gin.Context) {
+	instanceIds := c.DefaultPostForm("instance_id", "")
+	secretKeyId := models.GetConfigVal("Zenlayer_SecretKeyId")             //
+	secretKeyPassword := models.GetConfigVal("Zenlayer_SecretKeyPassword") //
+
+	client, _ := zec.NewClientWithSecretKey(secretKeyId, secretKeyPassword)
+	instanceIdArr := strings.Split(instanceIds, ",")
+	// Prepare the request
+	request := zec.NewDescribeInstancesStatusRequest()
+	request.InstanceIds = instanceIdArr
+	response, err := client.DescribeInstancesStatus(request)
 
 	if err != nil {
 		log.Fatalf("Error creating ZEC instances: %v", err)
