@@ -84,11 +84,11 @@ func DescribeInstances(c *gin.Context) {
 
 	// Prepare the request
 	request := zec.NewDescribeInstancesRequest()
-	if len(instanceIdArr) > 0 {
+	if instanceIds != "" && len(instanceIdArr) > 0 {
 		request.InstanceIds = instanceIdArr
 	}
 
-	//request.ZoneId = "na-west-1a" // 实例所在节点ID
+	request.ZoneId = "na-west-1a" // 实例所在节点ID
 	response, err := client.DescribeInstances(request)
 
 	if err != nil {
