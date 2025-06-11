@@ -123,7 +123,7 @@ func GetCity(c *gin.Context) {
 	if country != "" || state != "" {
 		cityLists := models.GetCityByCountry(country, state, city)
 		for _, v := range cityLists {
-			if v.Num < 10 {
+			if v.Num < 10 && v.Name != "Random" {
 				continue
 			}
 			resLists = append(resLists, v)
