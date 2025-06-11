@@ -1,7 +1,6 @@
 package routers
 
 import (
-	"api-360proxy/auth/controllers"
 	"api-360proxy/web/controller"
 	"api-360proxy/web/middleware"
 	"github.com/gin-gonic/gin"
@@ -22,7 +21,9 @@ func InitRouter() *gin.Engine {
 	r.GET("/", controller.Index)
 	r.GET("qrcode", controller.Qrcode)
 	r.GET("kyc_qrcode", controller.KycQrcode)
-	r.GET("/web/connect", controllers.Connect) //接口联通测试
+	r.GET("/web/connect", controller.Connect) //接口联通测试
+
+	r.POST("/web/describe", controller.DescribeInstances) //接口联通测试
 	systemApi := r.Group("/api/", middleware.AreaMiddleware())
 	{
 		systemApi.GET("f5", controller.FreshCache)
