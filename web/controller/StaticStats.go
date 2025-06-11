@@ -62,6 +62,7 @@ func GetUsedStaticIpList(c *gin.Context) {
 		return
 	}
 	ip := strings.TrimSpace(c.DefaultPostForm("ip", ""))              //ip /备注筛选
+	country := strings.TrimSpace(c.DefaultPostForm("country", ""))    //国家
 	status := strings.TrimSpace(c.DefaultPostForm("status", ""))      //状态
 	field := strings.TrimSpace(c.DefaultPostForm("field", "id"))      //	排序字段
 	sorterType := strings.TrimSpace(c.DefaultPostForm("sorter", "1")) //排序  1降序
@@ -86,7 +87,7 @@ func GetUsedStaticIpList(c *gin.Context) {
 		offlineIpList[i] = ipModel.Ip
 	}
 
-	_, usedList := models.GetIpStaticIpBy(user.Id, ip, status, orderBy)
+	_, usedList := models.GetIpStaticIpBy(user.Id, ip, status, orderBy, country)
 	nowTime := util.GetNowInt()
 	for _, v := range usedList {
 		info := models.ResIpStaticLogModel{}
@@ -97,7 +98,7 @@ func GetUsedStaticIpList(c *gin.Context) {
 			if slices.Contains(offlineIpList, v.Ip) {
 				is_expire = 4 // 过期且已下线 不返回
 			}
-		}else {
+		} else {
 			// 检查当前 IP 是否在 offlineIps 列表中
 			if slices.Contains(offlineIpList, v.Ip) {
 				is_expire = 3 // 已下线
@@ -265,6 +266,7 @@ func UsedStaticRecordDownload(c *gin.Context) {
 	}
 	return
 }
+
 // @BasePath /api/v1
 // @Summary 更换静态IP
 // @Schemes
