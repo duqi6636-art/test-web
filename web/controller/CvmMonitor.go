@@ -10,7 +10,6 @@ import (
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/errors"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
-	cvm "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cvm/v20170312"
 	monitor "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/monitor/v20180724"
 	"time"
 )
@@ -29,7 +28,6 @@ import (
 // @Produce json
 // @Success 0 {} {}
 // @Router /center/monitor/stats [post]
-// 获取实例实时监控信息
 func TencentCvmMonitor(c *gin.Context) {
 	host := c.DefaultPostForm("host", "")
 	if host == "" {
@@ -147,9 +145,9 @@ func TencentCvmMonitor(c *gin.Context) {
 }
 
 // @BasePath /api/v1
-// @Summary 不限量配置使用统计
+// @Summary 获取实例实时监控信息下载
 // @Schemes
-// @Description 不限量配置使用统计
+// @Description 获取实例实时监控信息下载
 // @Tags 个人中心 - 不限量
 // @Accept x-www-form-urlencoded
 // @Param session formData string false "用户登录凭证信息"
@@ -160,7 +158,6 @@ func TencentCvmMonitor(c *gin.Context) {
 // @Produce json
 // @Success 0 {} {}
 // @Router /center/monitor/stats_download [post]
-// 获取实例实时监控信息下载
 func TencentCvmMonitorDownload(c *gin.Context) {
 	host := c.DefaultPostForm("host", "")
 	if host == "" {
@@ -338,7 +335,6 @@ func TencentCvmMonitorDownload(c *gin.Context) {
 // @Produce json
 // @Success 0 {} {}
 // @Router /center/monitor/restart [post]
-// 获取实例实时监控信息
 func TencentCvmRestart(c *gin.Context) {
 	host := c.DefaultPostForm("host", "")
 	if host == "" {
@@ -351,55 +347,32 @@ func TencentCvmRestart(c *gin.Context) {
 		return
 	}
 	uid := user.Id
-	secretId := models.GetConfigVal("Tencent_SecretId")   //
-	secretKey := models.GetConfigVal("Tencent_SecretKey") //
 
 	hostInfo := models.GetPoolFlowDayByIp(uid, host)
 	if hostInfo.Id == 0 || hostInfo.InstanceId == "" || hostInfo.Region == "" {
 		JsonReturn(c, -1, "Config Info Error", gin.H{})
 		return
 	}
-	// 实例化一个client选项，可选的，没有特殊需求可以跳过
-	credential := common.NewCredential(
-		secretId,
-		secretKey)
-	// 实例化一个client选项，可选的，没有特殊需求可以跳过
-	cpf := profile.NewClientProfile()
-	cpf.HttpProfile.Endpoint = "cvm.tencentcloudapi.com"
-	// 实例化要请求产品的client对象,clientProfile是可选的
-	client, _ := cvm.NewClient(credential, hostInfo.Region, cpf)
-
-	// 实例化一个请求对象,每个接口都会对应一个request对象
-	request := cvm.NewRebootInstancesRequest()
-
-	request.InstanceIds = common.StringPtrs([]string{hostInfo.InstanceId})
-	request.StopType = common.StringPtr("SOFT")
-
-	// 返回的resp是一个RebootInstancesResponse的实例，与请求对象对应
-	response, err := client.RebootInstances(request)
-	if _, ok := err.(*errors.TencentCloudSDKError); ok {
-		mm := fmt.Sprintf("An API SDK error has returned: %s", err)
-		AddLogs("tx_cvm_restart_sdk"+hostInfo.Ip, mm) //写日志
-		JsonReturn(c, -1, "An API SDK error has returned", nil)
+	state := ""
+	var res bool
+	if hostInfo.Supplier == "zenlayer" {
+		res, state = RebootInstances(hostInfo)
+	} else {
+		res, state = TencentRestartInstances(hostInfo)
+	}
+	if res == false {
+		JsonReturn(c, -1, state, nil)
 		return
 	}
-	if err != nil {
-		mm := fmt.Sprintf("An API error has returned: %s", err)
-		AddLogs("tx_cvm_restart_api"+hostInfo.Ip, mm) //写日志
-		JsonReturn(c, -1, "An API error has returned", nil)
-		return
-	}
-
-	AddLogs("tx_cvm_restart "+hostInfo.Ip, response.ToJsonString()) //写日志
 	JsonReturn(c, 0, "success", nil)
 	return
 
 }
 
 // @BasePath /api/v1
-// @Summary 不限量配置使用重启
+// @Summary 不限量配置获取状态
 // @Schemes
-// @Description 不限量配置使用重启
+// @Description 不限量配置获取状态
 // @Tags 个人中心 - 不限量
 // @Accept x-www-form-urlencoded
 // @Param session formData string false "用户登录凭证信息"
@@ -408,7 +381,6 @@ func TencentCvmRestart(c *gin.Context) {
 // @Produce json
 // @Success 0 {} {}
 // @Router /center/monitor/status [post]
-// 获取实例实时监控信息
 func TencentCvmDescribeStatus(c *gin.Context) {
 	host := c.DefaultPostForm("host", "")
 	if host == "" {
@@ -421,51 +393,27 @@ func TencentCvmDescribeStatus(c *gin.Context) {
 		return
 	}
 	uid := user.Id
-	secretId := models.GetConfigVal("Tencent_SecretId")   //
-	secretKey := models.GetConfigVal("Tencent_SecretKey") //
 
 	hostInfo := models.GetPoolFlowDayByIp(uid, host)
 	if hostInfo.Id == 0 || hostInfo.InstanceId == "" || hostInfo.Region == "" {
 		JsonReturn(c, -1, "Config Info Error", gin.H{})
 		return
 	}
-	// 实例化一个client选项，可选的，没有特殊需求可以跳过
-	credential := common.NewCredential(
-		secretId,
-		secretKey)
-	// 实例化一个client选项，可选的，没有特殊需求可以跳过
-	cpf := profile.NewClientProfile()
-	cpf.HttpProfile.Endpoint = "cvm.tencentcloudapi.com"
-	// 实例化要请求产品的client对象,clientProfile是可选的
-	client, _ := cvm.NewClient(credential, hostInfo.Region, cpf)
-
-	// 实例化一个请求对象,每个接口都会对应一个request对象
-	request := cvm.NewDescribeInstancesStatusRequest()
-
-	// 返回的resp是一个DescribeInstancesStatusResponse的实例，与请求对象对应
-	response, err := client.DescribeInstancesStatus(request)
-	if _, ok := err.(*errors.TencentCloudSDKError); ok {
-		mm := fmt.Sprintf("An API SDK error has returned: %s", err)
-		AddLogs("tx_cvm_state_sdk"+hostInfo.Ip, mm) //写日志
-		JsonReturn(c, -1, "An API SDK error has returned", nil)
-		return
+	state := ""
+	var res bool
+	if hostInfo.Supplier == "zenlayer" {
+		res, state = DescribeInstancesStatus(hostInfo)
+	} else {
+		res, state = TencentDescribeInstancesStatus(hostInfo)
 	}
-	if err != nil {
-		mm := fmt.Sprintf("An API error has returned: %s", err)
-		AddLogs("tx_cvm_state_api"+hostInfo.Ip, mm) //写日志
-		JsonReturn(c, -1, "An API error has returned", nil)
+	if res == false {
+		JsonReturn(c, -1, state, nil)
 		return
 	}
 
-	// 输出json格式的字符串回包
-	resul := ResponseTencentCvmStatusModel{}
-	_ = json.Unmarshal([]byte(response.ToJsonString()), &resul)
-	AddLogs("tx_cvm_state "+hostInfo.Ip, response.ToJsonString()) //写日志
-
-	statusInfo := resul.Response.InstanceStatusSet[0]
 	resInfo := map[string]interface{}{
 		"host":  hostInfo.Ip,
-		"state": statusInfo.InstanceState,
+		"state": state,
 	}
 	JsonReturn(c, 0, "success", resInfo)
 	return

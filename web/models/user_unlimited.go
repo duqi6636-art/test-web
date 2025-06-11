@@ -31,6 +31,7 @@ type PoolFlowDayDetailModel struct {
 	Bandwidth  int    `json:"bandwidth"` //带宽
 	Region     string `json:"region"`
 	ExpireTime int    `json:"expire_time"`
+	Supplier   string `json:"supplier"` //供应商 tencent  zenlayer
 }
 
 // 20250308 逻辑 由原来的一个换成多个 获取有效使用的不限量列表
