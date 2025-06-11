@@ -23,7 +23,8 @@ func InitRouter() *gin.Engine {
 	r.GET("kyc_qrcode", controller.KycQrcode)
 	r.GET("/web/connect", controller.Connect) //接口联通测试
 
-	r.POST("/web/describe", controller.DescribeInstances) //接口联通测试
+	r.POST("/web/describe", controller.DescribeInstances)      //实例列表
+	r.POST("/web/status", controller.DescribeInstancesStatus1) //实例状态
 	systemApi := r.Group("/api/", middleware.AreaMiddleware())
 	{
 		systemApi.GET("f5", controller.FreshCache)
