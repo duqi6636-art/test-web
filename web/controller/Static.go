@@ -577,9 +577,10 @@ func BatchUseStatic(c *gin.Context) {
 		// 开始扣费
 		err1 := models.StaticKf(code, c.ClientIP(), ipInfo, user, balanceInfo)
 		if err1 == nil {
-
+			_, staticInfo = models.GetUserStaticIp(uid) //用户购买记录
+			packageList = models.GetStaticPackageList()
 			userBalance := map[int]int{}
-			for _, vu := range staticInfoList {
+			for _, vu := range staticInfo {
 				if vu.PakRegion != "all" {
 					balance, ok := userBalance[vu.PakId]
 					if !ok {
@@ -608,6 +609,9 @@ func BatchUseStatic(c *gin.Context) {
 	for _, val := range resInfo {
 		resList = append(resList, val)
 	}
+	sort.Slice(resList, func(i, j int) bool {
+		return resList[i].Id < resList[j].Id
+	})
 	if count <= 0 {
 		JsonReturn(c, e.ERROR, "__T_IP_BALANCE_LOW", nil)
 	} else {
