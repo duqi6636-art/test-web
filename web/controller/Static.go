@@ -555,6 +555,7 @@ func BatchUseStatic(c *gin.Context) {
 		info.Balance = ipNum
 		resInfo[info.Id] = info
 	}
+	var count = 0
 	for _, val := range snList {
 		id := util.StoI(util.MdDecode(val, MdKey))
 		_, ipInfo := models.GetStaticIpById(id)
@@ -600,13 +601,19 @@ func BatchUseStatic(c *gin.Context) {
 				info.Balance = ipNum
 				resInfo[info.Id] = info
 			}
+			count++
 		}
 	}
 	var resList = make([]models.ResUserStaticIp, 0)
 	for _, val := range resInfo {
 		resList = append(resList, val)
 	}
-	JsonReturn(c, 0, "__T_SUCCESS", resList)
+	if count <= 0 {
+		JsonReturn(c, e.ERROR, "__T_IP_BALANCE_LOW", nil)
+	} else {
+		JsonReturn(c, 0, "__T_SUCCESS", resList)
+	}
+
 	return
 }
 
