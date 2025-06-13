@@ -103,6 +103,9 @@ func GetUserStaticIp(c *gin.Context) {
 	userBalance := map[int]int{}
 	status := 1
 	for _, vu := range staticInfo {
+		if vu.Status < 1 {
+			continue
+		}
 		if vu.PakRegion != "all" {
 			balance, ok := userBalance[vu.PakId]
 			if !ok {
@@ -581,6 +584,9 @@ func BatchUseStatic(c *gin.Context) {
 			packageList = models.GetStaticPackageList()
 			userBalance := map[int]int{}
 			for _, vu := range staticInfo {
+				if vu.Status < 1 {
+					continue
+				}
 				if vu.PakRegion != "all" {
 					balance, ok := userBalance[vu.PakId]
 					if !ok {
