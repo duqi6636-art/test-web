@@ -139,7 +139,7 @@ func (u *UnlimitedEarlyWarning) GetByUid() {
 }
 
 func (u *UnlimitedEarlyWarning) Update() {
-	db.Table(unlimitedEarlyWarningTable).Where("id = ?", u.Id).Update(u)
+	db.Table(unlimitedEarlyWarningTable).Where("id = ?", u.Id).Save(u)
 }
 
 func GetUnlimitedEarlyWarningList(query string, args []interface{}) []UnlimitedEarlyWarning {
@@ -161,7 +161,7 @@ func (u *UnlimitedEarlyWarningDetail) GetByIdAndUId() {
 }
 
 func (u *UnlimitedEarlyWarningDetail) Update() {
-	db.Table(unlimitedEarlyWarningDetailTable).Where("id = ? AND uid = ?", u.Id, u.Uid).Update(u)
+	db.Table(unlimitedEarlyWarningDetailTable).Where("id = ? AND uid = ?", u.Id, u.Uid).Save(u)
 }
 
 func (u *UnlimitedEarlyWarningDetail) Delete() {

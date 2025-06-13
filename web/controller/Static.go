@@ -4,8 +4,10 @@ import (
 	"api-360proxy/web/e"
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/unknwon/com"
 	"sort"
 	"strings"
 )
@@ -101,6 +103,9 @@ func GetUserStaticIp(c *gin.Context) {
 	userBalance := map[int]int{}
 	status := 1
 	for _, vu := range staticInfo {
+		if vu.Status < 1 {
+			continue
+		}
 		if vu.PakRegion != "all" {
 			balance, ok := userBalance[vu.PakId]
 			if !ok {
@@ -500,6 +505,127 @@ func UseStatic(c *gin.Context) {
 	return
 }
 
+// 批量提取静态
+
+func BatchUseStatic(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	_, staticInfo := models.GetUserStaticIp(uid)
+	for _, vu := range staticInfo {
+		if vu.Status == 2 {
+			JsonReturn(c, -1, "__T_PACKAGE_FORBIDDEN", gin.H{})
+			return
+		}
+	}
+	sn := c.DefaultPostForm("sn_list", "")
+	var snList = make([]string, 0)
+	err := json.Unmarshal([]byte(sn), &snList)
+	if len(snList) <= 0 || err != nil {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	staticId := com.StrTo(c.DefaultPostForm("static_id", "0")).MustInt() //长效套餐ID
+	if staticId <= 0 {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	resInfo := make(map[int]models.ResUserStaticIp)
+	_, staticInfoList := models.GetUserStaticIp(uid) //用户购买记录
+	packageList := models.GetStaticPackageList()
+	userBalance := map[int]int{}
+	for _, vu := range staticInfoList {
+		if vu.PakRegion != "all" {
+			balance, ok := userBalance[vu.PakId]
+			if !ok {
+				balance = 0
+			}
+			userBalance[vu.PakId] = vu.Balance + balance
+		}
+	}
+	for _, vp := range packageList {
+		info := models.ResUserStaticIp{}
+		info.Id = vp.Id
+		ipNum, ok := userBalance[vp.Id]
+		if !ok {
+			ipNum = 0
+		}
+		info.PakName = vp.Name
+		info.ExpireDay = vp.Value
+		info.Balance = ipNum
+		resInfo[info.Id] = info
+	}
+	var count = 0
+	for _, val := range snList {
+		id := util.StoI(util.MdDecode(val, MdKey))
+		_, ipInfo := models.GetStaticIpById(id)
+		useIP := ipInfo.Ip
+		err_l, ipLog := models.GetIpStaticIp(uid, useIP)
+		if err_l == nil && ipLog.Id > 0 {
+			continue
+		}
+		code := strings.ToLower(ipInfo.Country)
+		err, balanceInfo := models.GetUserStaticByPakRegion(uid, staticId, code)
+		if err != nil || balanceInfo.Id == 0 {
+			continue
+		} else {
+			if balanceInfo.Balance < 1 {
+				continue
+			}
+		}
+
+		// 开始扣费
+		err1 := models.StaticKf(code, c.ClientIP(), ipInfo, user, balanceInfo)
+		if err1 == nil {
+			_, staticInfo = models.GetUserStaticIp(uid) //用户购买记录
+			packageList = models.GetStaticPackageList()
+			userBalance := map[int]int{}
+			for _, vu := range staticInfo {
+				if vu.Status >= 1 {
+					if vu.PakRegion != "all" {
+						balance, ok := userBalance[vu.PakId]
+						if !ok {
+							balance = 0
+						}
+						userBalance[vu.PakId] = vu.Balance + balance
+					}
+				}
+			}
+
+			for _, vp := range packageList {
+				info := models.ResUserStaticIp{}
+				info.Id = vp.Id
+				ipNum, ok := userBalance[vp.Id]
+				if !ok {
+					ipNum = 0
+				}
+				info.PakName = vp.Name
+				info.ExpireDay = vp.Value
+				info.Balance = ipNum
+				resInfo[info.Id] = info
+			}
+			count++
+		}
+	}
+	var resList = make([]models.ResUserStaticIp, 0)
+	for _, val := range resInfo {
+		resList = append(resList, val)
+	}
+	sort.Slice(resList, func(i, j int) bool {
+		return resList[i].Id < resList[j].Id
+	})
+	if count <= 0 {
+		JsonReturn(c, e.ERROR, "__T_IP_BALANCE_LOW", nil)
+	} else {
+		JsonReturn(c, 0, "__T_SUCCESS", resList)
+	}
+
+	return
+}
+
 // 修改账号子账户密码
 // @BasePath /api/v1
 // @Summary 修改账号子账户密码
@@ -656,6 +782,108 @@ func BeforeRecharge(c *gin.Context) {
 
 }
 
+type ResBatchBeforeRecharge struct {
+	Id         int    `json:"id"`
+	PakName    string `json:"pak_name"`    // 套餐类型
+	Country    string `json:"country"`     // 国家
+	Ip         string `json:"ip"`          // ip
+	RechargeId string `json:"recharge_id"` // 续费需要的id
+	ExpireDay  int    `json:"expire_day"`  // 过期天数
+	ExpireTime string `json:"expire_time"` // 过期时间
+}
+
+func BatchBeforeRecharge(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	ips := c.DefaultPostForm("ips", "") //待续费的ID
+	var ipsList = make([]string, 0)
+	err := json.Unmarshal([]byte(ips), &ipsList)
+	if len(ipsList) <= 0 || err != nil {
+		JsonReturn(c, -1, "IP info Error", nil)
+		return
+	}
+	resMap := make(map[string][]ResBatchBeforeRecharge)
+	resInfoMap := make(map[string]ResBatchBeforeRecharge)
+	var balanceMap = make(map[string]map[string]int)
+	uid := user.Id
+	var expireDayList = []int{7, 30}
+	//var resInfoMap =
+	for _, ip := range ipsList {
+		err_l, ipLog := models.GetIpStaticIp(uid, ip)
+		if err_l != nil || ipLog.Id == 0 {
+			continue
+		}
+		_, ipInfo := models.GetStaticIpByIp(ipLog.Ip)
+		if ipInfo.Id == 0 || ipInfo.Status != 1 {
+			continue
+		}
+		_, balanceList := models.GetUserStaticIpByRegion(uid, strings.ToLower(ipLog.Country))
+		nowTime := util.GetNowInt()
+		expire := ipLog.ExpireTime
+		if expire < nowTime {
+			expire = nowTime
+		}
+		balance := 0
+		var resInfo = ResBatchBeforeRecharge{
+			Country: ipLog.Country,
+			Ip:      ipLog.Ip,
+		}
+		for _, expireDay := range expireDayList {
+			resInfo.ExpireTime = util.GetTimeStr(expire+expireDay*86400, "d-m-Y")
+			resInfo.RechargeId = fmt.Sprintf("%v:%v", 0, ipLog.Id)
+			resInfo.ExpireDay = expireDay
+			resInfo.PakName = util.ItoS(expireDay) + " Day"
+			key := fmt.Sprintf("%v_%v", ip, expireDay)
+			resInfoMap[key] = resInfo
+			if val, ok := balanceMap[resInfo.PakName]; ok {
+				if _, ok := val[ipLog.Country]; !ok {
+					val[ipLog.Country] = balance
+				}
+			} else {
+				balanceMap[resInfo.PakName] = map[string]int{ipLog.Country: balance}
+			}
+		}
+
+		for _, v := range balanceList {
+
+			//balance = balance + v.Balance
+
+			expireTime := expire + v.ExpireDay*86400
+			resInfo.Id = v.Id
+			resInfo.PakName = util.ItoS(v.ExpireDay) + " Day"
+			resInfo.ExpireDay = v.ExpireDay
+			resInfo.ExpireTime = util.GetTimeStr(expireTime, "d-m-Y")
+			resInfo.RechargeId = fmt.Sprintf("%v:%v", v.Id, ipLog.Id)
+			//if val, ok := resMap[resInfo.PakName]; ok {
+			//	resMap[resInfo.PakName] = append(val, resInfo)
+			//} else {
+			//	resMap[resInfo.PakName] = append(val, resInfo)
+			//}
+			key := fmt.Sprintf("%v_%v", ip, v.ExpireDay)
+			resInfoMap[key] = resInfo
+			if val, ok := balanceMap[resInfo.PakName]; ok {
+				val[ipLog.Country] = v.Balance
+			} else {
+				balanceMap[resInfo.PakName] = map[string]int{ipLog.Country: v.Balance}
+			}
+		}
+	}
+
+	for _, resInfo := range resInfoMap {
+		if val, ok := resMap[resInfo.PakName]; ok {
+			resMap[resInfo.PakName] = append(val, resInfo)
+		} else {
+			resMap[resInfo.PakName] = append(val, resInfo)
+		}
+	}
+
+	JsonReturn(c, 0, "success", map[string]interface{}{"balance": balanceMap, "res": resMap})
+	return
+}
+
 // 续费
 // @BasePath /api/v1
 // @Summary 续费
@@ -731,6 +959,67 @@ func IpRecharge(c *gin.Context) {
 
 	JsonReturn(c, -1, "__T_FAIL", nil)
 	return
+}
+
+func BatchIpRecharge(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	//staticId := util.StoI(c.DefaultPostForm("static_id", "0")) //购买的长效套餐ID
+	ids := c.DefaultPostForm("ids", "") //待续费的ID 格式：staticId:id,staticId1:id1,staticId2:id2
+
+	if len(ids) <= 0 {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	list := strings.Split(ids, ",")
+	uid := user.Id
+	var count int
+	for _, val := range list {
+		idList := strings.Split(val, ":")
+		if len(idList) < 2 {
+			continue
+		}
+		staticId := util.StoI(idList[0])
+		id := util.StoI(idList[1])
+		if staticId == 0 {
+			continue
+		}
+		// 提取记录
+		err_l, ipLog := models.GetIpStaticIpById(id)
+		if err_l != nil || ipLog.Id == 0 {
+			continue
+		}
+		_, ipInfo := models.GetStaticIpByIp(ipLog.Ip)
+		if ipInfo.Id == 0 || ipInfo.Status != 1 {
+			continue
+		}
+		// 处理IP异常的情况，续费的IP不判断是否已被使用过的IP   20250122
+		//if ipInfo.Uid > 0 && ipInfo.Uid != uid {
+		//	JsonReturn(c, -1, "__T_IP_HAS_USED", nil)
+		//	return
+		//}
+
+		err, balanceInfo := models.GetUserStaticIpById(uid, staticId)
+		if err != nil || balanceInfo.Id == 0 {
+			continue
+		} else {
+			if balanceInfo.Balance < 1 {
+				continue
+			}
+		}
+		// 开始扣费
+		_ = models.Recharge(c.ClientIP(), ipLog, balanceInfo)
+		count++
+	}
+	if count > 0 {
+		JsonReturn(c, 0, "__T_SUCCESS", nil)
+	} else {
+		JsonReturn(c, e.ERROR, "__T_IP_BALANCE_LOW", nil)
+	}
+
 }
 
 // 删除

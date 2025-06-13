@@ -286,37 +286,7 @@ func GetUnlimitedPackage(c *gin.Context) {
 	return
 }
 
-func GetUnlimitedPortDomain(c *gin.Context) {
-	resCode, msg, user := DealUser(c) //处理用户信息
-	if resCode != e.SUCCESS {
-		JsonReturn(c, resCode, msg, nil)
-		return
-	}
-	numStr := strings.ToLower(c.DefaultPostForm("num", ""))
-	expired := c.DefaultPostForm("expired", "")
-	num := util.StoI(numStr)
-
-	// 获取用户不限量端口
-	userPortLogList := models.GetUserCanFlowDayPortByUid(user.Id, num, util.StoI(expired))
-	hostArr := []ApiProxyJson{}
-	for _, log := range userPortLogList {
-		if log.ExpiredTime < util.GetNowInt() {
-			continue
-		}
-		//端口 +1000为白名单端口
-		jsonInfo := ApiProxyJson{
-			Ip:   log.Ip,
-			Port: log.Port + 1000,
-		}
-		hostArr = append(hostArr, jsonInfo)
-
-	}
-	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", hostArr)
-	return
-}
-
 // 设置不限量预警开关和邮件
-
 func SettingEarlyWarning(c *gin.Context) {
 	resCode, msg, user := DealUser(c) //处理用户信息
 	status := com.StrTo(c.DefaultPostForm("status", "0")).MustInt()
@@ -483,4 +453,32 @@ func GetEarlyWarningDetailList(c *gin.Context) {
 	uew := models.UnlimitedEarlyWarningDetail{Uid: user.Id}
 	list := uew.GetAll()
 	JsonReturn(c, e.SUCCESS, "__SUCCESS", list)
+}
+
+func GetUnlimitedPortDomain(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	numStr := strings.ToLower(c.DefaultPostForm("num", ""))
+	expired := c.DefaultPostForm("expired", "")
+	num := util.StoI(numStr)
+
+	// 获取用户不限量端口
+	userPortLogList := models.GetUserCanFlowDayPortByUid(user.Id, num, util.StoI(expired))
+	hostArr := []ApiProxyJson{}
+	for _, log := range userPortLogList {
+		if log.ExpiredTime < util.GetNowInt() {
+			continue
+		}
+		//端口 +1000为白名单端口
+		jsonInfo := ApiProxyJson{
+			Ip:   log.Ip,
+			Port: log.Port + 1000,
+		}
+		hostArr = append(hostArr, jsonInfo)
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", hostArr)
+	return
 }

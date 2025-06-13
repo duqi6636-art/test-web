@@ -11,8 +11,8 @@ type ResIpStaticLogModel struct {
 	City       string `json:"city"`
 	ExpireTime string `json:"expire_time"`
 	IsExpire   int    `json:"is_expire"`
-	IsOffline   string `json:"is_offline"`
-	IsReplace   int    `json:"is_replace"` //1:可替换 0:不可替换
+	IsOffline  string `json:"is_offline"`
+	IsReplace  int    `json:"is_replace"` //1:可替换 0:不可替换
 	CreateTime string `json:"create_time"`
 	Forward    string `json:"forward"`
 	Account    string `json:"account"`
@@ -76,7 +76,7 @@ func GetIpStaticIpByUid(uid int) (err error, user []IpStaticLogModel) {
 }
 
 // 查询静态IP信息
-func GetIpStaticIpBy(uid int,ip,status,orderBy string) (err error, user []IpStaticLogModel) {
+func GetIpStaticIpBy(uid int, ip, status, orderBy, country string) (err error, user []IpStaticLogModel) {
 	if orderBy == "" {
 		orderBy = "id desc"
 	}
@@ -90,6 +90,9 @@ func GetIpStaticIpBy(uid int,ip,status,orderBy string) (err error, user []IpStat
 			dbs = dbs.Where("expire_time < ?", now)
 		}
 	}
+	if country != "" {
+		dbs = dbs.Where("country = ?", country)
+	}
 	if ip != "" {
 		dbs = dbs.Where("ip like ? or remark like ?", "%"+ip+"%", "%"+ip+"%")
 	}
@@ -98,7 +101,7 @@ func GetIpStaticIpBy(uid int,ip,status,orderBy string) (err error, user []IpStat
 }
 
 // 查询静态IP信息
-func GetUsedByLog(uid ,start,end int,isDel int) (err error, user []IpStaticLogModel) {
+func GetUsedByLog(uid, start, end int, isDel int) (err error, user []IpStaticLogModel) {
 	orderBy := "id desc"
 	table := "cm_log_static"
 	if isDel == 1 {
@@ -126,12 +129,12 @@ func GetIpStaticIp(uid int, ip string) (err error, user IpStaticLogModel) {
 	err = db.Table("cm_log_static").Where("uid=?", uid).Where("ip=?", ip).First(&user).Error
 	return
 }
+
 // 修改用户IP账号密码
 func SetIpStaticIp(id int, upInfo map[string]interface{}) (err error) {
 	err = db.Table("cm_log_static").Where("id = ?", id).Update(upInfo).Error
 	return
 }
-
 
 type ResUserStaticInfo struct {
 	Country string `json:"country"`  // 国家地区
