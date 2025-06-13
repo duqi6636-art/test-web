@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
-	"log"
 	"sort"
 	"strings"
 )
@@ -566,17 +565,14 @@ func BatchUseStatic(c *gin.Context) {
 		useIP := ipInfo.Ip
 		err_l, ipLog := models.GetIpStaticIp(uid, useIP)
 		if err_l == nil && ipLog.Id > 0 {
-			log.Println("ip已经提取过了》》》》》", uid, useIP)
 			continue
 		}
 		code := strings.ToLower(ipInfo.Country)
 		err, balanceInfo := models.GetUserStaticByPakRegion(uid, staticId, code)
 		if err != nil || balanceInfo.Id == 0 {
-			log.Println("获取不到对应套餐Country", uid, useIP)
 			continue
 		} else {
 			if balanceInfo.Balance < 1 {
-				log.Println("套餐余额不足", uid, useIP)
 				continue
 			}
 		}
@@ -612,8 +608,6 @@ func BatchUseStatic(c *gin.Context) {
 				resInfo[info.Id] = info
 			}
 			count++
-		} else {
-			log.Println("扣费失败》》", uid, err1.Error())
 		}
 	}
 	var resList = make([]models.ResUserStaticIp, 0)
