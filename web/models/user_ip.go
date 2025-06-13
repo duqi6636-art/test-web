@@ -39,19 +39,19 @@ func EditUserStatic(id int, params interface{}) (err error) {
 
 // 查询用户IP余额 ID
 func GetUserStaticIpById(uid, id int) (err error, user UserStaticIpModel) {
-	err = db.Table(UserStaticIpTable).Where("id = ?", id).Where("uid = ?", uid).First(&user).Error
+	err = db.Table(UserStaticIpTable).Where("id = ?", id).Where("uid = ? AND status >= 1", uid).First(&user).Error
 	return
 }
 
 // 查询用户IP余额 套餐 和 地区
 func GetUserStaticByPakRegion(uid, pakId int, region string) (err error, user UserStaticIpModel) {
-	err = db.Table(UserStaticIpTable).Where("uid = ?", uid).Where("pak_id = ?", pakId).Where("pak_region = ?", region).First(&user).Error
+	err = db.Table(UserStaticIpTable).Where("uid = ?", uid).Where("pak_id = ? AND status >= 1", pakId).Where("pak_region = ?", region).First(&user).Error
 	return
 }
 
 type UserStaticPakNum struct {
-	Balance   int `json:"balance"`    // 剩余IP
-	PakId     int `json:"pak_id"`     // 过期时间
+	Balance int `json:"balance"` // 剩余IP
+	PakId   int `json:"pak_id"`  // 过期时间
 }
 
 // 查询用户IP余额 套餐
