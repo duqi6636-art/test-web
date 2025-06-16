@@ -86,3 +86,48 @@ func TencentRestartInstances(hostInfo models.PoolFlowDayDetailModel) (bool, stri
 	AddLogs("tx_cvm_restart "+hostInfo.Ip, response.ToJsonString()) //写日志
 	return true, "success"
 }
+
+// 退还/释放实例
+func TencentTerminateInstances(region, instanceId string) (bool, string) {
+
+	secretId := models.GetConfigVal("Tencent_SecretId")   //
+	secretKey := models.GetConfigVal("Tencent_SecretKey") //
+	// 实例化一个client选项，可选的，没有特殊需求可以跳过
+	credential := common.NewCredential(
+		secretId,
+		secretKey)
+	cpf := profile.NewClientProfile()
+	cpf.HttpProfile.Endpoint = "cvm.tencentcloudapi.com"
+	cpf.HttpProfile.ReqMethod = "POST"
+	//创建common client
+
+	// 实例化要请求产品的client对象,clientProfile是可选的
+	client, _ := cvm.NewClient(credential, region, cpf)
+
+	// 实例化一个请求对象,每个接口都会对应一个request对象
+	request := cvm.NewTerminateInstancesRequest()
+
+	request.InstanceIds = common.StringPtrs([]string{instanceId})
+	//request.ReleasePrepaidDataDisks = common.BoolPtr(false)
+
+	// 返回的resp是一个TerminateInstancesResponse的实例，与请求对象对应
+	response, err := client.TerminateInstances(request)
+	if _, ok := err.(*errors.TencentCloudSDKError); ok {
+		mm := fmt.Sprintf("An API TencentCloudSDKError: %s", err)
+		AddLogs("TxCVMReturnTencentCloudSDKError-", mm) //写日志
+		return false, mm
+	}
+	if err != nil {
+		//panic(err)
+		mm := fmt.Sprintf("An API error has returned: %s", err)
+		AddLogs("TxCVMReturnError-", mm) //写日志
+		return false, mm
+	}
+
+	AddLogs("TxCVMReturnInstance-", response.ToJsonString()) //写日志
+
+	result := RequestCommonModel{}
+	_ = json.Unmarshal([]byte(response.ToJsonString()), &result)
+
+	return true, result.Response.RequestID
+}

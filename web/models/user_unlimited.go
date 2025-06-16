@@ -198,9 +198,9 @@ type UserUnlimitedCvm struct {
 	TcpAvg       float64 `json:"tcp_avg"`       // TCP连接数平均值
 	TcpMin       float64 `json:"tcp_min"`       // TCP连接数最小值
 	TcpMax       float64 `json:"tcp_max"`       // TCP连接数最大值
-	Today        uint32  `json:"today"`         // 当天时间
-	Period       uint32  `json:"period"`        // 当前时间
-	CreateTime   uint32  `json:"create_time"`   // 写入时间
+	Today        int     `json:"today"`         // 当天时间
+	Period       int     `json:"period"`        // 当前时间
+	CreateTime   int     `json:"create_time"`   // 写入时间
 }
 
 const stUserUnlimitedCvm = "st_user_unlimited_cvm"
@@ -209,4 +209,22 @@ func GetUserUnlimitedCvmList(query string, args []interface{}) []UserUnlimitedCv
 	var list = make([]UserUnlimitedCvm, 0)
 	clickhousedb.ClickhouseDb.Table(stUserUnlimitedCvm).Where(query, args...).Find(&list)
 	return list
+}
+
+func GetUserUnlimitedCvmListBy(uid int, ip string, start, end int) (lists []UserUnlimitedCvm) {
+	dbs := clickhousedb.ClickhouseDb.Table(stUserUnlimitedCvm)
+	if uid > 0 {
+		dbs = dbs.Where("uid = ?", uid)
+	}
+	if ip != "" {
+		dbs = dbs.Where("host = ?", ip)
+	}
+	if start > 0 {
+		dbs = dbs.Where("period >= ?", start)
+	}
+	if end > 0 {
+		dbs = dbs.Where("period <= ?", end)
+	}
+	dbs.Order("period asc").Find(&lists)
+	return lists
 }

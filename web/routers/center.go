@@ -90,4 +90,5 @@ func centerRouter(router *gin.Engine) {
 	cvm.POST("/restart", controller.TencentCvmRestart)                //重启
 	cvm.POST("/status", controller.TencentCvmDescribeStatus)          //获取服务器状态
 	cvm.POST("/stats_download", controller.TencentCvmMonitorDownload) //实时监控数据下载
+	cvm.POST("/terminate", controller.ReturnTerminateCvm)             //退还/释放实例
 }

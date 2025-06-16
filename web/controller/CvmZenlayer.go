@@ -71,6 +71,36 @@ func DescribeInstancesStatus(hostInfo models.PoolFlowDayDetailModel) (bool, stri
 
 }
 
+// 释放实例
+func ReleaseInstances(host, instanceId string) (bool, string) {
+	secretKeyId := models.GetConfigVal("Zenlayer_SecretKeyId")             //
+	secretKeyPassword := models.GetConfigVal("Zenlayer_SecretKeyPassword") //
+
+	client, _ := zec.NewClientWithSecretKey(secretKeyId, secretKeyPassword)
+
+	instanceIds := []string{}
+	instanceIds = []string{instanceId}
+	// Prepare the request
+	request := zec.NewReleaseInstancesRequest()
+	request.InstanceIds = instanceIds
+
+	// Make the API call
+	response, err := client.ReleaseInstances(request)
+	if err != nil {
+		AddLogs("zenlayer_release_sdk"+host, "Error creating ZEC instances") //写日志
+		return false, "Error Api Call instances"
+	}
+	// Handle the response
+	if response.Response.RequestId == "" {
+		AddLogs("zenlayer_release_api"+host, "API request failed") //写日志
+		return false, "API request failed"
+	}
+	bytes, _ := json.Marshal(response.Response)
+	AddLogs("zenlayer_release "+host, string(bytes)) //写日志
+
+	return true, response.Response.RequestId
+}
+
 // 虚拟机实例列表
 func DescribeInstances(c *gin.Context) {
 	instanceIds := c.DefaultPostForm("instance_id", "")
