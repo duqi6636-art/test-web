@@ -70,22 +70,10 @@ func TencentCvmMonitor(c *gin.Context) {
 		endInt = a
 	}
 
-	start := util.GetIso8601Time(int64(startInt)) + "+08:00"
-	end := util.GetIso8601Time(int64(endInt)) + "+08:00"
-	//fmt.Println(start)
-	//fmt.Println(end)
-	//start :=  "2025-03-08T15:51:23+08:00"
-	//end := "2025-03-08T20:51:23+08:00"
 	hostInfo := models.GetPoolFlowDayByIp(uid, host)
-	if hostInfo.Id == 0 || hostInfo.InstanceId == "" || hostInfo.Region == "" {
+	if hostInfo.Id == 0 {
 		JsonReturn(c, -1, "Config Info Error", gin.H{})
 		return
-	}
-	cateStr := map[string]string{
-		"cpu":     "CPUUsage",      // CPU
-		"traffic": "WanOuttraffic", //外网出带宽
-		"tcp":     "TcpCurrEstab",  //TCP 连接数
-		"mem":     "MemUsage",      //内存使用率
 	}
 
 	second := endInt - startInt
@@ -94,50 +82,32 @@ func TencentCvmMonitor(c *gin.Context) {
 		return
 	}
 
-	period := uint64(300) //时间粒度
-	if second <= 3600*2 { //1小时 使用 时间粒度为 60s
-		period = 60
-	} else if second <= 24*3600 { //小于等于 24小时  时间粒度为 300s
-		period = 300
-	} else if second <= 24*3600*7 { //小于等于 7天  时间粒度为 3600s
-		period = 3600
-	} else { //大于 7天  时间粒度为 86400s
-		period = 86400
+	resInfo := ResultMonitorDataModel{}
+	monitorList := models.GetUserUnlimitedCvmListBy(uid, host, startInt, endInt)
+	cpuInfo := ResultMonitorDataDetailModel{}
+	tcpInfo := ResultMonitorDataDetailModel{}
+	memInfo := ResultMonitorDataDetailModel{}
+	trafficInfo := ResultMonitorDataDetailModel{}
+	for _, val := range monitorList {
+		stamp := val.Period + locSecond
+		tStr := util.GetTimeStr(stamp, "Y-m-d H:i:s")
+		cpuInfo.Avg = append(cpuInfo.Avg, val.CpuAvg)
+		cpuInfo.XData = append(cpuInfo.XData, tStr)
+
+		tcpInfo.Avg = append(tcpInfo.Avg, val.TcpAvg)
+		tcpInfo.XData = append(tcpInfo.XData, tStr)
+
+		memInfo.Avg = append(memInfo.Avg, val.MemAvg)
+		memInfo.XData = append(memInfo.XData, tStr)
+
+		trafficInfo.Avg = append(trafficInfo.Avg, val.BandwidthAvg)
+		trafficInfo.XData = append(trafficInfo.XData, tStr)
 	}
 
-	resInfo := ResultMonitorDataModel{}
-	for k, v := range cateStr {
-		res, msg, monitorInfo := GetTencentMonitorHandle(hostInfo.InstanceId, hostInfo.Region, v, start, end, period)
-		if res == false {
-			fmt.Println(msg)
-			JsonReturn(c, -1, "Data Empty", gin.H{})
-			return
-		}
-		dataPoint := monitorInfo.Response.DataPoints[0]
-		dataInfo := ResultMonitorDataDetailModel{}
-		dataInfo.Avg = dataPoint.AvgValues
-		//dataInfo.Max = dataPoint.MaxValues
-		//dataInfo.Min = dataPoint.MinValues
-		dataArr := []string{}
-		for _, dv := range dataPoint.Timestamps {
-			stamp := dv + locSecond
-			tStr := util.GetTimeStr(stamp, "Y-m-d H:i:s")
-			dataArr = append(dataArr, tStr)
-		}
-		dataInfo.XData = dataArr
-		if k == "cpu" {
-			resInfo.Cpu = dataInfo
-		}
-		if k == "mem" {
-			resInfo.Mem = dataInfo
-		}
-		if k == "traffic" {
-			resInfo.Traffic = dataInfo
-		}
-		if k == "tcp" {
-			resInfo.Tcp = dataInfo
-		}
-	}
+	resInfo.Cpu = cpuInfo
+	resInfo.Tcp = tcpInfo
+	resInfo.Mem = memInfo
+	resInfo.Traffic = trafficInfo
 
 	JsonReturn(c, 0, "success", resInfo)
 	return
@@ -200,18 +170,10 @@ func TencentCvmMonitorDownload(c *gin.Context) {
 		endInt = a
 	}
 
-	start := util.GetIso8601Time(int64(startInt)) + "+08:00"
-	end := util.GetIso8601Time(int64(endInt)) + "+08:00"
 	hostInfo := models.GetPoolFlowDayByIp(uid, host)
-	if hostInfo.Id == 0 || hostInfo.InstanceId == "" || hostInfo.Region == "" {
+	if hostInfo.Id == 0 {
 		JsonReturn(c, -1, "Config Info Error", gin.H{})
 		return
-	}
-	cateStr := map[string]string{
-		"cpu":     "CPUUsage",      // CPU
-		"traffic": "WanOuttraffic", //外网出带宽
-		"tcp":     "TcpCurrEstab",  //TCP 连接数
-		"mem":     "MemUsage",      //内存使用率
 	}
 
 	second := endInt - startInt
@@ -220,16 +182,32 @@ func TencentCvmMonitorDownload(c *gin.Context) {
 		return
 	}
 
-	period := uint64(300) //时间粒度
-	if second <= 3600*2 { //1小时 使用 时间粒度为 60s
-		period = 60
-	} else if second <= 24*3600 { //小于等于 24小时  时间粒度为 300s
-		period = 300
-	} else if second <= 24*3600*7 { //小于等于 7天  时间粒度为 3600s
-		period = 3600
-	} else { //大于 7天  时间粒度为 86400s
-		period = 86400
+	resInfo := ResultMonitorDataModel{}
+	monitorList := models.GetUserUnlimitedCvmListBy(uid, host, startInt, endInt)
+	cpuInfo := ResultMonitorDataDetailModel{}
+	tcpInfo := ResultMonitorDataDetailModel{}
+	memInfo := ResultMonitorDataDetailModel{}
+	trafficInfo := ResultMonitorDataDetailModel{}
+	for _, val := range monitorList {
+		stamp := val.Period + locSecond
+		tStr := util.GetTimeStr(stamp, "Y-m-d H:i:s")
+		cpuInfo.Avg = append(cpuInfo.Avg, val.CpuAvg)
+		cpuInfo.XData = append(cpuInfo.XData, tStr)
+
+		tcpInfo.Avg = append(tcpInfo.Avg, val.TcpAvg)
+		tcpInfo.XData = append(tcpInfo.XData, tStr)
+
+		memInfo.Avg = append(memInfo.Avg, val.MemAvg)
+		memInfo.XData = append(memInfo.XData, tStr)
+
+		trafficInfo.Avg = append(trafficInfo.Avg, val.BandwidthAvg)
+		trafficInfo.XData = append(trafficInfo.XData, tStr)
 	}
+
+	resInfo.Cpu = cpuInfo
+	resInfo.Tcp = tcpInfo
+	resInfo.Mem = memInfo
+	resInfo.Traffic = trafficInfo
 
 	title := []string{"Time", "Cpu", "TCP", "Mem", "Bandwidth"} //导出数据表头
 	csvData := [][]string{}
@@ -241,37 +219,6 @@ func TencentCvmMonitorDownload(c *gin.Context) {
 		Mem      float64 `json:"mem"`
 		Traffic  float64 `json:"traffic"`
 		Datetime string  `json:"datetime"`
-	}
-	resInfo := ResultMonitorDataModel{}
-	for k, v := range cateStr {
-		res, msg, monitorInfo := GetTencentMonitorHandle(hostInfo.InstanceId, hostInfo.Region, v, start, end, period)
-		if res == false {
-			fmt.Println(msg)
-			JsonReturn(c, -1, "Data Empty", gin.H{})
-			return
-		}
-		dataPoint := monitorInfo.Response.DataPoints[0]
-		dataInfo := ResultMonitorDataDetailModel{}
-		dataInfo.Avg = dataPoint.AvgValues
-		dataArr := []string{}
-		for _, dv := range dataPoint.Timestamps {
-			stamp := dv + locSecond
-			tStr := util.GetTimeStr(stamp, "Y-m-d H:i:s")
-			dataArr = append(dataArr, tStr)
-		}
-		dataInfo.XData = dataArr
-		if k == "cpu" {
-			resInfo.Cpu = dataInfo
-		}
-		if k == "mem" {
-			resInfo.Mem = dataInfo
-		}
-		if k == "traffic" {
-			resInfo.Traffic = dataInfo
-		}
-		if k == "tcp" {
-			resInfo.Tcp = dataInfo
-		}
 	}
 
 	var output []MonitorKvModel
@@ -524,5 +471,58 @@ type ResponseTencentCvmStatusModel struct {
 			InstanceState string `json:"InstanceState"`
 		} `json:"InstanceStatusSet"`
 		RequestId string `json:"RequestId"`
+	} `json:"Response"`
+}
+
+// 退还实例 释放实例
+func ReturnTerminateCvm(c *gin.Context) {
+	host := c.DefaultPostForm("host", "")
+	uidStr := c.DefaultPostForm("uid", "")
+	if host == "" {
+		JsonReturn(c, -1, "__T_CHOOSE_HOST", gin.H{})
+		return
+	}
+	uid := util.StoI(uidStr)
+	//获取相关配置
+	region := models.GetConfigVal("TencentCVM_Region") //可用区
+	if region == "" {
+		region = "na-ashburn"
+	}
+	hostInfo := models.GetPoolFlowDayByIp(uid, host)
+	if hostInfo.Id == 0 || hostInfo.InstanceId == "" {
+		JsonReturn(c, -1, "Config Info Error", gin.H{})
+		return
+	}
+
+	msg := ""
+	var res bool
+	if hostInfo.Supplier == "zenlayer" {
+		res, msg = ReleaseInstances(hostInfo.Ip, hostInfo.InstanceId)
+	} else {
+		if hostInfo.Region == "" {
+			JsonReturn(c, -1, "Config Region Error", gin.H{})
+			return
+		}
+		res, msg = TencentTerminateInstances(hostInfo.Region, hostInfo.InstanceId)
+	}
+
+	if res == false {
+		JsonReturn(c, -1, msg, nil)
+		return
+	}
+	JsonReturn(c, 0, "success", nil)
+	return
+}
+
+type InstanceIdsModel struct {
+	Response struct {
+		InstanceIDSet []string `json:"InstanceIdSet"`
+		RequestID     string   `json:"RequestId"`
+	} `json:"Response"`
+}
+
+type RequestCommonModel struct {
+	Response struct {
+		RequestID string `json:"RequestId"`
 	} `json:"Response"`
 }
