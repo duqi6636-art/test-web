@@ -120,6 +120,7 @@ func IdVerifyStepOne(c *gin.Context) {
 	userKycModels.LastName = last_name
 	userKycModels.ApplicantID = applicantId
 	userKycModels.Status = "0"
+	userKycModels.LinkUrl = ""
 	userKycModels.CreateTime = nowTime
 	userKycModels.UpdateTime = nowTime
 	err = models.AddUserKycData(userKycModels)
@@ -178,6 +179,8 @@ func IdVerifyStepTwo(c *gin.Context) {
 		return
 	}
 	url := workflowRun.Link.URL
+
+	AddLogs("onfido_workflowRun", workflowRun.ID+"|||"+url) //写日志
 	//redis.RedisClient.SetEx(cacheTag, url, 600)
 	err = models.UpdateUserKycByUid(uid, map[string]interface{}{
 		"last_workflow_run_id": workflowRun.ID,

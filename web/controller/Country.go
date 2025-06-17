@@ -43,3 +43,8 @@ func GetCountryCode(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", result)
 	return
 }
+
+func GetCountryList(c *gin.Context) {
+	list := models.GetCountryList("is_verify = ?", 1)
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", list)
+}
