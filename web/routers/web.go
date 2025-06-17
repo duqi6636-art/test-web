@@ -205,6 +205,12 @@ func webRouter(router *gin.Engine) {
 	web.POST("/user/long_isp/get_country_list", controller.GetLongIspCountryCityPort)                       // 获取长效ISP国家城市域名列表
 	web.POST("/account/long_isp/detail", controller.LongIspUserFlowAccountDetail)                           // 长效Isp账号信息详情
 
+	// 绑定手机号
+	web.POST("/country_list", controller.GetCountryList)       // 获取国家对应的phone code
+	web.POST("/phone/bind", controller.BindPhone)              // 绑定手机号
+	web.POST("/phone/cancel_bind", controller.CancelBindPhone) // 取消绑定
+	web.POST("/phone/bind_info", controller.GetBindPhone)      // 获取绑定手机信息
+
 	mp := router.Group("/mp")                             //代理管理器接口
 	mp.POST("/version", controller.VersionCheck)          // 版本检查
 	mp.POST("/feedback", controller.FeedbackAgentManager) // 代理管理器用户反馈
