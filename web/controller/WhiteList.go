@@ -149,6 +149,20 @@ func AddWhitelist(c *gin.Context) {
 	uid := user.Id
 
 	ip := c.DefaultPostForm("ip", "")
+	flow_type := strings.TrimSpace(c.DefaultPostForm("flow_type", "1"))
+	if flow_type == "" {
+		flow_type = "1"
+	}
+	flowType := util.StoI(flow_type)
+	if flowType == 0 {
+		flowType = 1
+	}
+	if flowType == 2 || flowType == 4 {
+		if ip == "" {
+			ip = c.ClientIP()
+		}
+	}
+
 	if ip == "" || !IsPublicIP(net.ParseIP(ip)) {
 		JsonReturn(c, e.ERROR, "__T_IP_NOT_FORMAT", nil)
 		return
@@ -159,14 +173,6 @@ func AddWhitelist(c *gin.Context) {
 	if countryCode == "CN" || countryCode == "内网" || countryCode == "保留" || countryCode == "" {
 		JsonReturn(c, e.ERROR, "__T_UNSERVICED_AREA", nil)
 		return
-	}
-	flow_type := strings.TrimSpace(c.DefaultPostForm("flow_type", "1"))
-	if flow_type == "" {
-		flow_type = "1"
-	}
-	flowType := util.StoI(flow_type)
-	if flowType == 0 {
-		flowType = 1
 	}
 
 	has, err := models.GetUserWhitelistIpByIp(ip, flowType)
@@ -248,7 +254,7 @@ func AddWhitelist(c *gin.Context) {
 	addInfo.Ip = c.ClientIP()
 	addInfo.CreateTime = util.GetNowInt()
 	err = models.AddUserWhitelistIp(addInfo)
-	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", ip)
 	return
 
 }
