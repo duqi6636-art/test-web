@@ -25,6 +25,7 @@ func InitRouter() *gin.Engine {
 
 	r.POST("/web/describe", controller.DescribeInstances)      //实例列表
 	r.POST("/web/status", controller.DescribeInstancesStatus1) //实例状态
+	r.POST("/web/images", controller.DescribeImages)           //获取镜像实例
 	systemApi := r.Group("/api/", middleware.AreaMiddleware())
 	{
 		systemApi.GET("f5", controller.FreshCache)
