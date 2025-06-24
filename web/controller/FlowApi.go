@@ -7,6 +7,7 @@ import (
 	"api-360proxy/web/pkg/util"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/unknwon/com"
 	"net"
 	"net/http"
 	"strings"
@@ -742,6 +743,38 @@ func ExistWhiteList(c *gin.Context) {
 	}
 
 	cityHas, err := models.GetWhiteByUidIp(uid, ip, 1)
+	if err == nil && cityHas.Id > 0 {
+		cityHasIp = 1
+	}
+	data := map[string]interface{}{
+		"ip":             ip,
+		"country_has_ip": countryHasIp,
+		"city_has_ip":    cityHasIp,
+	}
+	JsonReturn(c, 0, "__T_SUCCESS", data)
+	return
+}
+
+// 根据类型验证IP是否在白名单中
+
+func FlowTypeExistWhiteList(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	flowType := com.StrTo(c.DefaultPostForm("flow_type", "1")).MustInt()
+	uid := user.Id
+	// IP信息
+	ip := c.ClientIP()
+	countryHasIp := 0
+	cityHasIp := 0
+	countryHas, err := models.GetFlowApiWhiteByUidIp(uid, ip, flowType)
+	if err == nil && countryHas.Id > 0 {
+		countryHasIp = 1
+	}
+
+	cityHas, err := models.GetWhiteByUidIp(uid, ip, flowType)
 	if err == nil && cityHas.Id > 0 {
 		cityHasIp = 1
 	}
