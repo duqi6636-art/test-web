@@ -7,7 +7,6 @@ import (
 	"api-360proxy/web/pkg/util"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/unknwon/com"
 	"net"
 	"net/http"
 	"strings"
@@ -763,25 +762,24 @@ func FlowTypeExistWhiteList(c *gin.Context) {
 		JsonReturn(c, resCode, msg, nil)
 		return
 	}
-	flowType := com.StrTo(c.DefaultPostForm("flow_type", "1")).MustInt()
 	uid := user.Id
 	// IP信息
 	ip := c.ClientIP()
-	countryHasIp := 0
-	cityHasIp := 0
-	countryHas, err := models.GetFlowApiWhiteByUidIp(uid, ip, flowType)
+	port := 0
+	bandwidth := 0
+	countryHas, err := models.GetWhiteByUidIp(uid, ip, 4)
 	if err == nil && countryHas.Id > 0 {
-		countryHasIp = 1
+		port = 1
 	}
 
-	cityHas, err := models.GetWhiteByUidIp(uid, ip, flowType)
+	cityHas, err := models.GetWhiteByUidIp(uid, ip, 2)
 	if err == nil && cityHas.Id > 0 {
-		cityHasIp = 1
+		bandwidth = 1
 	}
 	data := map[string]interface{}{
-		"ip":             ip,
-		"country_has_ip": countryHasIp,
-		"city_has_ip":    cityHasIp,
+		"ip":        ip,
+		"port":      port,
+		"bandwidth": bandwidth,
 	}
 	JsonReturn(c, 0, "__T_SUCCESS", data)
 	return
