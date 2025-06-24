@@ -46,5 +46,11 @@ func GetCountryCode(c *gin.Context) {
 
 func GetCountryList(c *gin.Context) {
 	list := models.GetCountryList("is_verify = ?", 1)
+	for i, country := range list {
+		if !strings.Contains(country.Phonecode, "+") {
+			country.Phonecode = "+" + country.Phonecode
+		}
+		list[i] = country
+	}
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", list)
 }
