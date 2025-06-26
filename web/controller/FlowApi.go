@@ -754,6 +754,37 @@ func ExistWhiteList(c *gin.Context) {
 	return
 }
 
+// 根据类型验证IP是否在白名单中
+
+func FlowTypeExistWhiteList(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	// IP信息
+	ip := c.ClientIP()
+	port := 0
+	bandwidth := 0
+	countryHas, err := models.GetWhiteByUidIp(uid, ip, 4)
+	if err == nil && countryHas.Id > 0 {
+		port = 1
+	}
+
+	cityHas, err := models.GetWhiteByUidIp(uid, ip, 2)
+	if err == nil && cityHas.Id > 0 {
+		bandwidth = 1
+	}
+	data := map[string]interface{}{
+		"ip":        ip,
+		"port":      port,
+		"bandwidth": bandwidth,
+	}
+	JsonReturn(c, 0, "__T_SUCCESS", data)
+	return
+}
+
 // @BasePath /api/v1
 // @Summary 白名单IP-api生成域名
 // @Schemes
