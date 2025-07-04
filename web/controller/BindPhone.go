@@ -83,3 +83,27 @@ func GetBindPhone(c *gin.Context) {
 	}
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", map[string]interface{}{"bind_info": bp, "country": country})
 }
+
+// 国家图片换成对应项目的oss
+
+func BindPhoneCountryImg(c *gin.Context) {
+	/*list := models.GetCountryList("is_verify = ?", 1)
+	for _, val := range list {
+
+		resp, err := http.Head(val.Flag)
+		if err != nil || resp.StatusCode != http.StatusOK {
+			JsonReturn(c, e.ERROR, err.Error(), nil)
+			return
+		}
+		defer resp.Body.Close()
+
+		// 下载图片
+		resp, err = http.Get(val.Flag)
+		if err != nil {
+			JsonReturn(c, e.ERROR, err.Error(), nil)
+			return
+		}
+		defer resp.Body.Close()
+		resp.Body
+	}*/
+}
