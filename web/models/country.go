@@ -25,3 +25,7 @@ func GetCountryById(id int) (country Country) {
 	db.Table(countriesTableName).Where("id=?", id).First(&country)
 	return
 }
+
+func UpdateCountryWhere(values interface{}, query interface{}, args ...interface{}) {
+	db.Table(countriesTableName).Where(query, args).Updates(values)
+}
