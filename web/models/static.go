@@ -119,12 +119,14 @@ func GetStaticIpById(id int) (err error, info StaticIpPoolModel) {
 	err = db.Table("cm_static_ip_pool").Where("id=?", id).First(&info).Error
 	return
 }
+
 // 获取下线IP列表
 func GetStaticOfflineIps() (area []StaticIpPoolModel) {
 	dbs := db.Table("cm_static_ip_pool").Where("status != ?", 1)
 	dbs.Find(&area)
 	return
 }
+
 // 查询静态IP信息
 func GetStaticIpByIp(ip string) (err error, info StaticIpPoolModel) {
 	err = db.Table("cm_static_ip_pool").Where("ip=?", ip).First(&info).Error
@@ -230,9 +232,10 @@ func StaticKf(code, user_ip string, ipInfo StaticIpPoolModel, userInfo Users, ba
 	ipLogInfo.Password = util.RandStr("r", 8)
 	err1 = tx.Table("cm_log_static").Create(&ipLogInfo).Error
 
-	expire_rime := expireDay*86400 + nowTime
-	upPool := map[string]interface{}{"uid": uid, "expired": expire_rime}
-	err1 = tx.Table("cm_static_ip_pool").Where("id = ?", ipInfo.Id).Updates(upPool).Error
+	// 独享改共享
+	//expire_rime := expireDay*86400 + nowTime
+	//upPool := map[string]interface{}{"uid": uid, "expired": expire_rime}
+	//err1 = tx.Table("cm_static_ip_pool").Where("id = ?", ipInfo.Id).Updates(upPool).Error
 	//添加扣费日志
 	ip_log := IpExtractModel{
 		Uid:         uid,
@@ -320,6 +323,7 @@ func DelStaticLog(ip string, ipLog IpStaticLogModel) error {
 	tx.Commit()
 	return err1
 }
+
 // 添加记录
 func AddDelStaticLog(ip string, ipLog IpStaticLogModel) error {
 	nowTime := util.GetNowInt()
