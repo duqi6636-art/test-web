@@ -99,7 +99,7 @@ type StaticIpPoolModel struct {
 
 // 随机排序
 func GetStaticIpPoolRand(country, state, city string) (area []StaticIpPoolModel) {
-	dbs := db.Table("cm_static_ip_pool").Where("uid =?", 0)
+	dbs := db.Table("cm_static_ip_pool") // .Where("uid =?", 0) 注释 独享改共享
 
 	if country != "" && country != "all" {
 		dbs = dbs.Where("country=?", country)
