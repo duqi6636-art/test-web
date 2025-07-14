@@ -72,7 +72,7 @@ func GetDcoApiToken(c *gin.Context, userInfo models.Users) models.UserDocApiToke
 	_, accountInfo = models.GetUserDocApiToken(userInfo.Id)
 	nowTime := util.GetNowInt()
 	if accountInfo.Id == 0 { //不存在就默认添加一个
-		apiKey := util.RandStr("r", 12)
+		apiKey := util.RandStr("r", 16)
 		data := models.UserDocApiTokenModel{}
 		data.Status = 1
 		data.Uid = userInfo.Id
