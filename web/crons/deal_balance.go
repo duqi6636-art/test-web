@@ -167,7 +167,7 @@ func HandleCdkBalance() {
 
 					//动态ISP
 					if cateStr == "dynamic_isp" {
-						expireDay := 90
+						expireDay := 30
 
 						userInfo := models.GetUserDynamicIspInfo(uid)
 

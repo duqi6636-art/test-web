@@ -331,7 +331,7 @@ func ExchangeCdk() {
 
 					// 动态ISP
 					if pushInfo.Cate == "dynamic_isp" {
-						expireDay := 90
+						expireDay := 30
 
 						userInfo := models.GetUserDynamicIspInfo(uid)
 						if userInfo.ID == 0 {
