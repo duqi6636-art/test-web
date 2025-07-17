@@ -92,4 +92,9 @@ func centerRouter(router *gin.Engine) {
 	cvm.POST("/status", controller.TencentCvmDescribeStatus)          //获取服务器状态
 	cvm.POST("/stats_download", controller.TencentCvmMonitorDownload) //实时监控数据下载
 	cvm.POST("/terminate", controller.ReturnTerminateCvm)             //退还/释放实例
+
+	// doc Api
+	docApi := router.Group("/center/docs")
+	docApi.POST("/info", controller.GetDocApiUserInfo)     //获取信息
+	docApi.POST("/reset_key", controller.RefreshDocApiKey) //重置信息
 }
