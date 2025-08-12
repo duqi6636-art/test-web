@@ -11,4 +11,7 @@ func proxyManageRouter(router *gin.Engine) {
 	proxy.POST("/set_config", proxyManageController.SetConfig) // 设置配置
 	proxy.POST("/get_config", proxyManageController.GetConfig) // 获取配置
 
+	tools := router.Group("/tools")
+	tools.POST("/detection", proxyManageController.OnlineProxyChecker) //在线代理监测
+
 }
