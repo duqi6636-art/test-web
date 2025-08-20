@@ -24,12 +24,14 @@ type KycAccessTokenResponse struct {
 	ExpireIn        int    `json:"expire_in"`
 }
 
-const kycAppId = "TIDAOuE0"
-const kycSecret = "Jd9sfvQYpGDJKpl9nug64TI5gkVWx2qlCvfAJBOV9A5Bm6oKfH2SG9U2OLZhDRqa"
+//const kycAppId = "TIDAOuE0"
+//const kycSecret = "Jd9sfvQYpGDJKpl9nug64TI5gkVWx2qlCvfAJBOV9A5Bm6oKfH2SG9U2OLZhDRqa"
 
 // 获取 KYC 访问令牌
 func getKycAccessToken() (string, error) {
 
+	kycAppId := models.GetConfigVal("tencent_kyc_app_id")
+	kycSecret := models.GetConfigVal("tencent_kyc_secret")
 	// 构造请求的URL
 	baseURL := "https://kyc1.qcloud.com/api/oauth2/access_token"
 	params := url.Values{}
@@ -87,6 +89,9 @@ type ApiTicketResponse struct {
 
 // 获取 API 签名票据
 func getApiTicket(accessToken, ticketType string, userId string) ([]Ticket, error) {
+
+	kycAppId := models.GetConfigVal("tencent_kyc_app_id")
+	//kycSecret := models.GetConfigVal("tencent_kyc_secret")
 	// 构造请求的URL
 	baseURL := "https://kyc1.qcloud.com/api/oauth2/api_ticket"
 	params := url.Values{}
@@ -183,6 +188,12 @@ type FaceVerifyResponse struct {
 
 // GetH5FaceId 获取 Face ID 并生成二维码 URL，供用户进行身份验证。
 func GetH5FaceId(orderNo, name, idNo, userId string) (qrcodeUrl string, err error, faceId string) {
+
+	kycAppId := models.GetConfigVal("tencent_kyc_app_id")
+	kycSecret := models.GetConfigVal("tencent_kyc_secret")
+	if kycAppId == "" || kycSecret == "" {
+		return "", fmt.Errorf("Config Info error"), ""
+	}
 	// 第一步：获取 KYC 访问令牌
 	accessToken, err := getKycAccessToken()
 	if err != nil {
