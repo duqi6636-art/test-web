@@ -420,7 +420,8 @@ func TencentKycNotify(c *gin.Context) {
 	newSignature := c.Query("newSignature")
 	AddLogs("TencentRealNameAuth_start", "code="+code+" orderNo="+orderNo+" h5FaceId="+h5FaceId+" newSignature="+newSignature) //写日志
 
-	param := []string{"TIDAOuE0", orderNo, code}
+	kycAppId := models.GetConfigVal("tencent_kyc_app_id")
+	param := []string{kycAppId, orderNo, code}
 	res := tencent.VerifyFace(param, newSignature)
 	if res == false {
 		AddLogs("TencentRealNameAuth_step3", "verify failed") //写日志
