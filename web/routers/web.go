@@ -167,6 +167,7 @@ func webRouter(router *gin.Engine) {
 
 	packages := router.Group("/web/package")
 	packages.POST("/flow", controller.GetPackageFlow)                             //获取流量套餐
+	packages.POST("/custom_flow", controller.GetPackageCustomFlow)                //获取流量套餐
 	packages.POST("/static_num", controller.GetStaticRegionNum)                   // 获取静态地区数量
 	packages.POST("/halloween_activity", controller.GetHalloweenActivityPackages) //获取万圣节活动套餐
 	packages.POST("/flow_list_new", controller.GetPackageNewFlowList)             //获取新用户5G流量套餐列表

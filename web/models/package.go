@@ -164,6 +164,12 @@ func GetPackageListFlow(pakType string, isOld int) (err error, data []CmPackage)
 	return
 }
 
+func GetPackageListFlowV1(code string) (err error, data CmPackage) {
+	dbs := db.Table(packageTable).Where("pak_type =?", "flow").Where("code=?", code)
+	err = dbs.Where("status=?", 1).Order("sort desc").First(&data).Error
+	return
+}
+
 func GetPackageListFlowAgent(day, isOld int) (err error, data []CmPackage) {
 	dbs := db.Table(packageTable).Where("pak_type =?", "flow_agent").Where("day = ?", day)
 	if isOld == 0 {
