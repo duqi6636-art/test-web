@@ -58,6 +58,37 @@ func GetPackageFlow(c *gin.Context) {
 	return
 }
 
+func GetPackageCustomFlow(c *gin.Context) {
+	sessionId := c.DefaultPostForm("session", "")
+	lang := strings.ToLower(c.DefaultPostForm("lang", "en"))
+	if lang == "" {
+		lang = "en"
+	}
+	if lang == "zh-tw" || lang == "zh" || lang == "tw" || lang == "zh-cn" || lang == "cn" {
+		lang = "zh-tw"
+	}
+
+	uid := 0
+	if sessionId != "" {
+		_, uid = GetUIDbySession(sessionId)
+	}
+
+	_, flow := models.GetPackageListFlowV1("flow_custom")
+
+	resInfo := map[string]interface{}{}
+	resInfo["flow"] = flow
+	_, availableCoupons := models.GetAvailableCouponListByUid(uid)
+
+	var couponsList []models.CouponList
+	for _, coupon := range availableCoupons {
+		couponsList = append(couponsList, coupon)
+	}
+	resInfo["coupon"] = couponsList
+
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resInfo)
+	return
+}
+
 // 获取新用户5G流量套餐列表
 func GetPackageNewFlowList(c *gin.Context) {
 	_, packageList := models.GetNewPackageFlowList()
