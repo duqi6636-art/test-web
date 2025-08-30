@@ -5,13 +5,14 @@ import (
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/unknwon/com"
 	"log"
 	"math"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/unknwon/com"
 )
 
 // 获取有效期流量套餐
@@ -58,6 +59,7 @@ func GetPackageFlow(c *gin.Context) {
 	return
 }
 
+// GetPackageCustomFlow 获取自动住宅自定义套餐
 func GetPackageCustomFlow(c *gin.Context) {
 	sessionId := c.DefaultPostForm("session", "")
 	lang := strings.ToLower(c.DefaultPostForm("lang", "en"))
@@ -73,23 +75,28 @@ func GetPackageCustomFlow(c *gin.Context) {
 		_, uid = GetUIDbySession(sessionId)
 	}
 
-	_, flow := models.GetPackageListFlowV1("flow_custom")
-
-	resInfo := map[string]interface{}{}
-	resInfo["flow"] = flow
-	_, availableCoupons := models.GetAvailableCouponListByUid(uid)
-
-	var couponsList []models.CouponList
-	for _, coupon := range availableCoupons {
-		couponsList = append(couponsList, coupon)
+	err, flow := models.GetPackageListFlowV1("flow_custom")
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_PACKAGE_NOT_FOUND", nil)
+		return
 	}
-	resInfo["coupon"] = couponsList
 
+	var availableCoupons []models.CouponList
+	if uid > 0 {
+		// 查询所有符合条件的优惠券
+		if err, coupons := models.GetCouponListByPakId(uid, flow.Id, ""); err == nil {
+			availableCoupons = coupons
+		}
+	}
+	resInfo := map[string]interface{}{
+		"flow":   flow,
+		"coupon": availableCoupons,
+	}
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resInfo)
 	return
 }
 
-// 获取新用户5G流量套餐列表
+// GetPackageNewFlowList 获取新用户5G流量套餐列表
 func GetPackageNewFlowList(c *gin.Context) {
 	_, packageList := models.GetNewPackageFlowList()
 	//for i, cmPackage := range packageList {
