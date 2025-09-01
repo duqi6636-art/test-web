@@ -61,6 +61,26 @@ func GetPackageFlow(c *gin.Context) {
 
 // GetPackageCustomFlow 获取自动住宅自定义套餐
 func GetPackageCustomFlow(c *gin.Context) {
+	lang := strings.ToLower(c.DefaultPostForm("lang", "en"))
+	if lang == "" {
+		lang = "en"
+	}
+	if lang == "zh-tw" || lang == "zh" || lang == "tw" || lang == "zh-cn" || lang == "cn" {
+		lang = "zh-tw"
+	}
+
+	err, flow := models.GetPackageListFlowV1("flow_custom")
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_PACKAGE_NOT_FOUND", nil)
+		return
+	}
+
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", flow)
+	return
+}
+
+// GetPackageCustomCoupons 获取自动住宅自定义套餐
+func GetPackageCustomCoupons(c *gin.Context) {
 	sessionId := c.DefaultPostForm("session", "")
 	lang := strings.ToLower(c.DefaultPostForm("lang", "en"))
 	if lang == "" {
@@ -81,18 +101,14 @@ func GetPackageCustomFlow(c *gin.Context) {
 		return
 	}
 
-	var availableCoupons []models.CouponList
+	availableCoupons := make([]models.CouponList, 0)
 	if uid > 0 {
 		// 查询所有符合条件的优惠券
 		if err, coupons := models.GetCouponListByPakId(uid, flow.Id, ""); err == nil {
 			availableCoupons = coupons
 		}
 	}
-	resInfo := map[string]interface{}{
-		"flow":   flow,
-		"coupon": availableCoupons,
-	}
-	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resInfo)
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", availableCoupons)
 	return
 }
 
