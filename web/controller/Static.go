@@ -412,6 +412,18 @@ func UseStatic(c *gin.Context) {
 		return
 	}
 	uid := user.Id
+	// 检查是否需要实名认证（上线后注册的用户）
+	if models.CheckUserNeedKyc(user.CreateTime) {
+		kycStatus := models.CheckUserKycStatus(uid)
+		if kycStatus != 1 { // 未实名认证
+			responseData := map[string]interface{}{
+				"need_kyc":   true,
+				"kyc_status": kycStatus,
+			}
+			JsonReturn(c, e.ERROR_KYC_REQUIRED, "__T_KYC_REQUIRED", responseData)
+			return
+		}
+	}
 	_, staticInfo := models.GetUserStaticIp(uid)
 	for _, vu := range staticInfo {
 		if vu.Status == 2 {
@@ -514,6 +526,18 @@ func BatchUseStatic(c *gin.Context) {
 		return
 	}
 	uid := user.Id
+	// 检查是否需要实名认证（上线后注册的用户）
+	if models.CheckUserNeedKyc(user.CreateTime) {
+		kycStatus := models.CheckUserKycStatus(uid)
+		if kycStatus != 1 { // 未实名认证
+			responseData := map[string]interface{}{
+				"need_kyc":   true,
+				"kyc_status": kycStatus,
+			}
+			JsonReturn(c, e.ERROR_KYC_REQUIRED, "__T_KYC_REQUIRED", responseData)
+			return
+		}
+	}
 	_, staticInfo := models.GetUserStaticIp(uid)
 	for _, vu := range staticInfo {
 		if vu.Status == 2 {
