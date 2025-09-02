@@ -148,6 +148,18 @@ func webRouter(router *gin.Engine) {
 	web.POST("/account/ip_chart_data", controller.GetIpCharData)                      // 获取IP提取统计图数据
 	web.POST("/account/ip_chart_data_download", controller.GetIpCharDataDownload)     // 下载IP提取统计图数据
 
+	// 工单
+	web.POST("/technical_work_order/add", controller.SubmitTechnicalWorkOrder)            // 提交工单
+	web.POST("/technical_work_order/revocation", controller.RevocationTechnicalWorkOrder) // 撤回工单
+	web.POST("/technical_work_order/del", controller.DelTechnicalWorkOrder)               // 删除工单
+	web.POST("/technical_work_order/finish", controller.FinishTechnicalWorkOrder)         // 结束工单
+	web.POST("/technical_work_order/list", controller.ListTechnicalWorkOrder)             // 工单列表
+
+	web.POST("/technical_work_order/details/add", controller.AddTechnicalWorkOrderDetails)        // 添加工单详情
+	web.POST("/technical_work_order/details/list", controller.TechnicalWorkOrderDetailsList)      // 工单详情列表
+	web.POST("/technical_work_order/read_status", controller.GetTechnicalWorkOrderReadStatus)     // 工单是否有未读
+	web.POST("/technical_work_order/set_read_status", controller.SetTechnicalWorkOrderReadStatus) // 修改工单未读状态
+
 	white := router.Group("/web/white")
 	white.POST("/lists", controller.IpWhitelists)            //白名单IP列表
 	white.POST("/add", controller.AddWhitelist)              //白名单IP列表--添加

@@ -22,6 +22,11 @@ func GoCron() {
 			UnlimitedEarlyWarning() // 不限量邮件预警
 		})
 	}
+
+	// 工单超时提醒任务
+	_ = c.AddFunc("* */2 * * * *", func() { // 每小时执行一次
+		CheckOverdueTechnicalWorkOrders() // 检查超过18小时未处理的工单
+	})
 	c.Start()
 	// 阻塞主线程，以等待定时任务的执行
 	select {}
