@@ -5,13 +5,14 @@ import (
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/unknwon/com"
 	"log"
 	"math"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/unknwon/com"
 )
 
 // 获取有效期流量套餐
@@ -58,7 +59,60 @@ func GetPackageFlow(c *gin.Context) {
 	return
 }
 
-// 获取新用户5G流量套餐列表
+// GetPackageCustomFlow 获取自动住宅自定义套餐
+func GetPackageCustomFlow(c *gin.Context) {
+	lang := strings.ToLower(c.DefaultPostForm("lang", "en"))
+	if lang == "" {
+		lang = "en"
+	}
+	if lang == "zh-tw" || lang == "zh" || lang == "tw" || lang == "zh-cn" || lang == "cn" {
+		lang = "zh-tw"
+	}
+
+	err, flow := models.GetPackageListFlowV1("flow_custom")
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_PACKAGE_NOT_FOUND", nil)
+		return
+	}
+
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", flow)
+	return
+}
+
+// GetPackageCustomCoupons 获取自动住宅自定义套餐
+func GetPackageCustomCoupons(c *gin.Context) {
+	sessionId := c.DefaultPostForm("session", "")
+	lang := strings.ToLower(c.DefaultPostForm("lang", "en"))
+	if lang == "" {
+		lang = "en"
+	}
+	if lang == "zh-tw" || lang == "zh" || lang == "tw" || lang == "zh-cn" || lang == "cn" {
+		lang = "zh-tw"
+	}
+
+	uid := 0
+	if sessionId != "" {
+		_, uid = GetUIDbySession(sessionId)
+	}
+
+	err, flow := models.GetPackageListFlowV1("flow_custom")
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_PACKAGE_NOT_FOUND", nil)
+		return
+	}
+
+	availableCoupons := make([]models.CouponList, 0)
+	if uid > 0 {
+		// 查询所有符合条件的优惠券
+		if err, coupons := models.GetCouponListByPakId(uid, flow.Id, ""); err == nil {
+			availableCoupons = coupons
+		}
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", availableCoupons)
+	return
+}
+
+// GetPackageNewFlowList 获取新用户5G流量套餐列表
 func GetPackageNewFlowList(c *gin.Context) {
 	_, packageList := models.GetNewPackageFlowList()
 	//for i, cmPackage := range packageList {
