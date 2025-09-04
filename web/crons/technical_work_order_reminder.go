@@ -18,7 +18,7 @@ import (
 func CheckOverdueTechnicalWorkOrders() {
 	// 计算18小时前的时间戳
 	now := time.Now()
-	overdue := now.Add(-1 * time.Hour).Unix()
+	overdue := now.Add(-18 * time.Hour).Unix()
 
 	// 查询超过18小时未处理的工单（status=0表示未处理，send_status=0表示未发送过通知）
 	workOrders := models.GetTechnicalWorkOrderList(
@@ -27,7 +27,7 @@ func CheckOverdueTechnicalWorkOrders() {
 	)
 
 	if len(workOrders) == 0 {
-		fmt.Println("没有超时未处理的工单")
+		log.Println("没有超时未处理的工单")
 		return
 	}
 

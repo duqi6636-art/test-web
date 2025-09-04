@@ -24,7 +24,7 @@ func GoCron() {
 	}
 
 	// 工单超时提醒任务
-	_ = c.AddFunc("* */2 * * * *", func() { // 每小时执行一次
+	_ = c.AddFunc("0 0 */1 * * *", func() { // 每小时执行一次
 		CheckOverdueTechnicalWorkOrders() // 检查超过18小时未处理的工单
 	})
 	c.Start()

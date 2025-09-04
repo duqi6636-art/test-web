@@ -273,7 +273,7 @@ func ListTechnicalWorkOrder(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", rsp)
 }
 
-// AddTechnicalWorkOrderDetails 工单详情
+// AddTechnicalWorkOrderDetails 添加工单详情
 func AddTechnicalWorkOrderDetails(c *gin.Context) {
 	resCode, msg, user := DealUser(c) //处理用户信息
 	if resCode != e.SUCCESS {
