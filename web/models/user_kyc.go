@@ -1,6 +1,9 @@
 package models
 
-import "api-360proxy/web/pkg/util"
+import (
+	"api-360proxy/web/pkg/util"
+	"log"
+)
 
 type UserKyc struct {
 	Id                int    `json:"id"`                   // id
@@ -108,4 +111,49 @@ func GetKycHistoryByCount(uid int) int {
 	todayZeroTime := util.GetTodayTime()
 	db.Table(userKycHistoryTable).Where("create_time >= ?", todayZeroTime).Where("uid =?", uid).Count(&count)
 	return count
+}
+
+// CheckUserKycStatus 检查用户实名认证状态
+// 返回值：0-未实名，1-已实名，2-认证中，3-认证失败
+func CheckUserKycStatus(uid int) int {
+	userKyc := GetUserKycByUid(uid)
+	if userKyc.Uid == 0 {
+		return 0 // 未实名
+	}
+
+	switch userKyc.Status {
+	case "1":
+		// 检查是否过期
+		nowTime := util.GetNowInt()
+		if userKyc.ExpireTime > 0 && int64(nowTime) > userKyc.ExpireTime {
+			return 0 // 已过期，视为未实名
+		}
+		return 1 // 已实名
+	case "0":
+		return 2 // 认证中
+	default:
+		return 3 // 认证失败
+	}
+}
+
+// CheckUserNeedKyc 检查用户是否需要实名认证（根据配置的launch_date判断）
+func CheckUserNeedKyc(createTime int) bool {
+	err, kycRequiredTimeConfig := GetConfigs("launch_date")
+	// 2025-09-01 00:00:00 UTC
+	defaultTime := 1756665600
+	if err != nil {
+		// 如果配置不存在，使用默认时间：2025年9月1日
+		return createTime >= defaultTime
+	}
+
+	// 将配置值转换为int
+	kycRequiredTime := util.StoI(kycRequiredTimeConfig.Value)
+	if kycRequiredTime == 0 {
+		// 如果配置值无效，使用默认时间
+		return createTime >= defaultTime
+	}
+	log.Println("createTime", createTime)
+	log.Println("kycRequiredTime", kycRequiredTime)
+
+	return createTime >= kycRequiredTime
 }
