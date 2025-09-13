@@ -11,8 +11,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm/utils"
 	"io"
 	"io/ioutil"
 	"log"
@@ -24,12 +22,24 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm/utils"
 )
 
 // KycFileUploadResponse 文件上传响应
 type KycFileUploadResponse struct {
 	FileUrl  string `json:"file_url"`
 	FileSize int64  `json:"file_size"`
+}
+
+// ThirdPartyKycResponse 第三方KYC提交响应结构
+type ThirdPartyKycResponse struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data struct {
+		Id int `json:"id"` // 申请记录ID
+	} `json:"data"`
 }
 
 // KycSubmitRequest KYC提交请求
@@ -402,63 +412,32 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
 		return fmt.Errorf("API调用失败: %d", resp.StatusCode)
 	}
 
-	var response map[string]interface{}
+	var response ThirdPartyKycResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return err
+		return fmt.Errorf("解析响应失败: %w", err)
 	}
 	log.Println("KYC third party response:", response)
 
-	// 检查返回码
-	if codeValue, exists := response["code"]; exists {
-		var code int
-		switch v := codeValue.(type) {
-		case int:
-			code = v
-		case float64:
-			code = int(v)
-		case string:
-			if c, err := strconv.Atoi(v); err == nil {
-				code = c
-			}
-		}
-
-		log.Println("code", code)
-		if code != 0 {
-			// 获取错误消息
-			msg := "API调用失败"
-			if msgValue, ok := response["msg"].(string); ok {
-				msg = msgValue
-			}
-			return fmt.Errorf("第三方API错误: code=%d, msg=%s", code, msg)
-		}
+	if response.Code != 0 {
+		return fmt.Errorf("第三方API错误: code=%d, msg=%s", response.Code, response.Msg)
 	}
 
-	if data, ok := response["data"].(map[string]interface{}); ok {
-		if idValue, exists := data["id"]; exists {
-			if id, ok := idValue.(float64); ok {
-				updateData := map[string]interface{}{
-					"third_party_req_id": int(id),
-					"third_party_status": 1,
-					"review_status":      1,
-					"third_party_result": "submitted",
-					"update_time":        util.GetNowInt(),
-					"submit_time":        util.GetNowInt(),
-				}
-				log.Println("updateData:", updateData)
-				err := models.UpdateKycReviewThirdPartyInfo(reviewId, updateData)
-				if err != nil {
-					log.Printf("Failed to update KYC third party info: reviewId=%d, error=%v", reviewId, err)
-					return err
-				} else {
-					log.Printf("Successfully updated KYC third party info for review: %d with ID: %d", reviewId, int(id))
-				}
-			} else {
-				log.Printf("ID type assertion failed, got: %T", idValue)
-				return fmt.Errorf("ID type assertion failed")
-			}
+	if response.Data.Id > 0 {
+		updateData := map[string]interface{}{
+			"third_party_req_id": int(response.Data.Id),
+			"third_party_status": 1,
+			"review_status":      1,
+			"third_party_result": "submitted",
+			"update_time":        util.GetNowInt(),
+			"submit_time":        util.GetNowInt(),
+		}
+		log.Println("updateData:", updateData)
+		err := models.UpdateKycReviewThirdPartyInfo(reviewId, updateData)
+		if err != nil {
+			log.Printf("Failed to update KYC third party info: reviewId=%d, error=%v", reviewId, err)
+			return err
 		} else {
-			log.Printf("ID type assertion failed, got: %T", idValue)
-			return fmt.Errorf("ID type assertion failed")
+			log.Printf("Successfully updated KYC third party info for review: %d with ID: %d", reviewId, int(response.Data.Id))
 		}
 	}
 	return nil

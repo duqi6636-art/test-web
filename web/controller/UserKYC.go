@@ -237,6 +237,11 @@ func IdVerifyStepThree(c *gin.Context) {
 	} else {
 		status = 2
 	}
+	kycEnterpriseStatus := models.GetEnterpriseKycByUid(uid)
+
+	if kycEnterpriseStatus.Id != 0 {
+		data["kyc_enterprise"] = kycEnterpriseStatus.ReviewStatus
+	}
 
 	data["status"] = status
 	JsonReturn(c, 0, msg, data)
