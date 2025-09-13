@@ -7,7 +7,7 @@ type MdUserApplyDomain struct {
 	Username         string `json:"username"`           // 用户名
 	Domain           string `json:"domain"`             // 域名
 	Remark           string `json:"remark"`             // 备注
-	Status           int    `json:"status"`             // 状态 0=待审核,1=审核中，2=通过，3=拒绝，4=审核失败，-1=提交失败
+	Status           int    `json:"status"`             // 状态 0=待审核,1=审核中，2=审核通过，3=审核拒绝，4=审核失败，-1=提交失败
 	AuditUserName    string `json:"audit_user_name"`    // 审核人姓名
 	ThirdPartyReqId  int    `json:"third_party_req_id"` // 第三方请求ID
 	ThirdPartyStatus int    `json:"third_party_status"` // 第三方审核状态
@@ -39,6 +39,7 @@ type ResUserApplyDomain struct {
 	Result     string `json:"result"`      // 审核结果
 	SubmitTime int    `json:"submit_time"` // 提交时间
 	ReviewTime int    `json:"review_time"` // 审核时间
+	Remark     string `json:"remark"`      //备注信息
 }
 
 var userApplyDomainTable = "cm_manual_review_domain_white"
@@ -69,13 +70,8 @@ func UpdateDomainApplyByUserAndDomains(uid int, domains []string, updateData map
 }
 
 // GetUserDomainWhiteByUid 获取列表 By Uid
-func GetUserDomainWhiteByUid(uid int, status string) (info []MdUserApplyDomain) {
+func GetUserDomainWhiteByUid(uid int) (info []MdUserApplyDomain) {
 	dbs := db.Table(userApplyDomainTable).Where("uid =?", uid)
-	if status == "0" {
-		dbs = dbs.Where("status =?", 1)
-	} else {
-		dbs = dbs.Where("status != ?", 1)
-	}
 	dbs = dbs.Order("id desc").Find(&info)
 	return
 }

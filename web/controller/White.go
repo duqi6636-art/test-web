@@ -88,6 +88,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 					"third_party_result": "submit failed",
 					"status":             -1,
 					"update_time":        util.GetNowInt(),
+					"submit_time":        util.GetNowInt(),
 				}
 				err := models.UpdateDomainApplyByUserAndDomains(uid, successDomains, updateData)
 				log.Printf("Failed to submit domains to third party: %v", err)
@@ -174,7 +175,7 @@ func submitDomainsToThirdPartyBatch(uid int, username, remark string, domains []
 					"third_party_status": 1,
 					"third_party_result": "submitted",
 					"update_time":        util.GetNowInt(),
-					"status":             2,
+					"status":             1,
 					"submit_time":        util.GetNowInt(),
 				}
 				log.Println("updateData:", updateData)
@@ -226,7 +227,6 @@ func generateThirdPartySign(departmentId string, timestamp string, signKey strin
 // DomainWhiteList 域名白名单列表
 func DomainWhiteList(c *gin.Context) {
 	//language := c.DefaultPostForm("lang", "en")
-	status := c.DefaultPostForm("status", "")
 	resCode, msg, userInfo := DealUser(c) //处理用户信息
 	if resCode != e.SUCCESS {
 		JsonReturn(c, resCode, msg, nil)
@@ -234,7 +234,7 @@ func DomainWhiteList(c *gin.Context) {
 	}
 	uid := userInfo.Id
 
-	domaoinList := models.GetUserDomainWhiteByUid(uid, status)
+	domaoinList := models.GetUserDomainWhiteByUid(uid)
 	resList := []models.ResUserApplyDomain{}
 	for _, domaoin := range domaoinList {
 		resInfo := models.ResUserApplyDomain{
@@ -243,6 +243,7 @@ func DomainWhiteList(c *gin.Context) {
 			Status:     domaoin.Status,
 			SubmitTime: domaoin.SubmitTime,
 			ReviewTime: domaoin.ReviewTime,
+			Remark:     domaoin.Remark,
 		}
 		//if domaoin.SubmitTime > 0 {
 		//	resInfo.SubmitTime = util.GetTimeHISByLang(domaoin.SubmitTime, language)
