@@ -1,0 +1,927 @@
+package controller
+
+import (
+	"api-360proxy/web/e"
+	"api-360proxy/web/models"
+	"api-360proxy/web/pkg/util"
+	"bytes"
+	"crypto/md5"
+	"crypto/sha1"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm/utils"
+	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// KycFileUploadResponse 文件上传响应
+type KycFileUploadResponse struct {
+	FileUrl  string `json:"file_url"`
+	FileSize int64  `json:"file_size"`
+}
+
+// KycSubmitRequest KYC提交请求
+type KycSubmitRequest struct {
+	Email           string `json:"email" form:"email" binding:"required"`    // 邮箱
+	AddressInfo     string `json:"address" form:"address"`                   //地址信息
+	Country         string `json:"country" form:"country"`                   //国家
+	Identity        string `json:"identity" form:"identity"`                 //身份证
+	WaterBill       string `json:"water_bill" form:"water_bill"`             // 水费
+	ElectricityBill string `json:"electricity_bill" form:"electricity_bill"` //电费
+	CreditCardBill  string `json:"credit_card_bill" form:"credit_card_bill"` // 信用卡
+}
+
+type KycAccessTokenResponse struct {
+	Code            string `json:"code"`
+	Msg             string `json:"msg"`
+	TransactionTime string `json:"transactionTime"`
+	AccessToken     string `json:"access_token"`
+	ExpireTime      string `json:"expire_time"`
+	ExpireIn        int    `json:"expire_in"`
+}
+
+// Ticket 结构体，表示每个票据的详细信息
+type Ticket struct {
+	Value      string `json:"value"`
+	ExpireIn   int    `json:"expire_in"`   // 票据的有效期（单位：秒）
+	ExpireTime string `json:"expire_time"` // 票据的过期时间（时间戳）
+}
+
+// ApiTicketResponse 结构体映射返回的JSON数据
+type ApiTicketResponse struct {
+	Code            string   `json:"code"`
+	Msg             string   `json:"msg"`
+	TransactionTime string   `json:"transactionTime"`
+	Tickets         []Ticket `json:"tickets"` // 一个包含票据的数组
+}
+
+type VerifyRequest struct {
+	AppId   string `json:"appId"`
+	Version string `json:"version"`
+	Nonce   string `json:"nonce"`
+	OrderNo string `json:"orderNo"`
+	Sign    string `json:"sign"`
+	GetFile string `json:"getFile"`
+}
+
+// TencentKycPhotoResponse 腾讯KYC查询照片响应结构体
+type TencentKycPhotoResponse struct {
+	Code            string `json:"code"`
+	Msg             string `json:"msg"`
+	BizSeqNo        string `json:"bizSeqNo"`
+	TransactionTime string `json:"transactionTime"`
+	Result          struct {
+		OriCode      string `json:"oriCode"`
+		OrderNo      string `json:"orderNo"`
+		LiveRate     string `json:"liveRate"`
+		Similarity   string `json:"similarity"`
+		OccurredTime string `json:"occurredTime"`
+		AppId        string `json:"appId"`
+		Photo        string `json:"photo"` // Base64编码的照片
+		BizSeqNo     string `json:"bizSeqNo"`
+		TrtcFlag     string `json:"trtcFlag"` // TRTC标识
+	} `json:"result"`
+}
+
+// UploadKycDocument 上传KYC证明材料
+func UploadKycDocument(c *gin.Context) {
+	// 用户认证检查
+	resCode, msg, _ := DealUser(c)
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+
+	// 获取上传文件
+	f, err := c.FormFile("file")
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_UPLOAD_FILE_ERROR", nil)
+		return
+	}
+
+	// 验证文件大小（最大10MB）
+	if f.Size > 10*1024*1024 {
+		JsonReturn(c, e.ERROR, "__T_FILE_SIZE_TOO_LARGE", nil)
+		return
+	}
+
+	// 验证文件类型
+	fileExt := strings.ToLower(path.Ext(f.Filename))
+	allowedExts := []string{".png", ".jpg", ".jpeg"}
+	if !utils.Contains(allowedExts, fileExt) {
+		JsonReturn(c, e.ERROR, "__T_INVALID_FILE_TYPE", nil)
+		return
+	}
+
+	// 打开文件
+	fd, err := f.Open()
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_UPLOAD_FILE_ERROR", nil)
+		return
+	}
+	defer fd.Close()
+
+	// 上传到文件服务器
+	resourceDomainLocal := models.GetConfigVal("resource_domain_local")
+	uploadUrl := resourceDomainLocal + "/upload_file"
+	rep, err := util.HttpPostMultiPart(uploadUrl, "kyc", fd, f.Filename)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_UPLOAD_FILE_ERROR", nil)
+		return
+	}
+
+	// 解析上传结果
+	var uploadResult Uploads
+	if err := json.Unmarshal([]byte(rep), &uploadResult); err != nil {
+		JsonReturn(c, e.ERROR, "__T_UPLOAD_FILE_ERROR", nil)
+		return
+	}
+
+	if uploadResult.Code != 0 {
+		JsonReturn(c, e.ERROR, "__T_UPLOAD_FILE_ERROR", nil)
+		return
+	}
+
+	// 获取文件URL
+	fileUrl, ok := uploadResult.Data["path_url"].(string)
+	if !ok {
+		JsonReturn(c, e.ERROR, "__T_UPLOAD_FILE_ERROR", nil)
+		return
+	}
+
+	// 返回结果
+	response := KycFileUploadResponse{
+		FileUrl:  fileUrl,
+		FileSize: f.Size,
+	}
+	JsonReturn(c, e.SUCCESS, "success", response)
+}
+
+// GetKycReviewStatus 查询KYC审核状态
+func GetKycReviewStatus(c *gin.Context) {
+	// 用户认证检查
+	resCode, msg, user := DealUser(c)
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+
+	// 获取审核状态
+	status := models.GetUserKycReviewStatus(user.Id)
+	JsonReturn(c, e.SUCCESS, "success", status)
+}
+
+// SubmitKycManualReview 提交KYC人工审核
+func SubmitKycManualReview(c *gin.Context) {
+	// 用户认证检查
+	resCode, msg, user := DealUser(c)
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+
+	uid := user.Id
+
+	// 解析请求参数
+	var req KycSubmitRequest
+	if err := c.ShouldBind(&req); err != nil {
+		JsonReturn(c, e.ERROR, "__T_PARAM_ERROR", nil)
+		return
+	}
+
+	if req.CreditCardBill == "" && req.ElectricityBill == "" && req.WaterBill == "" {
+		JsonReturn(c, e.ERROR, "__T_PARAM_ERROR", nil)
+		return
+	}
+
+	// 检查用户是否可以提交审核
+	canSubmit, reason := models.CheckUserCanSubmitKyc(uid)
+	if !canSubmit {
+		JsonReturn(c, e.ERROR, reason, nil)
+		return
+	}
+
+	// 生成申请人ID
+	applicantID := fmt.Sprintf("KYC_%d_%d", uid, util.GetNowInt())
+
+	// 创建审核记录
+	review := models.KycManualReview{
+		Uid:             uid,
+		ApplicantID:     applicantID,
+		WaterBill:       req.WaterBill,
+		ElectricityBill: req.ElectricityBill,
+		CreditCardBill:  req.CreditCardBill,
+		Email:           req.Email,
+		Identity:        req.Identity,
+		Address:         req.AddressInfo,
+		ReviewStatus:    0, // 待审核
+	}
+
+	// 保存审核记录
+	reviewId, err := models.AddKycManualReview(review)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_SUBMIT_FAILED", nil)
+		return
+	}
+
+	// 异步调用第三方审核接口
+	go func() {
+		err := submitToThirdParty(reviewId, review)
+		if err != nil {
+			// 更新状态为提交失败
+			updateData := map[string]interface{}{
+				"third_party_req_id": int(0),
+				"third_party_status": 0, // 未提交
+				"third_party_result": "submit failed",
+				"review_status":      -1,
+				"update_time":        util.GetNowInt(),
+				"submit_time":        util.GetNowInt(),
+			}
+			models.UpdateKycReviewThirdPartyInfo(reviewId, updateData)
+			log.Println("submitToThirdParty error", err)
+		}
+	}()
+
+	// 返回结果
+	response := map[string]interface{}{
+		"id":           reviewId,
+		"applicant_id": applicantID,
+		"status":       "submitted",
+		"message":      "您的实名认证申请已提交，我们将在1-3个工作日内完成审核",
+	}
+
+	JsonReturn(c, e.SUCCESS, "success", response)
+}
+
+func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
+	// 获取用户信息
+	err, userInfo := models.GetUserById(kyc.Uid)
+	if err != nil || userInfo.Id == 0 {
+		return fmt.Errorf("用户不存在:%s", err.Error())
+	}
+
+	// 获取用户KYC信息以获取link_url
+	userKycInfo := models.GetUserKycByUid(kyc.Uid)
+	if userKycInfo.Uid == 0 {
+		return fmt.Errorf("未找到用户KYC信息")
+	}
+
+	// 判断认证类型（国内/国外）
+	isDomestic := isDomesticKyc(userKycInfo.LinkUrl)
+	// 解析腾讯KYC链接参数（如果是国内认证）
+	var photoURL string
+	var tencentNonce, tencentOrderNo string
+	if isDomestic {
+		// 解析链接参数
+		tencentNonce, tencentOrderNo, err = parseTencentKycUrl(userKycInfo.LinkUrl)
+		if err != nil {
+			log.Printf("解析腾讯KYC链接失败: %v", err)
+			return fmt.Errorf("解析腾讯KYC链接失败")
+		}
+
+		// 获取照片路由地址
+		kycAppId := models.GetConfigVal("tencent_kyc_app_id")
+		// 第一步：获取 KYC 访问令牌
+		accessToken, err := getKycAccessToken()
+		if err != nil {
+			log.Printf("获取KYC访问令牌失败: %v", err)
+			return err
+		} else {
+			// 第二步：获取 API 签名票据
+			ticketList, err := getApiTicket(accessToken, "SIGN", "")
+			if err != nil || len(ticketList) == 0 {
+				log.Printf("获取API签名票据失败: %v", err)
+				return err
+			} else {
+				ticket := ticketList[0].Value
+
+				// 使用解析出的参数获取照片
+				param := []string{tencentNonce, tencentOrderNo, "1.0.0", kycAppId}
+				sign, err := getKycSign(param, ticket)
+				if err == nil {
+					VerifyReq := VerifyRequest{
+						AppId:   kycAppId,
+						OrderNo: tencentOrderNo,
+						Version: "1.0.0",
+						Nonce:   tencentNonce,
+						Sign:    sign,
+						GetFile: "2",
+					}
+					err, response := sendRequest(VerifyReq)
+					if err == nil {
+						photoURL, err = SaveTencentKycPhoto(response.Result.Photo, tencentOrderNo)
+						if err != nil {
+							log.Printf("保存照片失败: %v", err)
+						} else {
+							log.Printf("成功获取照片URL: %s", photoURL)
+						}
+					} else {
+						log.Printf("查询照片失败: %v", err)
+					}
+				}
+			}
+		}
+	}
+
+	// 准备提交数据
+	submitData := map[string]interface{}{
+		"oa_platform_name":     "360cherry",
+		"uid":                  kyc.Uid,
+		"account":              userInfo.Username,
+		"account_type":         1, // 1：普通账号，2：代理商
+		"reg_time":             userInfo.CreateTime,
+		"apply_time":           util.GetNowInt(),
+		"verify_type":          1, // 1：个人，2：企业
+		"source":               3, // 3：平台自审
+		"water_bill":           kyc.WaterBill,
+		"electricity_bill":     kyc.ElectricityBill,
+		"credit_card_bill":     kyc.CreditCardBill,
+		"identity_certificate": kyc.Identity,
+	}
+
+	// 如果是国内认证，添加照片路由地址和腾讯KYC参数
+	if isDomestic {
+		// 添加照片路由地址
+		if photoURL != "" {
+			submitData["face_photo"] = photoURL
+		} else {
+			return fmt.Errorf("查询照片失败")
+		}
+	}
+
+	// 生成签名
+	departmentId := models.GetConfigVal("third_party_department_id")
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	signKey := models.GetConfigVal("third_party_sign_key")
+
+	sign := generateThirdPartySign(departmentId, timestamp, signKey)
+
+	// 调用第三方API
+	apiUrl := models.GetConfigVal("third_party_kyc_api_url")
+	if apiUrl == "" {
+		return fmt.Errorf("第三方KYC接口URL未配置")
+	}
+	log.Println("submitData===", submitData)
+
+	jsonData, err := json.Marshal(submitData)
+	if err != nil {
+		return fmt.Errorf("序列化请求数据失败: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", apiUrl, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("departmentId", departmentId)
+	req.Header.Set("timestamp", timestamp)
+	req.Header.Set("sign", sign)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// 处理响应
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("API调用失败: %d", resp.StatusCode)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return err
+	}
+	log.Println("KYC third party response:", response)
+
+	// 检查返回码
+	if codeValue, exists := response["code"]; exists {
+		var code int
+		switch v := codeValue.(type) {
+		case int:
+			code = v
+		case float64:
+			code = int(v)
+		case string:
+			if c, err := strconv.Atoi(v); err == nil {
+				code = c
+			}
+		}
+
+		log.Println("code", code)
+		if code != 0 {
+			// 获取错误消息
+			msg := "API调用失败"
+			if msgValue, ok := response["msg"].(string); ok {
+				msg = msgValue
+			}
+			return fmt.Errorf("第三方API错误: code=%d, msg=%s", code, msg)
+		}
+	}
+
+	if data, ok := response["data"].(map[string]interface{}); ok {
+		if idValue, exists := data["id"]; exists {
+			if id, ok := idValue.(float64); ok {
+				updateData := map[string]interface{}{
+					"third_party_req_id": int(id),
+					"third_party_status": 1,
+					"review_status":      1,
+					"third_party_result": "submitted",
+					"update_time":        util.GetNowInt(),
+					"submit_time":        util.GetNowInt(),
+				}
+				log.Println("updateData:", updateData)
+				err := models.UpdateKycReviewThirdPartyInfo(reviewId, updateData)
+				if err != nil {
+					log.Printf("Failed to update KYC third party info: reviewId=%d, error=%v", reviewId, err)
+					return err
+				} else {
+					log.Printf("Successfully updated KYC third party info for review: %d with ID: %d", reviewId, int(id))
+				}
+			} else {
+				log.Printf("ID type assertion failed, got: %T", idValue)
+				return fmt.Errorf("ID type assertion failed")
+			}
+		} else {
+			log.Printf("ID type assertion failed, got: %T", idValue)
+			return fmt.Errorf("ID type assertion failed")
+		}
+	}
+	return nil
+}
+
+// 生成第三方签名
+func generateThirdPartySign(departmentId string, timestamp string, signKey string) string {
+	params := map[string]string{
+		"departmentId": departmentId,
+		"timestamp":    timestamp,
+	}
+
+	var keys []string
+	for k := range params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var arr []string
+	for _, k := range keys {
+		if params[k] != "" {
+			arr = append(arr, fmt.Sprintf("%s=%s", k, params[k]))
+		}
+	}
+
+	signData := strings.Join(arr, "&") + "&key=" + signKey
+
+	h := md5.New()
+	h.Write([]byte(signData))
+	sign := strings.ToUpper(hex.EncodeToString(h.Sum(nil)))
+
+	return sign
+}
+
+// parseTencentKycUrl 解析腾讯KYC链接中的参数
+func parseTencentKycUrl(linkUrl string) (nonce, orderNo string, err error) {
+	if linkUrl == "" {
+		return "", "", fmt.Errorf("链接为空")
+	}
+
+	// 解析URL
+	parsedUrl, err := url.Parse(linkUrl)
+	if err != nil {
+		return "", "", fmt.Errorf("解析URL失败: %v", err)
+	}
+
+	// 获取查询参数
+	queryParams := parsedUrl.Query()
+	nonce = queryParams.Get("nonce")
+	orderNo = queryParams.Get("orderNo")
+
+	if nonce == "" || orderNo == "" {
+		return "", "", fmt.Errorf("未找到nonce或orderNo参数")
+	}
+
+	return nonce, orderNo, nil
+}
+
+// isDomesticKyc 判断是否为国内认证
+func isDomesticKyc(linkUrl string) bool {
+	// 如果链接包含腾讯KYC域名，则为国内认证
+	return strings.Contains(linkUrl, "kyc1.qcloud.com")
+}
+
+func sendRequest(requestData VerifyRequest) (err error, res TencentKycPhotoResponse) {
+	// 请求 URL
+	faceIdUrl := "https://kyc1.qcloud.com/api/v2/base/queryfacerecord?orderNo=" + requestData.OrderNo
+
+	// 将请求体转为 JSON 格式
+	data, err := json.Marshal(requestData)
+	if err != nil {
+		return
+	}
+
+	// 发送 POST 请求
+	resp, err := http.Post(faceIdUrl, "application/json", bytes.NewBuffer(data))
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	// 读取响应
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	// 解析 JSON 响应
+	var response TencentKycPhotoResponse
+	err = json.Unmarshal(respBody, &response)
+	if err != nil {
+		return
+	}
+	if response.Code != "0" {
+		err = fmt.Errorf("Error: %s", response.Msg)
+		return
+	}
+
+	return nil, response
+}
+
+// SaveBase64ImageToRemote 将Base64图片上传到远程服务器
+func SaveBase64ImageToRemote(base64Str, fileName string) (string, error) {
+	if base64Str == "" {
+		return "", fmt.Errorf("base64字符串为空")
+	}
+
+	// 处理data:image前缀
+	var base64Data string
+	if i := strings.Index(base64Str, ","); i != -1 {
+		base64Data = base64Str[i+1:]
+	} else {
+		base64Data = base64Str
+	}
+
+	// 解码Base64
+	imageData, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		return "", fmt.Errorf("Base64解码失败: %v", err)
+	}
+
+	// 创建临时文件用于上传
+	tempFile, err := ioutil.TempFile("", "kyc_*.jpg")
+	if err != nil {
+		return "", fmt.Errorf("创建临时文件失败: %v", err)
+	}
+	defer os.Remove(tempFile.Name()) // 上传完成后删除临时文件
+	defer tempFile.Close()
+
+	// 写入临时文件
+	if _, err := tempFile.Write(imageData); err != nil {
+		return "", fmt.Errorf("写入临时文件失败: %v", err)
+	}
+
+	// 重置文件指针到开头
+	tempFile.Seek(0, 0)
+
+	// 获取远程服务器配置
+	resourceDomainLocal := models.GetConfigVal("resource_domain_local")
+	if resourceDomainLocal == "" {
+		return "", fmt.Errorf("远程服务器配置为空")
+	}
+
+	// 构建上传URL
+	uploadUrl := resourceDomainLocal + "/upload_img"
+
+	// 上传到远程服务器
+	rep, err := util.HttpPostMultiPart(uploadUrl, "file", tempFile, fileName)
+	if err != nil {
+		return "", fmt.Errorf("上传到远程服务器失败: %v", err)
+	}
+
+	// 解析上传结果
+	var uploadResult struct {
+		Code int                    `json:"code"`
+		Msg  string                 `json:"msg"`
+		Data map[string]interface{} `json:"data"`
+	}
+
+	if err := json.Unmarshal([]byte(rep), &uploadResult); err != nil {
+		return "", fmt.Errorf("解析上传结果失败: %v", err)
+	}
+
+	if uploadResult.Code != 0 {
+		return "", fmt.Errorf("上传失败: %s", uploadResult.Msg)
+	}
+
+	// 获取文件URL
+	fileUrl, ok := uploadResult.Data["path_url"].(string)
+	if !ok {
+		return "", fmt.Errorf("获取文件URL失败")
+	}
+
+	return fileUrl, nil
+}
+
+// SaveTencentKycPhoto 保存腾讯KYC照片到远程服务器
+func SaveTencentKycPhoto(base64Photo, orderNo string) (string, error) {
+	if base64Photo == "" {
+		return "", fmt.Errorf("照片数据为空")
+	}
+
+	// 生成唯一文件名
+	fileName := fmt.Sprintf("face_%d_%s_%d.jpg", orderNo, time.Now().Unix())
+
+	// 上传到远程服务器
+	photoUrl, err := SaveBase64ImageToRemote(base64Photo, fileName)
+	if err != nil {
+		return "", fmt.Errorf("上传照片到远程服务器失败: %v", err)
+	}
+
+	return photoUrl, nil
+}
+
+// 获取 KYC 访问令牌
+func getKycAccessToken() (string, error) {
+	kycAppId := models.GetConfigVal("tencent_kyc_app_id")
+	kycSecret := models.GetConfigVal("tencent_kyc_secret")
+	var errc error
+	if kycAppId == "" || kycSecret == "" {
+		return "config Info", errc
+	}
+	// 构造请求的URL
+	baseURL := "https://kyc1.qcloud.com/api/oauth2/access_token"
+	params := url.Values{}
+	params.Add("appId", kycAppId)
+	params.Add("secret", kycSecret)
+	params.Add("grant_type", "client_credential")
+	params.Add("version", "1.0.0")
+
+	// 拼接URL
+	kycAccesstokenUrl := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	// 发送GET请求
+	resp, err := http.Get(kycAccesstokenUrl)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// 读取返回的响应体
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	// 解析JSON响应
+	var response KycAccessTokenResponse
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return "", err
+	}
+
+	// 如果返回成功，返回access_token
+	if response.Code == "0" {
+		return response.AccessToken, nil
+	}
+
+	// 如果请求失败，返回错误信息
+	return "", fmt.Errorf("Error: %s", response.Msg)
+}
+
+// 获取 API 签名票据
+func getApiTicket(accessToken, ticketType string, userId string) ([]Ticket, error) {
+
+	kycAppId := models.GetConfigVal("tencent_kyc_app_id")
+	//kycSecret := models.GetConfigVal("tencent_kyc_secret")
+
+	// 构造请求的URL
+	baseURL := "https://kyc1.qcloud.com/api/oauth2/api_ticket"
+	params := url.Values{}
+	params.Add("appId", kycAppId)
+	params.Add("access_token", accessToken)
+	params.Add("type", ticketType)
+	params.Add("version", "1.0.0")
+	if userId != "" {
+		params.Add("user_id", userId)
+	}
+
+	// 拼接URL
+	kycSignTicketUrl := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	// 发送GET请求
+	resp, err := http.Get(kycSignTicketUrl)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// 读取返回的响应体
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// 解析JSON响应
+	var response ApiTicketResponse
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果返回成功，返回票据列表
+	if response.Code == "0" {
+		return response.Tickets, nil
+	}
+	// 如果请求失败，返回错误信息
+	return nil, fmt.Errorf("Error: %s", response.Msg)
+}
+
+// sign 函数生成签名，values 为传入的参数列表（不包括 ticket），ticket 为额外的参数
+func getKycSign(values []string, ticket string) (string, error) {
+	// 检查传入的 values 是否为 nil
+	if values == nil {
+		return "", fmt.Errorf("values is nil")
+	}
+
+	// 移除 values 中的 nil 值
+	var filteredValues []string
+	for _, v := range values {
+		if v != "" {
+			filteredValues = append(filteredValues, v)
+		}
+	}
+
+	// 添加 ticket 到 values 列表
+	filteredValues = append(filteredValues, ticket)
+
+	// 排序 values 列表
+	sort.Strings(filteredValues)
+
+	// 拼接所有的字符串
+	var sb strings.Builder
+	for _, v := range filteredValues {
+		sb.WriteString(v)
+	}
+
+	// 计算 SHA-1 哈希值
+	hash := sha1.New()
+	hash.Write([]byte(sb.String()))
+	hashed := hash.Sum(nil)
+
+	// 返回哈希值的十六进制字符串，并转换为大写
+	return strings.ToUpper(hex.EncodeToString(hashed)), nil
+}
+
+// UnifiedKycCallbackData KYC回调数据结构
+type UnifiedKycCallbackData struct {
+	Id             int    `json:"id"`               // 第三方请求ID
+	Account        string `json:"account"`          // 客户账号
+	OaPlatformName string `json:"oa_platform_name"` // 平台名称
+	ApplyTime      int    `json:"apply_time"`       // 申请时间
+	VerifyType     int    `json:"verify_type"`      // 认证类型：1=个人，2=企业
+	AuditStatus    int    `json:"audit_status"`     // 审核状态：1=通过，2=驳回
+	AuditUserName  string `json:"audit_user_name"`  // 审核人姓名
+	AuditTime      int    `json:"audit_time"`       // 审核时间
+	AuditRemark    string `json:"audit_remark"`     // 审核备注
+}
+
+// EnterpriseKycNotify 认证结果回调
+func EnterpriseKycNotify(c *gin.Context) {
+	// 验证签名
+	signature := c.GetHeader("sign")
+	departmentId := c.GetHeader("departmentId")
+	timestamp := c.GetHeader("timestamp")
+
+	reqBody, _ := io.ReadAll(c.Request.Body)
+
+	// 验证签名
+	signKey := models.GetConfigVal("third_party_sign_key")
+	expectedSign := generateThirdPartySign(departmentId, timestamp, signKey)
+	if signature != expectedSign {
+		JsonReturn(c, e.ERROR, "Invalid signature", nil)
+		return
+	}
+
+	// 解析回调数据
+	var callbackData UnifiedKycCallbackData
+	if err := json.Unmarshal(reqBody, &callbackData); err != nil {
+		JsonReturn(c, e.ERROR, "json unmarshal error", nil)
+		return
+	}
+
+	// 根据认证类型分别处理
+	switch callbackData.VerifyType {
+	case 1: // 个人认证
+		if err := handlePersonalKycCallback(callbackData); err != nil {
+			JsonReturn(c, e.ERROR, err.Error(), nil)
+			return
+		}
+	case 2: // 企业认证
+		if err := handleEnterpriseKycCallback(callbackData); err != nil {
+			JsonReturn(c, e.ERROR, err.Error(), nil)
+			return
+		}
+	default:
+		JsonReturn(c, e.ERROR, "unknow callback type", nil)
+		return
+	}
+
+	JsonReturn(c, e.SUCCESS, "success", nil)
+}
+
+// handlePersonalKycCallback 处理个人认证回调
+func handlePersonalKycCallback(callbackData UnifiedKycCallbackData) error {
+	// 根据第三方请求ID查找个人认证记录
+	review := models.GetKycReviewByThirdPartyId(callbackData.Id)
+	if review.Id == 0 {
+		return fmt.Errorf("KYC not found by ThirdPartyId: %d", callbackData.Id)
+	}
+
+	// 转换审核状态
+	var reviewStatus int
+	switch callbackData.AuditStatus {
+	case 1: // 通过
+		reviewStatus = 2
+	case 2: // 驳回
+		reviewStatus = 3
+	}
+
+	// 更新个人认证状态
+	updateData := map[string]interface{}{
+		"review_status":      reviewStatus,
+		"review_reason":      callbackData.AuditRemark,
+		"reviewer":           callbackData.AuditUserName,
+		"review_time":        callbackData.AuditTime,
+		"third_party_status": reviewStatus,
+		"third_party_result": callbackData.AuditRemark,
+		"update_time":        util.GetNowInt(),
+	}
+
+	err := models.UpdateKycReviewInfo(review.Id, updateData)
+	if err != nil {
+		return fmt.Errorf("UpdateKycReviewInfo failed: %w", err)
+	}
+
+	// 如果审核通过，更新用户KYC状态
+	//if reviewStatus == 2 {
+	//	models.UpdateUserKycStatus(review.Uid, 1) // 更新用户KYC状态为已认证
+	//}
+	return nil
+}
+
+// handleEnterpriseKycCallback 处理企业认证回调
+func handleEnterpriseKycCallback(callbackData UnifiedKycCallbackData) error {
+	// 根据第三方请求ID查找企业认证记录
+	kyc := models.GetEnterpriseKycByThirdPartyId(callbackData.Id)
+	if kyc.Id == 0 {
+		return fmt.Errorf("GetEnterpriseKycByThirdPartyId failed")
+	}
+
+	// 转换审核状态
+	var reviewStatus int
+	switch callbackData.AuditStatus {
+	case 1: // 通过
+		reviewStatus = 2
+	case 2: // 驳回
+		reviewStatus = 3
+	}
+
+	if reviewStatus == 0 {
+		return fmt.Errorf("KYC reviewStatus: %d", reviewStatus)
+	}
+
+	// 更新企业认证状态
+	updateData := map[string]interface{}{
+		"review_status":      reviewStatus,
+		"review_reason":      callbackData.AuditRemark,
+		"reviewer":           callbackData.AuditUserName,
+		"review_time":        callbackData.AuditTime,
+		"third_party_status": reviewStatus,
+		"third_party_result": callbackData.AuditRemark,
+		"update_time":        util.GetNowInt(),
+	}
+
+	err := models.UpdateEnterpriseKycInfo(kyc.Id, updateData)
+	if err != nil {
+		return fmt.Errorf("UpdateEnterpriseKycInfo failed: %w", err)
+	}
+
+	// 如果审核通过，更新用户企业认证状态
+	//if reviewStatus == 2 {
+	//	models.UpdateUserEnterpriseKycStatus(kyc.Uid, 1) // 更新用户企业认证状态为已认证
+	//}
+	return nil
+}

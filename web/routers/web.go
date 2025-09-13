@@ -2,6 +2,7 @@ package routers
 
 import (
 	"api-360proxy/web/controller"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -226,6 +227,18 @@ func webRouter(router *gin.Engine) {
 	kyc.POST("/verify/step_three", controller.IdVerifyStepThree) // 检测验证结果
 	kyc.POST("/verify/get_face_url", controller.GetFaceUrl)      // 获取腾讯人脸核验链接
 	kyc.POST("/verify/get_country", controller.GetKycCountry)    // 获取国家列表
+
+	// KYC人工审核接口
+	kyc.POST("/upload_document", controller.UploadKycDocument)          // 上传证明材料
+	kyc.POST("/submit_manual_review", controller.SubmitKycManualReview) // 提交人工审核
+	kyc.POST("/review_status", controller.GetKycReviewStatus)           // 查询审核状态
+
+	kyc.POST("/kyc_review", controller.EnterpriseKycNotify) // 人工审核回调
+
+	// 企业认证相关接口
+	enterpriseKyc := router.Group("/enterprise_kyc")
+	enterpriseKyc.POST("/submit", controller.SubmitEnterpriseKyc)    // 提交企业认证
+	enterpriseKyc.POST("/status", controller.GetEnterpriseKycStatus) // 查询企业认证状态
 
 	chat := router.Group("/chat")
 	chat.GET("/time", controller.GetChatTime)
