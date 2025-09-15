@@ -292,6 +292,8 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
 	isDomestic := isDomesticKyc(userKycInfo.LinkUrl)
 	// 解析腾讯KYC链接参数（如果是国内认证）
 	var photoURL string
+	var certImages string
+	var certVideo string
 	var tencentNonce, tencentOrderNo string
 	if isDomestic {
 		// 解析链接参数
@@ -343,6 +345,32 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
 				}
 			}
 		}
+	} else {
+		// Onfido认证：从数据库获取已下载的证件图片和视频
+		// 解析JSON格式的URL数组并转换为逗号分割的字符串
+		if userKycInfo.CertImages != "" {
+			var imageUrls []string
+			if err := json.Unmarshal([]byte(userKycInfo.CertImages), &imageUrls); err == nil {
+				certImages = strings.Join(imageUrls, ",")
+			} else {
+				// 如果解析失败，直接使用原始值
+				certImages = userKycInfo.CertImages
+				log.Printf("解析证件图片JSON失败: %v", err)
+			}
+		}
+
+		if userKycInfo.CertVideo != "" {
+			var videoUrls []string
+			if err := json.Unmarshal([]byte(userKycInfo.CertVideo), &videoUrls); err == nil {
+				certVideo = strings.Join(videoUrls, ",")
+			} else {
+				// 如果解析失败，直接使用原始值
+				certVideo = userKycInfo.CertVideo
+				log.Printf("解析人脸视频JSON失败: %v", err)
+			}
+		}
+
+		log.Printf("Onfido认证 - 证件图片: %s, 人脸视频: %s", certImages, certVideo)
 	}
 
 	// 准备提交数据
@@ -368,6 +396,14 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
 			submitData["face_photo"] = photoURL
 		} else {
 			return fmt.Errorf("查询照片失败")
+		}
+	} else {
+		// Onfido认证：添加证件图片和人脸视频
+		if certImages != "" {
+			submitData["identity_certificate"] = certImages // 证件图片
+		}
+		if certVideo != "" {
+			submitData["face_photo"] = certVideo // 人脸视频
 		}
 	}
 

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -237,11 +238,10 @@ func IdVerifyStepThree(c *gin.Context) {
 	} else {
 		status = 2
 	}
+	kycManualStatus := models.GetKycManualReviewByUid(uid)
 	kycEnterpriseStatus := models.GetEnterpriseKycByUid(uid)
-
-	if kycEnterpriseStatus.Id != 0 {
-		data["kyc_enterprise"] = kycEnterpriseStatus.ReviewStatus
-	}
+	data["kyc_enterprise"] = kycEnterpriseStatus.ReviewStatus
+	data["kyc_individual"] = kycManualStatus.ReviewStatus
 
 	data["status"] = status
 	JsonReturn(c, 0, msg, data)
@@ -288,6 +288,7 @@ func IdVerifyNotify(c *gin.Context) {
 			AddLogs("RealNameAuth_step4", "not found workflowRunId"+workflowRunId) //写日志
 			return
 		}
+		AddLogs("RealNameAuth_step5-------------------", "workflowRunId"+workflowRunId)
 		switch reqDataTask.Payload.Object.TaskDefId {
 		case "profile_data": //个人信息
 			var reqDataTaskProfile onfido.WebhookReqTaskProfileDataParam
@@ -322,7 +323,7 @@ func IdVerifyNotify(c *gin.Context) {
 			var documentUrls []string
 			documentIds := reqDataTaskDocument.Payload.Resource.Input.DocumentIds
 			for _, documentId := range documentIds {
-				documentUrl, err := onfido.DownloadDocument(documentId.Id)
+				documentUrl, err := onfido.DownloadDocument(documentId.Id, "")
 				if err != nil {
 					AddLogs("RealNameAuth_step9", util.ItoS(userKycInfo.Uid)+" error:"+err.Error()) //写日志
 				}
@@ -359,6 +360,37 @@ func IdVerifyNotify(c *gin.Context) {
 			}
 			AddLogs("RealNameAuth_step12", util.ItoS(userKycInfo.Uid)+" info:document_check"+"success") //写日志
 
+		case "face_check_motion": //人脸验证
+			var reqDataTaskMotion onfido.WebhookReqTaskMotionParam
+			err = json.Unmarshal(reqBody, &reqDataTaskMotion)
+			if err != nil {
+				log.Println("RealNameAuthNotify error6:", "json unmarshal failed4.")
+				return
+			}
+			//下载证件信息
+			var motionUrls []string
+			motionIds := reqDataTaskMotion.Payload.Resource.Input.MotionVideoId
+			for _, motionId := range motionIds {
+				motionUrl, err := onfido.DownloadDocument(motionId.Id, "mp4")
+				AddLogs("face_check_motion DownloadDocument", motionUrl)
+				if err != nil {
+					log.Println("RealNameAuthNotify error6:", "json unmarshal failed4.")
+				}
+				motionUrls = append(motionUrls, motionUrl)
+			}
+			log.Println("face_check_motion", motionUrls)
+			motionUrlsJson, _ := json.Marshal(motionUrls)
+			//更新数据
+			AddLogs("face_check_motion", string(motionUrlsJson))
+			err = models.UpdateUserKycByUid(userKycInfo.Uid, map[string]interface{}{
+				"cert_video":  string(motionUrlsJson),
+				"update_time": time.Now().Unix(),
+			})
+			if err != nil {
+				AddLogs("FaceCheck_step1 UpdateUserKycByUid", util.ItoS(userKycInfo.Uid)+" error7") //写日志
+				return
+			}
+
 		default:
 			AddLogs("RealNameAuth_step13", util.ItoS(userKycInfo.Uid)+" unknown TaskDefId:"+reqDataTask.Payload.Object.TaskDefId) //写日志
 			return
@@ -382,7 +414,7 @@ func IdVerifyNotify(c *gin.Context) {
 			return
 		}
 		if reqData.Payload.Resource.Status != "approved" {
-			status := "1"
+			status := "2"
 			_, userInfo := models.GetUserById(userKycInfo.Uid)
 			_ = models.UpdateUserKycByUid(userKycInfo.Uid, map[string]interface{}{"status": status, "update_time": time.Now().Unix()})
 			ddMsg := fmt.Sprintf("【cherryProxy】%s提交了实名认证，当前状态[%s]，请前往后台审核", userInfo.Username, reqData.Payload.Resource.Status)

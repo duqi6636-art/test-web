@@ -14,6 +14,7 @@ type UserKyc struct {
 	CertNumber        string `json:"cert_number" `         // 证件号
 	CertCate          string `json:"cert_cate"`            // 证件类型
 	CertImages        string `json:"cert_images"`          // 证件图片
+	CertVideo         string `json:"cert_video"`           // 视频
 	Status            string `json:"status"`               // 状态:0=进行中,1=正常,2=认证失败 review,  3=认证失败 declined,4=认证失败 证件号是否已被认证
 	CreateTime        int64  `json:"create_time"`          // 添加时间
 	UpdateTime        int64  `json:"update_time"`          // 更新时间
