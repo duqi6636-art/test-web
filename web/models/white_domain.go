@@ -1,5 +1,7 @@
 package models
 
+import "api-360proxy/web/pkg/util"
+
 // MdUserApplyDomain 添加申请域名白名单
 type MdUserApplyDomain struct {
 	Id               int    `json:"id"`
@@ -54,8 +56,11 @@ func CheckUserDomainExists(uid int, domain string) bool {
 }
 
 // AddUserDomainWhite 添加数据
-func AddUserDomainWhite(info MdUserApplyDomain) (err error) {
+func AddUserDomainWhite(info MdUserApplyDomain) (applyId int, err error) {
+	info.CreateTime = util.GetNowInt()
+	info.UpdateTime = util.GetNowInt()
 	err = db.Table(userApplyDomainTable).Create(&info).Error
+	applyId = info.Id
 	return
 }
 
@@ -67,6 +72,12 @@ func UpdateDomainApplyByUserAndDomains(uid int, domains []string, updateData map
 	return db.Table(userApplyDomainTable).
 		Where("uid = ? AND domain IN (?)", uid, domains).
 		Updates(updateData).Error
+}
+
+// UpdateDomainApplyID 更新指定ID信息
+func UpdateDomainApplyID(uid int, updateData map[string]interface{}) error {
+	return db.Table(userApplyDomainTable).
+		Where("id = ?", uid).Updates(updateData).Error
 }
 
 // GetUserDomainWhiteByUid 获取列表 By Uid
@@ -82,4 +93,23 @@ func UpdateDomainApplyByDomains(applyId int, domains []string, updateData map[st
 		return nil
 	}
 	return db.Table(userApplyDomainTable).Where("third_party_req_id = ? AND domain IN (?)", applyId, domains).Updates(updateData).Error
+}
+
+// CheckDomainInBlacklist 检查域名是否在黑名单中
+func CheckDomainInBlacklist(domain string) bool {
+	var count int64
+
+	// 检查 cm_black_domain 表
+	db.Table("cm_black_domain").Where("domain = ?", domain).Count(&count)
+	if count > 0 {
+		return true
+	}
+
+	// 检查 md_domain_black 表
+	db.Table("cm_domain_black").Where("domain = ?", domain).Count(&count)
+	if count > 0 {
+		return true
+	}
+
+	return false
 }
