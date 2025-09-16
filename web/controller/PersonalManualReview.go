@@ -5,7 +5,6 @@ import (
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
 	"bytes"
-	"crypto/md5"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
@@ -477,35 +476,6 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
 		}
 	}
 	return nil
-}
-
-// 生成第三方签名
-func generateThirdPartySign(departmentId string, timestamp string, signKey string) string {
-	params := map[string]string{
-		"departmentId": departmentId,
-		"timestamp":    timestamp,
-	}
-
-	var keys []string
-	for k := range params {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	var arr []string
-	for _, k := range keys {
-		if params[k] != "" {
-			arr = append(arr, fmt.Sprintf("%s=%s", k, params[k]))
-		}
-	}
-
-	signData := strings.Join(arr, "&") + "&key=" + signKey
-
-	h := md5.New()
-	h.Write([]byte(signData))
-	sign := strings.ToUpper(hex.EncodeToString(h.Sum(nil)))
-
-	return sign
 }
 
 // parseTencentKycUrl 解析腾讯KYC链接中的参数
