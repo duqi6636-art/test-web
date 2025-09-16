@@ -229,6 +229,12 @@ func webRouter(router *gin.Engine) {
 	kyc.POST("/verify/get_face_url", controller.GetFaceUrl)      // 获取腾讯人脸核验链接
 	kyc.POST("/verify/get_country", controller.GetKycCountry)    // 获取国家列表
 
+	domain := router.Group("/domain")
+
+	domain.POST("/apply", controller.AddDomainWhiteApply)                          // 添加域名白名单申请
+	domain.POST("/get_apply_domain", controller.DomainWhiteList)                   // 获取域名白名单申请列表
+	domain.POST("/notify/domain_white_review", controller.DomainWhiteReviewNotify) // 域名白名单审核回调
+
 	// KYC人工审核接口
 	kyc.POST("/upload_document", controller.UploadKycDocument)          // 上传证明材料
 	kyc.POST("/submit_manual_review", controller.SubmitKycManualReview) // 提交人工审核
