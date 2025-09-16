@@ -2,12 +2,14 @@ package onfido
 
 import (
 	"api-360proxy/web/models"
+	"api-360proxy/web/pkg/util"
 	"api-360proxy/web/service/helper"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"runtime"
@@ -102,8 +104,14 @@ func RunWorkflow(applicantId string) (WorkflowRun, error) {
 }
 
 // DownloadDocument 下载证件图片
-func DownloadDocument(documentId string) (string, error) {
+func DownloadDocument(documentId string, suffix string) (string, error) {
+	if suffix == "" {
+		suffix = "jpeg"
+	}
 	var uri = "https://api.eu.onfido.com/v3.6/documents/" + documentId + "/download"
+	if suffix == "mp4" {
+		uri = "https://api.eu.onfido.com/v3.6/motion_captures/" + documentId + "/download"
+	}
 	// 创建一个新的文件
 	appDir := helper.GetAppDir()
 	if runtime.GOOS != "windows" {
@@ -112,25 +120,81 @@ func DownloadDocument(documentId string) (string, error) {
 	date := time.Now().Format("2006_01_02")
 	filePath := appDir + "/static/kyc/" + date
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		err = os.Mkdir(filePath, 0755)
+		err = os.MkdirAll(filePath, 0755)
 		if err != nil {
 			// 处理创建文件夹失败的错误
 			return "", errors.New(err.Error())
 		}
 	}
-	fileName := fmt.Sprintf("%d.jpeg", time.Now().Unix())
+	fileName := fmt.Sprintf("%d.%s", time.Now().Unix(), suffix)
 	ofdToken := models.GetConfigVal("onfido_token")
-	err := helper.DownloadImage(uri, filePath+"/"+fileName, ofdToken)
+	localFilePath := filePath + "/" + fileName
+	err := helper.DownloadImage(uri, localFilePath, ofdToken)
 
 	if err != nil {
 		fmt.Println("下载图片:", err)
 		return "", err
 	}
-	//访问地址
-	apiHref := models.GetConfigVal("onfido_api_href")
-	url := apiHref + "/static/kyc/" + date + "/" + fileName
 
-	return url, nil
+	// 上传到远程服务器
+	remoteUrl, err := uploadToRemoteServer(localFilePath, fileName)
+	if err != nil {
+		fmt.Println("上传到远程服务器失败:", err)
+		// 如果上传失败，返回本地地址
+		apiHref := models.GetConfigVal("onfido_api_href")
+		url := apiHref + "/static/kyc/" + date + "/" + fileName
+		return url, nil
+	}
+	log.Println("remoteUrl:", remoteUrl)
+
+	return remoteUrl, nil
+}
+
+// uploadToRemoteServer 上传文件到远程服务器
+func uploadToRemoteServer(localFilePath, fileName string) (string, error) {
+	// 打开本地文件
+	file, err := os.Open(localFilePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	// 获取远程服务器配置
+	resourceDomainLocal := models.GetConfigVal("resource_domain_local")
+	if resourceDomainLocal == "" {
+		return "", errors.New("remote server config not found")
+	}
+
+	uploadUrl := resourceDomainLocal + "/upload_file"
+
+	// 上传文件
+	rep, err := util.HttpPostMultiPart(uploadUrl, "kyc", file, fileName)
+	if err != nil {
+		return "", err
+	}
+
+	// 解析上传结果
+	var uploadResult struct {
+		Code int                    `json:"code"`
+		Msg  string                 `json:"msg"`
+		Data map[string]interface{} `json:"data"`
+	}
+
+	if err := json.Unmarshal([]byte(rep), &uploadResult); err != nil {
+		return "", err
+	}
+
+	if uploadResult.Code != 0 {
+		return "", errors.New(uploadResult.Msg)
+	}
+
+	// 获取文件URL
+	fileUrl, ok := uploadResult.Data["path_url"].(string)
+	if !ok {
+		return "", errors.New("failed to get file url from response")
+	}
+
+	return fileUrl, nil
 }
 
 // 创建申请人-请求参数结构体
@@ -339,6 +403,42 @@ type WebhookReqTaskProfileDataParam struct {
 			Input         struct {
 			} `json:"input"`
 			UpdatedAt time.Time `json:"updated_at"`
+		} `json:"resource"`
+	} `json:"payload"`
+}
+
+type WebhookReqTaskMotionParam struct {
+	Payload struct {
+		ResourceType string `json:"resource_type"`
+		Action       string `json:"action"`
+		Object       struct {
+			Id                 string    `json:"id"`
+			TaskSpecId         string    `json:"task_spec_id"`
+			TaskDefId          string    `json:"task_def_id"`
+			WorkflowRunId      string    `json:"workflow_run_id"`
+			Status             string    `json:"status"`
+			CompletedAtIso8601 time.Time `json:"completed_at_iso8601"`
+			Href               string    `json:"href"`
+		} `json:"object"`
+		Resource struct {
+			WorkflowRunId string `json:"workflow_run_id"`
+			Input         struct {
+				MotionVideoId []struct {
+					ChecksumSha256 string `json:"checksum_sha256"`
+					Id             string `json:"id"`
+					Type           string `json:"type"`
+				} `json:"motion_video_id"`
+				References []struct {
+					ChecksumSha256 string `json:"checksum_sha256"`
+					Id             string `json:"id"`
+					Type           string `json:"type"`
+				} `json:"references"`
+			} `json:"input"`
+			TaskDefVersion interface{} `json:"task_def_version"`
+			CreatedAt      time.Time   `json:"created_at"`
+			TaskDefId      string      `json:"task_def_id"`
+			Id             string      `json:"id"`
+			UpdatedAt      time.Time   `json:"updated_at"`
 		} `json:"resource"`
 	} `json:"payload"`
 }
