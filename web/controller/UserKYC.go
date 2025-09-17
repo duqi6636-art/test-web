@@ -6,6 +6,7 @@ import (
 	"api-360proxy/web/pkg/util"
 	"api-360proxy/web/service/onfido"
 	"api-360proxy/web/service/tencent"
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -15,6 +16,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -420,6 +422,15 @@ func IdVerifyNotify(c *gin.Context) {
 			ddMsg := fmt.Sprintf("【cherryProxy】%s提交了实名认证，当前状态[%s]，请前往后台审核", userInfo.Username, reqData.Payload.Resource.Status)
 			fmt.Println(ddMsg)
 			AddLogs("RealNameAuth_step17", "info3 status="+reqData.Payload.Resource.Status+ddMsg) //写日志
+			// 认证失败，向质量部传递第三方信息
+			go func() {
+				err := submitThirdPartyKycInfo(userKycInfo, "failed", reqData.Payload.Resource.Status)
+				if err != nil {
+					AddLogs("SubmitThirdParty_Failed", err.Error())
+				} else {
+					AddLogs("SubmitThirdParty_Failed", "success")
+				}
+			}()
 			return
 		}
 
@@ -432,6 +443,16 @@ func IdVerifyNotify(c *gin.Context) {
 		})
 		//清除缓存
 		AddLogs("RealNameAuth_step18", "info"+"success") //写日志
+		// 认证成功，向质量部传递第三方信息
+		go func() {
+			err := submitThirdPartyKycInfo(userKycInfo, "approved", reqData.Payload.Resource.Status)
+			if err != nil {
+				AddLogs("SubmitThirdParty_Success", err.Error())
+			} else {
+				AddLogs("SubmitThirdParty_Success", "success")
+			}
+		}()
+
 		return
 	} else {
 		AddLogs("RealNameAuth_step19", "unknown action"+reqDataCommon.Payload.Action) //写日志
@@ -472,8 +493,10 @@ func TencentKycNotify(c *gin.Context) {
 	}
 
 	status := "1"
+	thirdPartyStatus := "approved"
 	if code != "0" {
 		status = "-3"
+		thirdPartyStatus = "failed"
 	}
 	//修改用户实名状态
 	nowTime := time.Now().Unix()
@@ -483,6 +506,16 @@ func TencentKycNotify(c *gin.Context) {
 		"expire_time": nowTime + CertValidTime*86400,
 	})
 	AddLogs("RealNameAuth_step5", "success") //写日志
+	// 向质量部传递第三方信息
+	go func() {
+		err := submitThirdPartyKycInfo(userKycInfo, thirdPartyStatus, code)
+		if err != nil {
+			AddLogs("SubmitThirdParty_Tencent", err.Error())
+		} else {
+			AddLogs("SubmitThirdParty_Tencent", "success")
+		}
+	}()
+
 	return
 }
 
@@ -490,6 +523,260 @@ func GenerateHMACSHA256(data []byte, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write(data)
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// submitThirdPartyKycInfo 向质量部传递第三方KYC信息
+func submitThirdPartyKycInfo(userKycInfo models.UserKyc, verifyStatus string, thirdPartyResult string) error {
+	// 获取用户信息
+	err, userInfo := models.GetUserById(userKycInfo.Uid)
+	if err != nil || userInfo.Id == 0 {
+		return fmt.Errorf("用户不存在")
+	}
+
+	// 获取认证相关的文件信息
+	var certImages string
+	var certVideo string
+	var photoURL string
+	var tencentNonce, tencentOrderNo string
+	// 判断认证类型（国内/国外）
+	isdomestic := isDomesticKyc(userKycInfo.LinkUrl)
+
+	// 根据认证类型设置source值
+	sourceValue := 2 // 默认为onfido
+	if isdomestic {
+		sourceValue = 4 // 腾讯认证
+	}
+	if isdomestic {
+		// 腾讯认证：解析链接参数并获取照片
+		tencentNonce, tencentOrderNo, err = parseTencentKycUrl(userKycInfo.LinkUrl)
+		if err != nil {
+			log.Printf("解析腾讯KYC链接失败: %v", err)
+			return fmt.Errorf("解析腾讯KYC链接失败")
+		}
+
+		// 获取照片路由地址
+		kycAppId := models.GetConfigVal("tencent_kyc_app_id")
+		// 第一步：获取 KYC 访问令牌
+		accessToken, err := getKycAccessToken()
+		if err != nil {
+			log.Printf("获取KYC访问令牌失败: %v", err)
+			// 继续执行，不影响提交
+		} else {
+			// 第二步：获取 API 签名票据
+			ticketList, err := getApiTicket(accessToken, "SIGN", "")
+			if err != nil || len(ticketList) == 0 {
+				log.Printf("获取API签名票据失败: %v", err)
+				// 继续执行，不影响提交
+			} else {
+				ticket := ticketList[0].Value
+
+				// 使用解析出的参数获取照片
+				param := []string{tencentNonce, tencentOrderNo, "1.0.0", kycAppId}
+				sign, err := getKycSign(param, ticket)
+				if err == nil {
+					VerifyReq := VerifyRequest{
+						AppId:   kycAppId,
+						OrderNo: tencentOrderNo,
+						Version: "1.0.0",
+						Nonce:   tencentNonce,
+						Sign:    sign,
+						GetFile: "2",
+					}
+					err, response := sendRequest(VerifyReq)
+					if err == nil {
+						photoURL, err = SaveTencentKycPhoto(response.Result.Photo, tencentOrderNo)
+						if err != nil {
+							log.Printf("保存照片失败: %v", err)
+							return err
+						} else {
+							log.Printf("成功获取照片URL: %s", photoURL)
+						}
+					} else {
+						log.Printf("查询照片失败: %v", err)
+						return err
+					}
+				}
+			}
+		}
+	} else {
+		// Onfido认证：从数据库获取已下载的证件图片和视频
+		// 解析JSON格式的URL数组并转换为逗号分割的字符串
+		if userKycInfo.CertImages != "" {
+			var imageUrls []string
+			if err := json.Unmarshal([]byte(userKycInfo.CertImages), &imageUrls); err == nil {
+				certImages = strings.Join(imageUrls, ",")
+			} else {
+				// 如果解析失败，直接使用原始值
+				certImages = userKycInfo.CertImages
+				log.Printf("解析证件图片JSON失败: %v", err)
+			}
+		}
+
+		if userKycInfo.CertVideo != "" {
+			var videoUrls []string
+			if err := json.Unmarshal([]byte(userKycInfo.CertVideo), &videoUrls); err == nil {
+				certVideo = strings.Join(videoUrls, ",")
+			} else {
+				// 如果解析失败，直接使用原始值
+				certVideo = userKycInfo.CertVideo
+				log.Printf("解析人脸视频JSON失败: %v", err)
+			}
+		}
+
+		log.Printf("Onfido认证 - 证件图片: %s, 人脸视频: %s", certImages, certVideo)
+	}
+
+	// 获取用户历史购买记录类型
+	orderTypes := getUserOrderTypes(userKycInfo.Uid)
+
+	// 准备提交数据
+	threeInfo := map[string]interface{}{
+		"id":           userKycInfo.ApplicantID,
+		"audit_status": getAuditStatus(verifyStatus), // 三方审核状态：1=通过，2=未通过
+		"audit_time":   util.GetNowInt(),             // 审核时间
+		"remark":       thirdPartyResult,             // 三方审核备注
+	}
+	// 根据认证类型添加相应的文件信息
+	if isdomestic {
+		// 腾讯认证：添加人脸照片
+		if photoURL != "" {
+			threeInfo["face_photo"] = photoURL
+		}
+		threeInfo["document_photo"] = ""
+	} else {
+		// Onfido认证：添加证件图片和人脸视频
+		if certImages != "" {
+			threeInfo["document_photo"] = certImages // 证件图片
+		}
+		if certVideo != "" {
+			threeInfo["face_photo"] = certVideo // 人脸视频
+		}
+	}
+	submitData := map[string]interface{}{
+		"oa_platform_name":   "922proxy",
+		"uid":                userKycInfo.Uid,
+		"account":            userInfo.Username,
+		"account_type":       1, // 1：普通账号，2：代理商
+		"reg_time":           userInfo.CreateTime,
+		"apply_time":         util.GetNowInt(),
+		"verify_type":        1,           // 1：个人，2：企业
+		"source":             sourceValue, // 2：onfido，3：平台自审，4：腾讯
+		"order_type":         orderTypes,  // 用户历史购买记录类型
+		"three_parties_info": threeInfo,
+	}
+
+	// 生成签名
+	departmentId := models.GetConfigVal("third_party_department_id")
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	signKey := models.GetConfigVal("third_party_sign_key")
+
+	sign := generateThirdPartySign(departmentId, timestamp, signKey)
+
+	// 调用第三方API
+	apiUrl := models.GetConfigVal("third_party_kyc_api_url")
+	if apiUrl == "" {
+		return fmt.Errorf("第三方KYC接口URL未配置")
+	}
+
+	jsonData, err := json.Marshal(submitData)
+	if err != nil {
+		return fmt.Errorf("序列化请求数据失败: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", apiUrl, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("departmentId", departmentId)
+	req.Header.Set("timestamp", timestamp)
+	req.Header.Set("sign", sign)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// 处理响应
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("API调用失败: %d", resp.StatusCode)
+	}
+	// 读取响应体
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("读取响应体失败: %v", err)
+	}
+
+	// 记录请求和响应日志
+	AddLogs("submitThirdPartyKycInfo_Request", string(jsonData))
+	AddLogs("submitThirdPartyKycInfo_Response", string(respBody))
+
+	// 解析响应
+	var response ThirdPartyKycResponse
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		return fmt.Errorf("解析响应失败: %v", err)
+	}
+
+	if response.Code != 0 {
+		return fmt.Errorf("API调用失败 code为: %v", response.Code)
+	}
+	return nil
+}
+
+// getUserOrderTypes 获取用户历史购买记录类型
+func getUserOrderTypes(uid int) string {
+	// 套餐类型映射表
+	pakTypeNames := map[string]string{
+		"normal":      "ISP Proxies",
+		"agent":       "ISP Proxies (Enterprise)",
+		"long_term":   "Static Residential Proxies",
+		"flow":        "Residential Proxies",
+		"flow_agent":  "Residential Proxies (Enterprise)",
+		"flow_day":    "Unlimited Residential Proxies",
+		"dynamic_isp": "Rotating ISP Proxies",
+		"balance":     "Balance Recharge",
+	}
+
+	// 获取用户所有已支付订单的套餐类型
+	orderList := models.GetOrderListBy(uid, 0, 0, 3, "") // pay_status=3表示已支付
+
+	// 使用map去重
+	pakTypeMap := make(map[string]bool)
+	for _, order := range orderList {
+		if order.PakType != "" {
+			pakTypeMap[order.PakType] = true
+		}
+	}
+
+	// 转换为英文描述数组
+	var pakTypes []string
+	for pakType := range pakTypeMap {
+		if typeName, exists := pakTypeNames[pakType]; exists {
+			pakTypes = append(pakTypes, typeName)
+		} else {
+			// 如果映射表中没有对应的类型，使用原始值
+			pakTypes = append(pakTypes, pakType)
+		}
+	}
+
+	// 如果没有购买记录，返回空字符串
+	if len(pakTypes) == 0 {
+		return ""
+	}
+
+	// 用逗号连接所有套餐类型
+	return strings.Join(pakTypes, ",")
+}
+
+// getAuditStatus 根据验证状态获取审核状态
+func getAuditStatus(verifyStatus string) int {
+	if verifyStatus == "approved" {
+		return 1 // 通过
+	}
+	return 2 // 未通过
 }
 
 // 获取腾讯人脸核验链接
