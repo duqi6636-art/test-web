@@ -95,6 +95,15 @@ func UpdateDomainApplyByDomains(applyId int, domains []string, updateData map[st
 	return db.Table(userApplyDomainTable).Where("third_party_req_id = ? AND domain IN (?)", applyId, domains).Updates(updateData).Error
 }
 
+// GetDomainApplyByDomainAndThirdPartyId 根据域名和第三方ID查询域名申请记录
+func GetDomainApplyByDomainAndThirdPartyId(domain string, thirdPartyId int) (MdUserApplyDomain, error) {
+	var applyRecord MdUserApplyDomain
+	err := db.Table(userApplyDomainTable).
+		Where("domain = ? AND third_party_req_id = ?", domain, thirdPartyId).
+		First(&applyRecord).Error
+	return applyRecord, err
+}
+
 // CheckDomainInBlacklist 检查域名是否在黑名单中
 func CheckDomainInBlacklist(domain string) bool {
 	var count int64

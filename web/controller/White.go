@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	emailSender "api-360proxy/web/service/email"
 	"github.com/gin-gonic/gin"
 )
 
@@ -352,6 +353,9 @@ func DomainWhiteReviewNotify(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "process processDomainsByStatus failed", nil)
 		return
 	}
+	// 发送邮件通知
+	go sendDomainReviewNotificationEmail(callbackData)
+
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
 }
 
@@ -413,4 +417,111 @@ func parseAndCleanDomains(domainStr string) []string {
 		}
 	}
 	return cleanDomains
+}
+
+// sendDomainReviewNotificationEmail 发送域名审核结果邮件通知
+func sendDomainReviewNotificationEmail(callbackData models.DomainReviewCallbackData) {
+	log.Printf("开始发送域名审核邮件通知: %+v", callbackData)
+
+	userInfo, err := getUserInfoFromDomains(callbackData)
+	if err != nil {
+		log.Printf("获取用户信息失败: %v", err)
+		return
+	}
+
+	if userInfo.Email == "" {
+		log.Printf("用户邮箱为空，无法发送邮件通知")
+		return
+	}
+
+	// 构建邮件内容
+	emailParams := buildDomainReviewEmailParams(callbackData, userInfo)
+
+	// 发送邮件
+	success := sendDomainReviewEmail(userInfo.Email, callbackData.AuditStatus, emailParams)
+
+	if success {
+		log.Printf("域名审核邮件通知发送成功: %s", userInfo.Email)
+	} else {
+		log.Printf("域名审核邮件通知发送失败: %s", userInfo.Email)
+	}
+}
+
+// getUserInfoFromDomains 从域名信息中获取用户信息
+func getUserInfoFromDomains(callbackData models.DomainReviewCallbackData) (models.Users, error) {
+	var userInfo models.Users
+
+	// 从通过的域名或未通过的域名中获取用户信息
+	domains := parseAndCleanDomains(callbackData.PassDomains)
+	if len(domains) == 0 {
+		domains = parseAndCleanDomains(callbackData.NoPassDomains)
+	}
+
+	if len(domains) == 0 {
+		return userInfo, fmt.Errorf("没有找到域名信息")
+	}
+
+	// 通过域名查找申请记录，获取用户ID
+	applyRecord, err := models.GetDomainApplyByDomainAndThirdPartyId(domains[0], int(callbackData.Id))
+	if err != nil {
+		return userInfo, fmt.Errorf("查找域名申请记录失败: %v", err)
+	}
+
+	// 根据用户ID获取用户信息
+	err, userInfo = models.GetUserById(applyRecord.Uid)
+	if err != nil {
+		return userInfo, fmt.Errorf("获取用户信息失败: %v", err)
+	}
+
+	return userInfo, nil
+}
+
+// buildDomainReviewEmailParams 构建邮件参数
+func buildDomainReviewEmailParams(callbackData models.DomainReviewCallbackData, userInfo models.Users) map[string]string {
+	params := make(map[string]string)
+
+	// 基础信息
+	params["submitDate"] = util.GetTimeStr(callbackData.AuditTime, "2006-01-02 15:04:05")
+
+	// 域名信息（保留原有字段以兼容其他地方的使用）
+	if callbackData.PassDomains != "" {
+		params["approvedDomains"] = callbackData.PassDomains
+	} else {
+		params["approvedDomains"] = ""
+	}
+
+	if callbackData.NoPassDomains != "" {
+		params["rejectedDomains"] = callbackData.NoPassDomains
+	} else {
+		params["rejectedDomains"] = ""
+	}
+
+	// 联系信息
+	params["supportEmail"] = "support@cherryproxy.com"
+	params["whatsappContact"] = "+85267497336"
+	params["teamName"] = "Cherry Proxy Team"
+
+	return params
+}
+
+// sendDomainReviewEmail 发送域名审核邮件
+func sendDomainReviewEmail(email string, auditStatus int, params map[string]string) bool {
+	// 获取默认邮件服务配置
+	defaultMail := models.GetConfigVal("default_email")
+
+	// 根据审核状态选择邮件类型
+	emailType := 16
+
+	// 发送邮件
+	var success bool
+	switch defaultMail {
+	case "aws_mail":
+		success = emailSender.AwsSendEmail(email, emailType, params, "")
+	case "tencent_mail":
+		success = emailSender.TencentSendEmail(email, emailType, params, "")
+	default:
+		log.Printf("不支持的邮件服务类型: %s", defaultMail)
+		return false
+	}
+	return success
 }
