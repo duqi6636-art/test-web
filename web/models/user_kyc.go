@@ -123,7 +123,7 @@ func CheckUserKycStatus(uid int) int {
 
 	if userKyc.Uid != 0 {
 		switch userKyc.Status {
-		case "2":
+		case "1":
 			// 检查是否过期
 			nowTime := util.GetNowInt()
 			if userKyc.ExpireTime <= 0 || int64(nowTime) <= userKyc.ExpireTime {

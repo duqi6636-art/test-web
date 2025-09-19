@@ -250,6 +250,23 @@ func IdVerifyStepThree(c *gin.Context) {
 	return
 }
 
+// CheckKycStatus 获取所有状态
+func CheckKycStatus(c *gin.Context) {
+	resCode, msg, userInfo := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := userInfo.Id
+	needKyc := false
+	kycStatus := models.CheckUserKycStatus(uid)
+	if kycStatus != 1 { // 未实名认证
+		needKyc = true
+	}
+	JsonReturn(c, 0, msg, needKyc)
+	return
+}
+
 // IdVerifyNotify 异步通知
 func IdVerifyNotify(c *gin.Context) {
 	defer func() {
