@@ -64,18 +64,23 @@ func AddDomainWhiteApply(c *gin.Context) {
 		return
 	}
 
-	successDomains := []string{}
-	failedDomains := []string{}
-	invalidDomains := []string{}
+	// 收集符合条件的域名进行批量处理
+	failedDomains := []string{}                   //失败的域名
+	successDomains := []string{}                  //成功的域名
+	invalidDomains := []string{}                  // 无效的域名
+	validBlacklistDomains := []DomainRemarkPair{} // 需要第三方审核的域名
+	validWhitelistDomains := []DomainRemarkPair{} // 直接通过的域名
+	existsDomains := []string{}                   // 已经存在的域名
+
+	blacklistDomainIDs := []int{} // 黑名单ID
 	// 保存到数据库
 	for _, pair := range domainRemarkPairs {
 		domain := strings.TrimSpace(pair.Domain)
-		remark := strings.TrimSpace(pair.Remark)
-
 		if domain != "" {
 			// 检查是否已存在
 			if models.CheckUserDomainExists(uid, domain) {
 				log.Printf("Domain %s already exists for user %d, skipping", domain, uid)
+				existsDomains = append(existsDomains, domain)
 				continue
 			}
 			// 域名合法性校验
@@ -88,75 +93,87 @@ func AddDomainWhiteApply(c *gin.Context) {
 
 			// 检查域名是否在黑名单中
 			isInBlacklist := models.CheckDomainInBlacklist(domain)
-
-			var addInfo models.MdUserApplyDomain
 			if isInBlacklist {
-				// 在黑名单中，需要第三方审核
-				addInfo = models.MdUserApplyDomain{
-					Uid:        uid,
-					Username:   username,
-					Domain:     domain,
-					Status:     0, // 审核中
-					Remark:     remark,
-					CreateTime: util.GetNowInt(),
-					UpdateTime: util.GetNowInt(),
-				}
-
-				domainID, err := models.AddUserDomainWhite(addInfo)
-				if err != nil {
-					failedDomains = append(failedDomains, domain)
-					continue
-				}
-
-				// 异步提交到第三方审核
-				go func(id int, info models.MdUserApplyDomain) {
-					err := submitDomainsToThirdPartyBatch(id, info)
-					if err != nil {
-						updateData := map[string]interface{}{
-							"third_party_req_id": int(0),
-							"third_party_status": 0, // 未提交
-							"third_party_result": "submit failed",
-							"status":             -1,
-							"update_time":        util.GetNowInt(),
-							"submit_time":        util.GetNowInt(),
-						}
-						err := models.UpdateDomainApplyID(id, updateData)
-						log.Printf("Failed to submit domain %s to third party: %v", info.Domain, err)
-					}
-				}(domainID, addInfo)
-
-				log.Printf("Domain %s is in blacklist, submitted for third-party review", domain)
+				validBlacklistDomains = append(validBlacklistDomains, DomainRemarkPair{domain, pair.Remark})
 			} else {
-				// 不在黑名单中，直接审核通过
-				addInfo = models.MdUserApplyDomain{
-					Uid:        uid,
-					Username:   username,
-					Domain:     domain,
-					Status:     2, // 直接审核通过
-					Remark:     remark,
-					CreateTime: util.GetNowInt(),
-					UpdateTime: util.GetNowInt(),
-					ReviewTime: util.GetNowInt(), // 设置审核时间
-				}
-
-				_, err := models.AddUserDomainWhite(addInfo)
-				if err != nil {
-					failedDomains = append(failedDomains, domain)
-					continue
-				}
-
-				log.Printf("Domain %s is not in blacklist, automatically approved", domain)
+				validWhitelistDomains = append(validWhitelistDomains, DomainRemarkPair{domain, pair.Remark})
 			}
-
-			successDomains = append(successDomains, domain)
 		}
+	}
+	if len(invalidDomains) > 0 {
+		JsonReturn(c, e.ERROR, "存在无效的域名", nil)
+		return
+	}
+	// 不在黑名单中，直接审核通过
+	for _, pair := range validWhitelistDomains {
+		addInfo := models.MdUserApplyDomain{
+			Uid:        uid,
+			Username:   username,
+			Domain:     pair.Domain,
+			Status:     2, // 直接审核通过
+			Remark:     pair.Remark,
+			CreateTime: util.GetNowInt(),
+			UpdateTime: util.GetNowInt(),
+			ReviewTime: util.GetNowInt(), // 设置审核时间
+		}
+
+		_, err := models.AddUserDomainWhite(addInfo)
+		if err != nil {
+			failedDomains = append(failedDomains, pair.Domain)
+			continue
+		}
+		successDomains = append(successDomains, pair.Domain)
+	}
+
+	for _, pair := range validBlacklistDomains {
+		// 在黑名单中，需要第三方审核
+		addInfo := models.MdUserApplyDomain{
+			Uid:        uid,
+			Username:   username,
+			Domain:     pair.Domain,
+			Status:     0, // 审核中
+			Remark:     pair.Remark,
+			CreateTime: util.GetNowInt(),
+			UpdateTime: util.GetNowInt(),
+		}
+
+		domainID, err := models.AddUserDomainWhite(addInfo)
+		if err != nil {
+			failedDomains = append(failedDomains, pair.Domain)
+			continue
+		}
+		blacklistDomainIDs = append(blacklistDomainIDs, int(domainID))
+		successDomains = append(successDomains, pair.Domain)
+	}
+
+	// 一次性提交所有黑名单域名到第三方
+	if len(validBlacklistDomains) > 0 {
+		log.Printf("准备批量提交 %d 个黑名单域名到第三方审核", len(validBlacklistDomains))
+		// 异步提交到第三方审核
+		go func() {
+			err := submitDomainsToThirdPartyBatch(uid, username, validBlacklistDomains, blacklistDomainIDs)
+			if err != nil {
+				for _, id := range blacklistDomainIDs {
+					updateData := map[string]interface{}{
+						"third_party_req_id": int(0),
+						"third_party_status": 0, // 未提交
+						"third_party_result": "submit failed",
+						"status":             -1,
+						"update_time":        util.GetNowInt(),
+						"submit_time":        util.GetNowInt(),
+					}
+					models.UpdateDomainApplyID(id, updateData)
+				}
+				log.Printf("批量提交域名到第三方失败: %v", err)
+			}
+		}()
 	}
 
 	// 构建返回结果
 	result := map[string]interface{}{
 		"success_domains": successDomains,
 		"failed_domains":  failedDomains,
-		"invalid_domains": invalidDomains,
+		"exists_domains":  existsDomains,
 		"message":         fmt.Sprintf("已提交%d个域名进行审核", len(successDomains)),
 	}
 
@@ -167,23 +184,31 @@ func AddDomainWhiteApply(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", result)
 }
 
-func submitDomainsToThirdPartyBatch(id int, domainData models.MdUserApplyDomain) error {
+func submitDomainsToThirdPartyBatch(uid int, username string, domains []DomainRemarkPair, domainIDs []int) error {
 	// 获取用户信息
-	err, userInfo := models.GetUserById(domainData.Uid)
+	err, userInfo := models.GetUserById(uid)
 	if err != nil || userInfo.Id == 0 {
 		return fmt.Errorf("用户不存在")
+	}
+
+	// 准备域名列表
+	var domainList []string
+	var remarkList []string
+	for _, pair := range domains {
+		domainList = append(domainList, pair.Domain)
+		remarkList = append(remarkList, pair.Remark)
 	}
 
 	// 准备提交数据
 	submitData := map[string]interface{}{
 		"oa_platform_name": "360cherry",
-		"uid":              domainData.Uid,
-		"account":          domainData.Username,
+		"uid":              uid,
+		"account":          username,
 		"account_type":     1,
 		"apply_time":       time.Now().Unix(),
-		"apply_remark":     domainData.Remark,
+		"apply_remark":     strings.Join(remarkList, ","),
 		"reg_time":         userInfo.CreateTime,
-		"domains":          domainData.Domain,
+		"domains":          strings.Join(domainList, ","),
 	}
 
 	// 生成签名
@@ -233,22 +258,26 @@ func submitDomainsToThirdPartyBatch(id int, domainData models.MdUserApplyDomain)
 
 	if response.Data.Id > 0 {
 		// 根据域名批量更新
-		updateData := map[string]interface{}{
-			"third_party_req_id": int(response.Data.Id),
-			"third_party_status": 1,
-			"third_party_result": "submitted",
-			"update_time":        util.GetNowInt(),
-			"status":             1,
-			"submit_time":        util.GetNowInt(),
+		successCount := 0
+		for i, domainID := range domainIDs {
+			updateData := map[string]interface{}{
+				"third_party_req_id": int(response.Data.Id),
+				"third_party_status": 1,
+				"third_party_result": "submitted",
+				"update_time":        util.GetNowInt(),
+				"status":             1,
+				"submit_time":        util.GetNowInt(),
+			}
+			log.Println("updateData:", updateData)
+			err := models.UpdateDomainApplyID(domainID, updateData)
+			if err != nil {
+				log.Printf("更新域名 %s (ID: %d) 第三方信息失败: %v", domains[i].Domain, domainID, err)
+			} else {
+				successCount++
+				log.Printf("成功更新域名 %s (ID: %d) 第三方信息", domains[i].Domain, domainID)
+			}
 		}
-		log.Println("updateData:", updateData)
-		err := models.UpdateDomainApplyID(id, updateData)
-		if err != nil {
-			log.Printf("Failed to update third party info: uid=%d, domains=%v, error=%v", domainData.Uid, domainData.Domain, err)
-			return err
-		} else {
-			log.Printf("Successfully updated third party info for domains: %v with ID: %d", domainData.Domain, response.Data.Id)
-		}
+		log.Printf("批量提交成功：%d/%d 个域名状态更新成功，第三方ID: %d", successCount, len(domainIDs), response.Data.Id)
 	} else {
 		log.Printf("ID type assertion failed")
 		return fmt.Errorf("third_party_req_id assertion failed")
