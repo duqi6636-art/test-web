@@ -384,3 +384,23 @@ func CheckReplace(c *gin.Context) {
 	data["is_replace"] = is_replace
 	JsonReturn(c, 0, "__T_SUCCESS", data)
 }
+
+func CheckKyc(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	needKyc := false
+
+	// 检查是否需要实名认证（上线后注册的用户）
+	if models.CheckUserNeedKyc(user.CreateTime) {
+		kycStatus := models.CheckUserKycStatus(uid)
+		if kycStatus != 1 { // 未实名认证
+			needKyc = true
+		}
+	}
+
+	JsonReturn(c, 0, "__T_SUCCESS", needKyc)
+}

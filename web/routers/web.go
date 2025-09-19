@@ -195,6 +195,7 @@ func webRouter(router *gin.Engine) {
 	statics.POST("/use_download", controller.UsedStaticRecordDownload) // 统计使用记录下载
 	statics.POST("/change", controller.ChangeStaticIp)                 //  更换的静态IP
 	statics.POST("/check_replace", controller.CheckReplace)            // 检测是否可以更换IP
+	statics.POST("/check_kyc", controller.CheckKyc)                    // 检测是否可以更换IP
 
 	// 长效ISP流量
 	web.POST("/user/long_isp/get_main_user_account", controller.GetLongIspMainAccount)                      // 获取长效Isp用户主账号
