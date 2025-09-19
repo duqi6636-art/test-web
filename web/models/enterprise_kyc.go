@@ -103,7 +103,7 @@ func CheckEnterpriseCanSubmitKyc(uid int) (bool, string) {
 	}
 
 	// 如果审核被拒绝或提交失败，可以重新提交
-	if kyc.ReviewStatus == 3 || kyc.ReviewStatus == -1 {
+	if kyc.ReviewStatus == 3 || kyc.ReviewStatus == -1 || kyc.ReviewStatus == 4 {
 		return true, ""
 	}
 

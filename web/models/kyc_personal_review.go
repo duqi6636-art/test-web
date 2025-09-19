@@ -102,7 +102,7 @@ func CheckUserCanSubmitKyc(uid int) (bool, string) {
 	}
 
 	// 如果审核被拒绝或提交失败，可以重新提交
-	if review.ReviewStatus == 3 || review.ReviewStatus == -1 {
+	if review.ReviewStatus == 3 || review.ReviewStatus == -1 || review.ReviewStatus == 4 {
 		return true, ""
 	}
 
