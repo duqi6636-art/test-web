@@ -5,14 +5,11 @@ import (
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -283,35 +280,6 @@ func submitDomainsToThirdPartyBatch(uid int, username string, domains []DomainRe
 		return fmt.Errorf("third_party_req_id assertion failed")
 	}
 	return nil
-}
-
-// 生成第三方签名
-func generateThirdPartySign(departmentId string, timestamp string, signKey string) string {
-	params := map[string]string{
-		"departmentId": departmentId,
-		"timestamp":    timestamp,
-	}
-
-	var keys []string
-	for k := range params {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	var arr []string
-	for _, k := range keys {
-		if params[k] != "" {
-			arr = append(arr, fmt.Sprintf("%s=%s", k, params[k]))
-		}
-	}
-
-	signData := strings.Join(arr, "&") + "&key=" + signKey
-
-	h := md5.New()
-	h.Write([]byte(signData))
-	sign := strings.ToUpper(hex.EncodeToString(h.Sum(nil)))
-
-	return sign
 }
 
 // DomainWhiteList 域名白名单列表
