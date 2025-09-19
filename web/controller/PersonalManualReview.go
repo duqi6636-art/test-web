@@ -4,6 +4,7 @@ import (
 	"api-360proxy/web/e"
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
+	"api-360proxy/web/service/email"
 	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
@@ -894,6 +895,9 @@ func handlePersonalKycCallback(callbackData UnifiedKycCallbackData) error {
 	//if reviewStatus == 2 {
 	//	models.UpdateUserKycStatus(review.Uid, 1) // 更新用户KYC状态为已认证
 	//}
+	// 异步发送邮件通知
+	go sendKycReviewEmail(review.Uid, reviewStatus)
+
 	return nil
 }
 
@@ -938,5 +942,80 @@ func handleEnterpriseKycCallback(callbackData UnifiedKycCallbackData) error {
 	//if reviewStatus == 2 {
 	//	models.UpdateUserEnterpriseKycStatus(kyc.Uid, 1) // 更新用户企业认证状态为已认证
 	//}
+	// 发送审核结果邮件
+	go sendKycReviewEmail(kyc.Uid, reviewStatus)
 	return nil
+}
+
+// sendKycReviewEmail 统一的KYC审核结果邮件发送函数
+func sendKycReviewEmail(uid int, reviewStatus int) {
+	// 获取用户信息
+	err, user := models.GetUserById(uid)
+	if err != nil || user.Id == 0 {
+		fmt.Printf("Failed to get user info for uid %d: %v\n", uid, err)
+		return
+	}
+
+	// 检查用户邮箱
+	if user.Email == "" {
+		fmt.Printf("User email is empty for uid: %d\n", uid)
+		return
+	}
+
+	// 获取邮件服务配置
+	useEmail := models.GetConfigVal("default_email")
+	if useEmail == "" {
+		fmt.Printf("Email service not configured\n")
+		return
+	}
+
+	// 准备基础邮件变量
+	params := make(map[string]string)
+	// 根据KYC类型设置认证类型文本和邮件类型
+	emailType := 7
+	var authStatusText string
+	var descriptionText string
+
+	switch reviewStatus {
+	case 2: // 审核通过
+		descriptionText = "Hello! The domain name application you submitted at {submission time} has been reviewed. The results are as follows:"
+		authStatusText = ""
+	case 3: // 审核拒绝
+		descriptionText = "Hello, your real-name authentication application has been approved. You can now [immediately] check your status and experience more services."
+		authStatusText = "Re-authentication"
+	default:
+		params["auth_status"] = "Invalid review status for personal KYC"
+	}
+
+	params["auth_description"] = descriptionText
+	params["auth_status"] = authStatusText
+
+	params["email"] = "support@cherryproxy.com"
+	params["whatsapp"] = "+85267497336"
+	params["telegram"] = "@Olivia_257856"
+	params["team_name"] = "Cherry Proxy Team"
+	log.Println(params)
+
+	variables := map[string]string{
+		"email": user.Email,
+	}
+
+	// 根据邮件服务类型发送邮件
+	var result bool
+	switch useEmail {
+	case "aws_mail":
+		result = email.AwsSendEmail(user.Email, emailType, variables, "")
+	case "tencent_mail":
+		result = email.TencentSendEmail(user.Email, emailType, variables, "")
+		fmt.Printf("SubMail not supported for KYC emails yet\n")
+	default:
+		fmt.Printf("Unsupported email service: %s\n", useEmail)
+		return
+	}
+
+	if result {
+		fmt.Printf("%s KYC review email sent successfully to %s\n", authStatusText, user.Email)
+	} else {
+		fmt.Printf("Failed to send %s KYC review email to %s\n", authStatusText, user.Email)
+	}
 }
