@@ -117,44 +117,70 @@ func GetKycHistoryByCount(uid int) int {
 // CheckUserKycStatus 检查用户实名认证状态
 // 返回值：0-未实名，1-已实名，2-认证中，3-认证失败
 func CheckUserKycStatus(uid int) int {
+	// 检查个人认证状态
 	userKyc := GetUserKycByUid(uid)
-	if userKyc.Uid == 0 {
-		return 0 // 未实名
+	userCertified := false
+
+	if userKyc.Uid != 0 {
+		switch userKyc.Status {
+		case "2":
+			// 检查是否过期
+			nowTime := util.GetNowInt()
+			if userKyc.ExpireTime <= 0 || int64(nowTime) <= userKyc.ExpireTime {
+				userCertified = true
+			}
+		}
 	}
 
-	switch userKyc.Status {
-	case "1":
-		// 检查是否过期
-		nowTime := util.GetNowInt()
-		if userKyc.ExpireTime > 0 && int64(nowTime) > userKyc.ExpireTime {
-			return 0 // 已过期，视为未实名
-		}
-		return 1 // 已实名
-	case "0":
-		return 2 // 认证中
-	default:
-		return 3 // 认证失败
+	// 检查个人人工认证状态
+	personalCertified := false
+	personalKyc := GetKycManualReviewByUid(uid)
+	if personalKyc.ReviewStatus == 2 {
+		// 企业认证通过
+		personalCertified = true
 	}
+
+	// 检查企业认证状态
+	enterpriseCertified := false
+	enterpriseKyc := GetEnterpriseKycByUid(uid)
+
+	if enterpriseKyc.ReviewStatus == 2 {
+		// 企业认证通过
+		enterpriseCertified = true
+	}
+
+	// 判断最终状态
+	if userCertified || personalCertified || enterpriseCertified {
+		// 任一认证通过，视为已实名
+		return 1
+	}
+	// 未实名认证
+	return 0
 }
 
 // CheckUserNeedKyc 检查用户是否需要实名认证（根据配置的launch_date判断）
 func CheckUserNeedKyc(createTime int) bool {
-	err, kycRequiredTimeConfig := GetConfigs("launch_date")
-	// 2025-09-01 00:00:00 UTC
-	defaultTime := 1756665600
+	// 获取总开关配置
+	err, kycSwitchConfig := GetConfigs("static_extraction_switch")
 	if err != nil {
-		// 如果配置不存在，使用默认时间：2025年9月1日
-		return createTime >= defaultTime
+		return false
+	}
+	// 将开关值转换为int
+	kycSwitch := util.StoI(kycSwitchConfig.Value)
+	// 如果开关为0，直接返回false，不需要实名认证
+	if kycSwitch == 0 {
+		return false
 	}
 
+	// 获取时间戳配置
+	err, kycRequiredTimeConfig := GetConfigs("launch_date")
+	if err != nil {
+		return false
+	}
 	// 将配置值转换为int
 	kycRequiredTime := util.StoI(kycRequiredTimeConfig.Value)
-	if kycRequiredTime == 0 {
-		// 如果配置值无效，使用默认时间
-		return createTime >= defaultTime
-	}
 	log.Println("createTime", createTime)
 	log.Println("kycRequiredTime", kycRequiredTime)
-
+	// 只有当用户创建时间大于等于配置的时间戳，并且开关为1时，才需要去判断实名认证
 	return createTime >= kycRequiredTime
 }
