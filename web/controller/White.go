@@ -112,6 +112,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 			CreateTime: util.GetNowInt(),
 			UpdateTime: util.GetNowInt(),
 			ReviewTime: util.GetNowInt(), // 设置审核时间
+			SubmitTime: util.GetNowInt(),
 		}
 
 		_, err := models.AddUserDomainWhite(addInfo)
@@ -158,6 +159,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 						"status":             -1,
 						"update_time":        util.GetNowInt(),
 						"submit_time":        util.GetNowInt(),
+						"review_time":        util.GetNowInt(),
 					}
 					models.UpdateDomainApplyID(id, updateData)
 				}
@@ -351,7 +353,7 @@ func DomainWhiteReviewNotify(c *gin.Context) {
 		return
 	}
 	// 发送邮件通知
-	go sendDomainReviewNotificationEmail(callbackData)
+	go sendDomainReviewNotifications(callbackData)
 
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
 }
@@ -478,7 +480,7 @@ func buildDomainReviewEmailParams(callbackData models.DomainReviewCallbackData, 
 	params := make(map[string]string)
 
 	// 基础信息
-	params["submitDate"] = util.GetTimeStr(callbackData.AuditTime, "2006-01-02 15:04:05")
+	params["submitDate"] = util.GetTimeStr(callbackData.AuditTime, "d/m/Y H:i:s")
 
 	// 域名信息（保留原有字段以兼容其他地方的使用）
 	if callbackData.PassDomains != "" {
@@ -507,7 +509,7 @@ func sendDomainReviewEmail(email string, auditStatus int, params map[string]stri
 	defaultMail := models.GetConfigVal("default_email")
 
 	// 根据审核状态选择邮件类型
-	emailType := 16
+	emailType := 12
 
 	// 发送邮件
 	var success bool
@@ -521,4 +523,107 @@ func sendDomainReviewEmail(email string, auditStatus int, params map[string]stri
 		return false
 	}
 	return success
+}
+
+// sendDomainReviewNotifications 发送域名审核通知（邮件和站内信）
+func sendDomainReviewNotifications(callbackData models.DomainReviewCallbackData) {
+	log.Printf("开始发送域名审核通知: %+v", callbackData)
+
+	userInfo, err := getUserInfoFromDomains(callbackData)
+	if err != nil {
+		log.Printf("获取用户信息失败: %v", err)
+		return
+	}
+
+	// 发送邮件通知
+	sendDomainReviewNotificationEmail(callbackData)
+
+	// 发送站内信通知
+	sendDomainReviewNotificationMsg(callbackData, userInfo)
+}
+
+// sendDomainReviewNotificationMsg 发送域名审核站内信通知
+func sendDomainReviewNotificationMsg(callbackData models.DomainReviewCallbackData, userInfo models.Users) {
+	nowTime := util.GetNowInt()
+	uid := userInfo.Id
+
+	// 根据审核状态构造站内信内容
+	var msgCate, code, title, brief, content, titleZh, briefZh, contentZh string
+	sort := 10
+
+	// 获取通过和未通过的域名列表
+	passDomains := parseAndCleanDomains(callbackData.PassDomains)
+	noPassDomains := parseAndCleanDomains(callbackData.NoPassDomains)
+
+	// 根据审核结果构造不同的站内信内容
+	msgCate = "domain_white_review"
+	code = "domain"
+
+	// 同时有通过和未通过的域名
+	if len(passDomains) > 0 && len(noPassDomains) > 0 {
+		title = "Domain Whitelist Review Result"
+		brief = "Your domain whitelist application has been reviewed."
+		content = "<p>Dear user,</p><p>Your domain whitelist application has been reviewed.</p><p>Approved domains: %s</p><p>Rejected domains: %s</p><p>Reason for rejection: %s</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		titleZh = "域名白名單審核結果"
+		briefZh = "您的域名白名單申請已審核。"
+		contentZh = "<p>親愛的用戶，</p><p>您的域名白名單申請已審核。</p><p>通過域名：%s</p><p>未通過域名：%s</p><p>拒絕原因：%s</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+
+		content = fmt.Sprintf(content, callbackData.PassDomains, callbackData.NoPassDomains, callbackData.AuditRemark)
+		contentZh = fmt.Sprintf(contentZh, callbackData.PassDomains, callbackData.NoPassDomains, callbackData.AuditRemark)
+	} else if len(passDomains) > 0 { // 只有通过的域名
+		title = "Domain Whitelist Approved"
+		brief = "Your domain whitelist application has been approved."
+		content = "<p>Dear user,</p><p>Your domain whitelist application has been successfully approved.</p><p>Approved domains: %s</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		titleZh = "域名白名單已通過"
+		briefZh = "您的域名白名單申請已通過審核。"
+		contentZh = "<p>親愛的用戶，</p><p>您的域名白名單申請已成功通過審核。</p><p>通過域名：%s</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+
+		content = fmt.Sprintf(content, callbackData.PassDomains)
+		contentZh = fmt.Sprintf(contentZh, callbackData.PassDomains)
+	} else if len(noPassDomains) > 0 { // 只有未通过的域名
+		title = "Domain Whitelist Rejected"
+		brief = "Your domain whitelist application has been rejected."
+		content = "<p>Dear user,</p><p>Unfortunately, your domain whitelist application has been rejected.</p><p>Rejected domains: %s</p><p>Reason: %s</p><p>Please check and resubmit your application.</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		titleZh = "域名白名單未通過"
+		briefZh = "您的域名白名單申請未通過審核。"
+		contentZh = "<p>親愛的用戶，</p><p>很遺憾，您的域名白名單申請未通過審核。</p><p>未通過域名：%s</p><p>原因：%s</p><p>請檢查並重新提交您的申請。</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+
+		// 替换拒绝原因
+		if callbackData.AuditRemark != "" {
+			content = fmt.Sprintf(content, callbackData.NoPassDomains, callbackData.AuditRemark)
+			contentZh = fmt.Sprintf(contentZh, callbackData.NoPassDomains, callbackData.AuditRemark)
+		} else {
+			content = fmt.Sprintf(content, callbackData.NoPassDomains, "No specific reason provided")
+			contentZh = fmt.Sprintf(contentZh, callbackData.NoPassDomains, "未提供具體原因")
+		}
+	} else {
+		log.Printf("No domains found in callback data")
+		return
+	}
+
+	// 构造站内信
+	msgInfo := models.CmNoticeMsg{
+		Title:      title,
+		Brief:      brief,
+		Content:    content,
+		TitleZh:    titleZh,
+		BriefZh:    briefZh,
+		ContentZh:  contentZh,
+		ShowType:   1, // 显示类型：1-普通通知
+		CreateTime: nowTime,
+		Cate:       msgCate,
+		Uid:        uid,
+		ReadTime:   0, // 0-未读
+		PushTime:   nowTime,
+		Sort:       sort,
+		Admin:      code,
+	}
+
+	// 添加站内信
+	msgList := []models.CmNoticeMsg{msgInfo}
+	if err := models.BatchAddNoticeMsgLog(msgList); err != nil {
+		log.Printf("Failed to add domain review message for uid %d: %v\n", uid, err)
+	} else {
+		log.Printf("Domain review message added successfully for uid: %d\n", uid)
+	}
 }

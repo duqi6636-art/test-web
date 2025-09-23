@@ -44,7 +44,7 @@ type ResUserApplyDomain struct {
 	Remark     string `json:"remark"`      //备注信息
 }
 
-var userApplyDomainTable = "cm_manual_review_domain_white"
+var userApplyDomainTable = "cm_apply_domain_white"
 
 // CheckUserDomainExists 检查用户是否已申请过该域名
 func CheckUserDomainExists(uid int, domain string) bool {

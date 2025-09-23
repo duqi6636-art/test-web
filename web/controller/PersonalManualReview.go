@@ -895,8 +895,8 @@ func handlePersonalKycCallback(callbackData UnifiedKycCallbackData) error {
 	//if reviewStatus == 2 {
 	//	models.UpdateUserKycStatus(review.Uid, 1) // 更新用户KYC状态为已认证
 	//}
-	// 异步发送邮件通知
-	go sendKycReviewEmail(review.Uid, reviewStatus)
+	// 异步发送邮件和站内信通知
+	go sendKycReviewNotifications(review.Uid, reviewStatus, callbackData.AuditTime, callbackData.AuditRemark, "personal")
 
 	return nil
 }
@@ -942,8 +942,8 @@ func handleEnterpriseKycCallback(callbackData UnifiedKycCallbackData) error {
 	//if reviewStatus == 2 {
 	//	models.UpdateUserEnterpriseKycStatus(kyc.Uid, 1) // 更新用户企业认证状态为已认证
 	//}
-	// 发送审核结果邮件
-	go sendKycReviewEmail(kyc.Uid, reviewStatus)
+	// 异步发送邮件和站内信通知
+	go sendKycReviewNotifications(kyc.Uid, reviewStatus, callbackData.AuditTime, callbackData.AuditRemark, "enterprise")
 	return nil
 }
 
@@ -972,7 +972,7 @@ func sendKycReviewEmail(uid int, reviewStatus int) {
 	// 准备基础邮件变量
 	params := make(map[string]string)
 	// 根据KYC类型设置认证类型文本和邮件类型
-	emailType := 7
+	emailType := 11
 	var authStatusText string
 	var descriptionText string
 
@@ -996,18 +996,13 @@ func sendKycReviewEmail(uid int, reviewStatus int) {
 	params["team_name"] = "Cherry Proxy Team"
 	log.Println(params)
 
-	variables := map[string]string{
-		"email": user.Email,
-	}
-
 	// 根据邮件服务类型发送邮件
 	var result bool
 	switch useEmail {
 	case "aws_mail":
-		result = email.AwsSendEmail(user.Email, emailType, variables, "")
+		result = email.AwsSendEmail(user.Email, emailType, params, "")
 	case "tencent_mail":
-		result = email.TencentSendEmail(user.Email, emailType, variables, "")
-		fmt.Printf("SubMail not supported for KYC emails yet\n")
+		result = email.TencentSendEmail(user.Email, emailType, params, "")
 	default:
 		fmt.Printf("Unsupported email service: %s\n", useEmail)
 		return
@@ -1017,5 +1012,166 @@ func sendKycReviewEmail(uid int, reviewStatus int) {
 		fmt.Printf("%s KYC review email sent successfully to %s\n", authStatusText, user.Email)
 	} else {
 		fmt.Printf("Failed to send %s KYC review email to %s\n", authStatusText, user.Email)
+	}
+}
+
+// sendPersonalKycReviewMsg 发送个人认证审核结果站内信
+func sendPersonalKycReviewMsg(uid int, reviewStatus int, reviewReason string) {
+	nowTime := util.GetNowInt()
+	// 获取用户信息
+	err, user := models.GetUserById(uid)
+	if err != nil || user.Id == 0 {
+		fmt.Printf("Failed to get user info for uid %d: %v\n", uid, err)
+		return
+	}
+
+	// 根据审核状态构造站内信内容
+	var msgCate, code, title, brief, content, titleZh, briefZh, contentZh string
+	sort := 10
+
+	switch reviewStatus {
+	case 2: // 审核通过
+		msgCate = "personal_kyc_pass"
+		code = "personal"
+		title = "Personal Authentication Approved"
+		brief = "Your personal authentication has been approved."
+		content = "<p>Dear user,</p><p>Your personal authentication application has been successfully approved. You can now enjoy all the features of our platform.</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		titleZh = "個人認證已通過"
+		briefZh = "您的個人認證已通過審核。"
+		contentZh = "<p>親愛的用戶，</p><p>您的個人認證申請已成功通過審核。現在您可以享受我們平台的所有功能。</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+	case 3: // 审核拒绝
+		msgCate = "personal_kyc_reject"
+		code = "personal"
+		title = "Personal Authentication Rejected"
+		brief = "Your personal authentication has been rejected."
+		content = "<p>Dear user,</p><p>Unfortunately, your personal authentication application has been rejected.</p><p>Reason: %s</p><p>Please check and resubmit your application.</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		titleZh = "個人認證未通過"
+		briefZh = "您的個人認證未通過審核。"
+		contentZh = "<p>親愛的用戶，</p><p>很遺憾，您的個人認證申請未通過審核。</p><p>原因：%s</p><p>請檢查並重新提交您的申請。</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+		// 替换拒绝原因
+		if reviewReason != "" {
+			content = fmt.Sprintf(content, reviewReason)
+			contentZh = fmt.Sprintf(contentZh, reviewReason)
+		} else {
+			content = fmt.Sprintf(content, "No specific reason provided")
+			contentZh = fmt.Sprintf(contentZh, "未提供具體原因")
+		}
+	default:
+		fmt.Printf("Invalid review status for personal KYC message: %d\n", reviewStatus)
+		return
+	}
+
+	// 构造站内信
+	msgInfo := models.CmNoticeMsg{
+		Title:      title,
+		Brief:      brief,
+		Content:    content,
+		TitleZh:    titleZh,
+		BriefZh:    briefZh,
+		ContentZh:  contentZh,
+		ShowType:   1, // 显示类型：1-普通通知
+		CreateTime: nowTime,
+		Cate:       msgCate,
+		Uid:        uid,
+		ReadTime:   0, // 0-未读
+		PushTime:   nowTime,
+		Sort:       sort,
+		Admin:      code,
+	}
+
+	// 添加站内信
+	msgList := []models.CmNoticeMsg{msgInfo}
+	if err := models.BatchAddNoticeMsgLog(msgList); err != nil {
+		fmt.Printf("Failed to add personal KYC message for uid %d: %v\n", uid, err)
+	} else {
+		fmt.Printf("Personal KYC review message added successfully for uid: %d\n", uid)
+	}
+}
+
+// sendEnterpriseKycReviewMsg 发送企业认证审核结果站内信
+func sendEnterpriseKycReviewMsg(uid int, reviewStatus int, reviewReason string) {
+	nowTime := util.GetNowInt()
+	// 获取用户信息
+	err, user := models.GetUserById(uid)
+	if err != nil || user.Id == 0 {
+		fmt.Printf("Failed to get user info for uid %d: %v\n", uid, err)
+		return
+	}
+
+	// 根据审核状态构造站内信内容
+	var msgCate, code, title, brief, content, titleZh, briefZh, contentZh string
+	sort := 10
+
+	switch reviewStatus {
+	case 2: // 审核通过
+		msgCate = "enterprise_kyc_pass"
+		code = "enterprise"
+		title = "Enterprise Authentication Approved"
+		brief = "Your enterprise authentication has been approved."
+		content = "<p>Dear user,</p><p>Your enterprise authentication application has been successfully approved. You can now enjoy all the features of our platform.</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		titleZh = "企業認證已通過"
+		briefZh = "您的企業認證已通過審核。"
+		contentZh = "<p>親愛的用戶，</p><p>您的企業認證申請已成功通過審核。現在您可以享受我們平台的所有功能。</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+	case 3: // 审核拒绝
+		msgCate = "enterprise_kyc_reject"
+		code = "enterprise"
+		title = "Enterprise Authentication Rejected"
+		brief = "Your enterprise authentication has been rejected."
+		content = "<p>Dear user,</p><p>Unfortunately, your enterprise authentication application has been rejected.</p><p>Reason: %s</p><p>Please check and resubmit your application.</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		titleZh = "企業認證未通過"
+		briefZh = "您的企業認證未通過審核。"
+		contentZh = "<p>親愛的用戶，</p><p>很遺憾，您的企業認證申請未通過審核。</p><p>原因：%s</p><p>請檢查並重新提交您的申請。</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+		// 替换拒绝原因
+		if reviewReason != "" {
+			content = fmt.Sprintf(content, reviewReason)
+			contentZh = fmt.Sprintf(contentZh, reviewReason)
+		} else {
+			content = fmt.Sprintf(content, "No specific reason provided")
+			contentZh = fmt.Sprintf(contentZh, "未提供具體原因")
+		}
+	default:
+		fmt.Printf("Invalid review status for enterprise KYC message: %d\n", reviewStatus)
+		return
+	}
+
+	// 构造站内信
+	msgInfo := models.CmNoticeMsg{
+		Title:      title,
+		Brief:      brief,
+		Content:    content,
+		TitleZh:    titleZh,
+		BriefZh:    briefZh,
+		ContentZh:  contentZh,
+		ShowType:   1, // 显示类型：1-普通通知
+		CreateTime: nowTime,
+		Cate:       msgCate,
+		Uid:        uid,
+		ReadTime:   0, // 0-未读
+		PushTime:   nowTime,
+		Sort:       sort,
+		Admin:      code,
+	}
+
+	// 添加站内信
+	msgList := []models.CmNoticeMsg{msgInfo}
+	if err := models.BatchAddNoticeMsgLog(msgList); err != nil {
+		fmt.Printf("Failed to add enterprise KYC message for uid %d: %v\n", uid, err)
+	} else {
+		fmt.Printf("Enterprise KYC review message added successfully for uid: %d\n", uid)
+	}
+}
+
+// sendKycReviewNotifications 统一处理KYC审核结果的邮件和站内信通知
+func sendKycReviewNotifications(uid int, reviewStatus int, auditTime int, reviewReason string, kycType string) {
+	// 发送邮件通知
+	sendKycReviewEmail(uid, reviewStatus)
+
+	// 根据KYC类型发送不同的站内信
+	if kycType == "personal" {
+		sendPersonalKycReviewMsg(uid, reviewStatus, reviewReason)
+	} else if kycType == "enterprise" {
+		sendEnterpriseKycReviewMsg(uid, reviewStatus, reviewReason)
+	} else {
+		fmt.Printf("Invalid KYC type for notifications: %s\n", kycType)
 	}
 }

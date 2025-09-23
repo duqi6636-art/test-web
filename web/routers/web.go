@@ -54,6 +54,9 @@ func webRouter(router *gin.Engine) {
 	web.POST("/msg/notice_pop", controller.GetNoticePop)                // 获取公告弹窗
 	web.POST("/msg/close_notice_pop", controller.CloseNoticePop)        // 关闭公告弹窗
 
+	web.POST("/msg/batch_read", controller.MoreReadNotice) // 批量读取公告
+	web.POST("/msg/notice_msg", controller.GetNoticeMsg)   // 消息通知
+
 	// google 验证器接口
 	web.POST("/auth/auth_info", controller.GetGoogleAuth)      // 创建信息
 	web.POST("/auth/verify_code", controller.VerifyCode)       // 验证

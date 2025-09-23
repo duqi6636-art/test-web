@@ -77,7 +77,6 @@ func GetEnterpriseKycReviewStatus(uid int) map[string]interface{} {
 		1:  "审核中",
 		2:  "审核通过",
 		3:  "审核拒绝",
-		4:  "需补充材料",
 		-1: "提交失败",
 	}
 
