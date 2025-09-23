@@ -563,39 +563,34 @@ func sendDomainReviewNotificationMsg(callbackData models.DomainReviewCallbackDat
 	if len(passDomains) > 0 && len(noPassDomains) > 0 {
 		title = "Domain Whitelist Review Result"
 		brief = "Your domain whitelist application has been reviewed."
-		content = "<p>Dear user,</p><p>Your domain whitelist application has been reviewed.</p><p>Approved domains: %s</p><p>Rejected domains: %s</p><p>Reason for rejection: %s</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello! The domain name application you submitted at %s has been reviewed. The results are as follows:</p><p>Approved domains: %s</p><p>Rejected domains: %s</p><p>If you have any questions about the review results, please contact us immediately!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Cherry Proxy Team</p>"
 		titleZh = "域名白名單審核結果"
 		briefZh = "您的域名白名單申請已審核。"
-		contentZh = "<p>親愛的用戶，</p><p>您的域名白名單申請已審核。</p><p>通過域名：%s</p><p>未通過域名：%s</p><p>拒絕原因：%s</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+		contentZh = "<p>尊敬的CherryProxy用戶:</p><p>您好！您於 %s 提交的域名申請已經審核，審核結果如下：</p><p>通過域名：%s</p><p>未通過域名：%s</p><p>如對審核結果有疑問，請及時聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
 
-		content = fmt.Sprintf(content, callbackData.PassDomains, callbackData.NoPassDomains, callbackData.AuditRemark)
-		contentZh = fmt.Sprintf(contentZh, callbackData.PassDomains, callbackData.NoPassDomains, callbackData.AuditRemark)
+		content = fmt.Sprintf(content, callbackData.ApplyTime, callbackData.PassDomains, callbackData.NoPassDomains)
+		contentZh = fmt.Sprintf(contentZh, callbackData.ApplyTime, callbackData.PassDomains, callbackData.NoPassDomains)
 	} else if len(passDomains) > 0 { // 只有通过的域名
 		title = "Domain Whitelist Approved"
 		brief = "Your domain whitelist application has been approved."
-		content = "<p>Dear user,</p><p>Your domain whitelist application has been successfully approved.</p><p>Approved domains: %s</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello! The domain name application you submitted at %s has been reviewed. The results are as follows:</p><p>Approved domains: %s</p><p>If you have any questions about the review results, please contact us immediately!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Cherry Proxy Team</p>"
 		titleZh = "域名白名單已通過"
 		briefZh = "您的域名白名單申請已通過審核。"
-		contentZh = "<p>親愛的用戶，</p><p>您的域名白名單申請已成功通過審核。</p><p>通過域名：%s</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+		contentZh = "<p>尊敬的CherryProxy用戶:</p><p>您好！您於 %s 提交的域名申請已經審核，審核結果如下：</p><p>通過域名：%s</p><p>如對審核結果有疑問，請及時聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
 
-		content = fmt.Sprintf(content, callbackData.PassDomains)
-		contentZh = fmt.Sprintf(contentZh, callbackData.PassDomains)
+		content = fmt.Sprintf(content, callbackData.ApplyTime, callbackData.PassDomains)
+		contentZh = fmt.Sprintf(contentZh, callbackData.ApplyTime, callbackData.PassDomains)
 	} else if len(noPassDomains) > 0 { // 只有未通过的域名
 		title = "Domain Whitelist Rejected"
 		brief = "Your domain whitelist application has been rejected."
-		content = "<p>Dear user,</p><p>Unfortunately, your domain whitelist application has been rejected.</p><p>Rejected domains: %s</p><p>Reason: %s</p><p>Please check and resubmit your application.</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello! The domain name application you submitted at %s has been reviewed. The results are as follows:</p><p>Rejected domains: %s</p><p>If you have any questions about the review results, please contact us immediately!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Cherry Proxy Team</p>"
 		titleZh = "域名白名單未通過"
 		briefZh = "您的域名白名單申請未通過審核。"
-		contentZh = "<p>親愛的用戶，</p><p>很遺憾，您的域名白名單申請未通過審核。</p><p>未通過域名：%s</p><p>原因：%s</p><p>請檢查並重新提交您的申請。</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+		contentZh = "<p>尊敬的CherryProxy用戶:</p><p>您好！您於 %s 提交的域名申請已經審核，審核結果如下：</p><p>未通過域名：%s</p><p>如對審核結果有疑問，請及時聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
 
-		// 替换拒绝原因
-		if callbackData.AuditRemark != "" {
-			content = fmt.Sprintf(content, callbackData.NoPassDomains, callbackData.AuditRemark)
-			contentZh = fmt.Sprintf(contentZh, callbackData.NoPassDomains, callbackData.AuditRemark)
-		} else {
-			content = fmt.Sprintf(content, callbackData.NoPassDomains, "No specific reason provided")
-			contentZh = fmt.Sprintf(contentZh, callbackData.NoPassDomains, "未提供具體原因")
-		}
+		content = fmt.Sprintf(content, callbackData.ApplyTime, callbackData.NoPassDomains)
+		contentZh = fmt.Sprintf(contentZh, callbackData.ApplyTime, callbackData.NoPassDomains)
+
 	} else {
 		log.Printf("No domains found in callback data")
 		return

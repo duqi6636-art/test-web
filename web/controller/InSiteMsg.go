@@ -47,14 +47,21 @@ func GetNoticeMsg(c *gin.Context) {
 			Title:      v.Title,
 			Brief:      v.Brief,
 			Content:    v.Content,
-			TitleZh:    v.TitleZh,
-			BriefZh:    v.BriefZh,
-			ContentZh:  v.ContentZh,
-			CreateTime: util.GetTimeByLang(v.CreateTime, lang),
+			CreateTime: util.Time2DateEn(v.CreateTime),
 			IsRead:     isRead,
 			Sort:       v.Sort,
 			Timestamp:  v.CreateTime,
 		}
+		if lang == "en" {
+			info.Title = v.Title
+			info.Brief = v.Brief
+			info.Content = v.Content
+		} else {
+			info.Title = v.TitleZh
+			info.Brief = v.BriefZh
+			info.Content = v.ContentZh
+		}
+
 		msgRes = append(msgRes, info)
 	}
 	//排序

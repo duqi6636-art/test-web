@@ -7,9 +7,6 @@ type ResNoticeV1 struct {
 	Title      string `json:"title"`
 	Brief      string `json:"brief"`       //简介
 	Content    string `json:"content"`     //内容
-	TitleZh    string `json:"title_zh"`    //繁体中文
-	BriefZh    string `json:"brief_zh"`    //简介 繁体中文
-	ContentZh  string `json:"content_zh"`  //内容 繁体中文
 	CreateTime string `json:"create_time"` //公告时间
 	IsRead     int    `json:"is_read"`     //是否已读
 	Sort       int    `json:"sort"`        //排序值
