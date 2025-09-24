@@ -43,6 +43,12 @@ func AddDomainWhiteApply(c *gin.Context) {
 	uid := userInfo.Id
 	username := userInfo.Username
 
+	// 检查用户是否有审核中的域名申请
+	if models.CheckUserHasPendingDomain(uid) {
+		JsonReturn(c, e.ERROR, "有域名正在审核中，请等待审核完成后再提交", nil)
+		return
+	}
+
 	domainsJson := c.DefaultPostForm("domains", "")
 	if domainsJson == "" {
 		JsonReturn(c, e.ERROR, "域名数据不能为空", nil)
@@ -74,18 +80,61 @@ func AddDomainWhiteApply(c *gin.Context) {
 	for _, pair := range domainRemarkPairs {
 		domain := strings.TrimSpace(pair.Domain)
 		if domain != "" {
-			// 检查是否已存在
-			if models.CheckUserDomainExists(uid, domain) {
-				log.Printf("Domain %s already exists for user %d, skipping", domain, uid)
-				existsDomains = append(existsDomains, domain)
-				continue
-			}
 			// 域名合法性校验
 			isValid, errMsg := util.ValidateDomainAdvanced(domain)
 			if !isValid {
 				log.Printf("Invalid domain %s for user %d: %s", domain, uid, errMsg)
 				invalidDomains = append(invalidDomains, fmt.Sprintf("%s (%s)", domain, errMsg))
 				continue
+			}
+
+			// 检查是否已存在
+			userDomains := models.GetUserDomainWhiteByUid(uid)
+			hasExisting := false
+			var existingDomain *models.MdUserApplyDomain
+			for _, d := range userDomains {
+				if d.Domain == domain {
+					existingDomain = &d
+					hasExisting = true
+					break
+				}
+			}
+			if hasExisting && existingDomain != nil {
+				// 域名已存在
+				nowTime := util.GetNowInt()
+				if existingDomain.Status == 2 { // 审核通过
+					// 直接更新提交时间，无需提交
+					updateData := map[string]interface{}{
+						"update_time": nowTime,
+						"submit_time": nowTime,
+					}
+					if err := models.UpdateDomainApplyID(existingDomain.Id, updateData); err != nil {
+						failedDomains = append(failedDomains, domain)
+					} else {
+						successDomains = append(successDomains, domain)
+					}
+					continue
+				} else if existingDomain.Status == 3 || existingDomain.Status == -1 || existingDomain.Status == 4 { // 审核拒绝或提交失败
+					// 审核不通过，可以再次提交到第三方
+					// 检查域名是否在黑名单中
+					isInBlacklist := models.CheckDomainInBlacklist(domain)
+					if isInBlacklist {
+						validBlacklistDomains = append(validBlacklistDomains, DomainRemarkPair{domain, pair.Remark})
+					} else {
+						validWhitelistDomains = append(validWhitelistDomains, DomainRemarkPair{domain, pair.Remark})
+					}
+					// 删除旧记录
+					updateData := map[string]interface{}{
+						"status":      -2, // 标记为已删除
+						"update_time": nowTime,
+					}
+					models.UpdateDomainApplyID(existingDomain.Id, updateData)
+					continue
+				} else {
+					// 其他状态不处理
+					existsDomains = append(existsDomains, domain)
+					continue
+				}
 			}
 
 			// 检查域名是否在黑名单中
@@ -129,7 +178,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 			Uid:        uid,
 			Username:   username,
 			Domain:     pair.Domain,
-			Status:     0, // 审核中
+			Status:     0, // 待审核
 			Remark:     pair.Remark,
 			CreateTime: util.GetNowInt(),
 			UpdateTime: util.GetNowInt(),
@@ -297,6 +346,10 @@ func DomainWhiteList(c *gin.Context) {
 	domaoinList := models.GetUserDomainWhiteByUid(uid)
 	resList := []models.ResUserApplyDomain{}
 	for _, domaoin := range domaoinList {
+		// 过滤已删除状态(-2)的域名
+		if domaoin.Status == -2 {
+			continue
+		}
 		resInfo := models.ResUserApplyDomain{
 			Id:         domaoin.Id,
 			Domain:     domaoin.Domain,

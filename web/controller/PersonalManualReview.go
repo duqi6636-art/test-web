@@ -376,28 +376,28 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
 
 	// 准备提交数据
 	submitData := map[string]interface{}{
-		"oa_platform_name":     "360cherry",
-		"uid":                  kyc.Uid,
-		"account":              userInfo.Username,
-		"account_type":         1, // 1：普通账号，2：代理商
-		"reg_time":             userInfo.CreateTime,
-		"apply_time":           util.GetNowInt(),
-		"verify_type":          1, // 1：个人，2：企业
-		"source":               3, // 3：平台自审
-		"water_bill":           kyc.WaterBill,
-		"electricity_bill":     kyc.ElectricityBill,
-		"credit_card_bill":     kyc.CreditCardBill,
-		"identity_certificate": kyc.Identity,
+		"oa_platform_name": "360cherry",
+		"uid":              kyc.Uid,
+		"account":          userInfo.Username,
+		"account_type":     1, // 1：普通账号，2：代理商
+		"reg_time":         userInfo.CreateTime,
+		"apply_time":       util.GetNowInt(),
+		"verify_type":      1, // 1：个人，2：企业
+		"source":           3, // 3：平台自审
+		"water_bill":       kyc.WaterBill,
+		"electricity_bill": kyc.ElectricityBill,
+		"credit_card_bill": kyc.CreditCardBill,
 	}
 
 	// 如果是国内认证，添加照片路由地址和腾讯KYC参数
 	if isDomestic {
 		// 添加照片路由地址
-		if photoURL != "" {
+		if kyc.Identity != "" {
+			submitData["face_photo"] = kyc.Identity
+		} else if photoURL != "" {
 			submitData["face_photo"] = photoURL
-		} else {
-			return fmt.Errorf("查询照片失败")
 		}
+		submitData["identity_certificate"] = kyc.Identity
 	} else {
 		// Onfido认证：添加证件图片和人脸视频
 		if certImages != "" {

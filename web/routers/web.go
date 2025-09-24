@@ -133,6 +133,7 @@ func webRouter(router *gin.Engine) {
 	web.POST("/user/get_isp", controller.GetCountryIsp)                    // 城市
 	web.POST("/user/get_domain", controller.GetUserDomain)                 // 获取域名列表
 	web.POST("/user/country_domain_list", controller.GetCountryDomainList) // 获取国家域名列表
+	web.POST("/user/country_info", controller.GetUserCountryInfo)          // 获取当前用户的国家信息
 
 	// 流量帐密子账号
 	web.POST("/account/get_info", controller.GetAccountInfo)                          // 获取流量信息

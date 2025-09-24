@@ -590,3 +590,23 @@ func GetDefaultCountryPort(uid int, agentType string) []map[string]string {
 	}
 
 }
+
+// GetUserCountryInfo 获取当前用户的国家信息
+func GetUserCountryInfo(c *gin.Context) {
+	//获取用户信息
+	resCode, msg, userInfo := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+
+	userKycInfo := models.GetUserKycByUid(userInfo.Id)
+	response := map[string]interface{}{
+		"country": userKycInfo.Country,
+	}
+	c.JSON(200, gin.H{
+		"code": e.SUCCESS,
+		"data": response,
+		"msg":  "success",
+	})
+}

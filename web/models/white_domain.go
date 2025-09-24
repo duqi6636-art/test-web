@@ -1,6 +1,8 @@
 package models
 
-import "api-360proxy/web/pkg/util"
+import (
+	"api-360proxy/web/pkg/util"
+)
 
 // MdUserApplyDomain 添加申请域名白名单
 type MdUserApplyDomain struct {
@@ -46,11 +48,20 @@ type ResUserApplyDomain struct {
 
 var userApplyDomainTable = "cm_apply_domain_white"
 
-// CheckUserDomainExists 检查用户是否已申请过该域名
+// CheckUserDomainExists 检查用户是否已申请过该域名（排除已删除状态）
 func CheckUserDomainExists(uid int, domain string) bool {
 	var count int64
 	db.Table(userApplyDomainTable).
-		Where("uid = ? AND domain = ?", uid, domain).
+		Where("uid = ? AND domain = ? AND status != ?", uid, domain, -2).
+		Count(&count)
+	return count > 0
+}
+
+// CheckUserHasPendingDomain 检查用户是否有审核中的域名申请
+func CheckUserHasPendingDomain(uid int) bool {
+	var count int64
+	db.Table(userApplyDomainTable).
+		Where("uid = ? AND status IN (0, 1)", uid).
 		Count(&count)
 	return count > 0
 }
@@ -82,7 +93,7 @@ func UpdateDomainApplyID(uid int, updateData map[string]interface{}) error {
 
 // GetUserDomainWhiteByUid 获取列表 By Uid
 func GetUserDomainWhiteByUid(uid int) (info []MdUserApplyDomain) {
-	dbs := db.Table(userApplyDomainTable).Where("uid =?", uid)
+	dbs := db.Table(userApplyDomainTable).Where("uid =?", uid).Where("status != ?", -2)
 	dbs = dbs.Order("id desc").Find(&info)
 	return
 }

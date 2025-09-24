@@ -870,6 +870,7 @@ func GetFaceUrl(c *gin.Context) {
 		CertCate:          "id_card",
 		Status:            "0",
 		CreateTime:        int64(util.GetNowInt()),
+		Country:           "CN",
 	})
 	if err != nil {
 		JsonReturn(c, e.ERROR, "__T_FAIL-- "+err.Error(), nil)
