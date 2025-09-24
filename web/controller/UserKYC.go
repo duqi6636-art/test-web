@@ -126,6 +126,7 @@ func IdVerifyStepOne(c *gin.Context) {
 	userKycModels.LinkUrl = ""
 	userKycModels.CreateTime = nowTime
 	userKycModels.UpdateTime = nowTime
+	userKycModels.Operator = "0"
 	err = models.AddUserKycData(userKycModels)
 	if err != nil {
 		JsonReturn(c, e.ERROR, "__T_FAIL-- "+err.Error(), nil)
@@ -224,6 +225,7 @@ func IdVerifyStepThree(c *gin.Context) {
 	data["last_name"] = ""
 	data["cert_issue_place"] = ""
 	data["expire_date"] = ""
+	data["operator"] = userKycInfo.Operator
 	status := 0
 	if userKycInfo.Status == "0" {
 		status = 0
@@ -247,6 +249,19 @@ func IdVerifyStepThree(c *gin.Context) {
 
 	data["status"] = status
 	JsonReturn(c, 0, msg, data)
+	return
+}
+
+// CheckKycOperator 获取操作人
+func CheckKycOperator(c *gin.Context) {
+	resCode, msg, userInfo := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := userInfo.Id
+	userKycInfo := models.GetUserKycByUid(uid)
+	JsonReturn(c, 0, msg, userKycInfo.Operator)
 	return
 }
 
@@ -432,10 +447,11 @@ func IdVerifyNotify(c *gin.Context) {
 			AddLogs("RealNameAuth_step16", util.ItoS(userKycInfo.Uid)+" error"+"The certificate has been authenticated by other users") //写日志
 			return
 		}
+		operator := "0"
 		if reqData.Payload.Resource.Status != "approved" {
 			status := "2"
 			_, userInfo := models.GetUserById(userKycInfo.Uid)
-			_ = models.UpdateUserKycByUid(userKycInfo.Uid, map[string]interface{}{"status": status, "update_time": time.Now().Unix()})
+			_ = models.UpdateUserKycByUid(userKycInfo.Uid, map[string]interface{}{"status": status, "update_time": time.Now().Unix(), "operator": operator})
 			ddMsg := fmt.Sprintf("【cherryProxy】%s提交了实名认证，当前状态[%s]，请前往后台审核", userInfo.Username, reqData.Payload.Resource.Status)
 			fmt.Println(ddMsg)
 			AddLogs("RealNameAuth_step17", "info3 status="+reqData.Payload.Resource.Status+ddMsg) //写日志
@@ -454,6 +470,7 @@ func IdVerifyNotify(c *gin.Context) {
 		//修改用户实名状态为正常
 		nowTime := time.Now().Unix()
 		_ = models.UpdateUserKycByUid(userKycInfo.Uid, map[string]interface{}{
+			"operator":    operator,
 			"status":      "1",
 			"update_time": nowTime,
 			"expire_time": nowTime + CertValidTime*86400,
@@ -510,6 +527,7 @@ func TencentKycNotify(c *gin.Context) {
 	}
 
 	status := "1"
+	operator := "0"
 	thirdPartyStatus := "approved"
 	if code != "0" {
 		status = "-3"
@@ -518,6 +536,8 @@ func TencentKycNotify(c *gin.Context) {
 	//修改用户实名状态
 	nowTime := time.Now().Unix()
 	_ = models.UpdateUserKycByUid(userKycInfo.Uid, map[string]interface{}{
+		"country":     "CN",
+		"operator":    operator,
 		"status":      status,
 		"update_time": nowTime,
 		"expire_time": nowTime + CertValidTime*86400,
@@ -871,6 +891,7 @@ func GetFaceUrl(c *gin.Context) {
 		Status:            "0",
 		CreateTime:        int64(util.GetNowInt()),
 		Country:           "CN",
+		Operator:          "0",
 	})
 	if err != nil {
 		JsonReturn(c, e.ERROR, "__T_FAIL-- "+err.Error(), nil)

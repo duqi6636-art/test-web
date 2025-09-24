@@ -233,6 +233,7 @@ func webRouter(router *gin.Engine) {
 	kyc.POST("/verify/get_face_url", controller.GetFaceUrl)      // 获取腾讯人脸核验链接
 	kyc.POST("/verify/get_country", controller.GetKycCountry)    // 获取国家列表
 	kyc.POST("/verify/all_status", controller.CheckKycStatus)
+	kyc.POST("/verify/operator", controller.CheckKycOperator)
 
 	domain := router.Group("/domain")
 

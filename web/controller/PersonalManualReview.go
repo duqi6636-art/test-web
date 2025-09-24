@@ -262,6 +262,9 @@ func SubmitKycManualReview(c *gin.Context) {
 			}
 			models.UpdateKycReviewThirdPartyInfo(reviewId, updateData)
 			log.Println("submitToThirdParty error", err)
+			_ = models.UpdateUserKycByUid(review.Uid, map[string]interface{}{
+				"operator": "1",
+			})
 		}
 	}()
 
@@ -476,6 +479,11 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
 		} else {
 			log.Printf("Successfully updated KYC third party info for review: %d with ID: %d", reviewId, int(response.Data.Id))
 		}
+		_ = models.UpdateUserKycByUid(kyc.Uid, map[string]interface{}{
+			"operator": "1",
+		})
+	} else {
+		return fmt.Errorf("response ID failed")
 	}
 	return nil
 }
@@ -895,6 +903,9 @@ func handlePersonalKycCallback(callbackData UnifiedKycCallbackData) error {
 	//if reviewStatus == 2 {
 	//	models.UpdateUserKycStatus(review.Uid, 1) // 更新用户KYC状态为已认证
 	//}
+	_ = models.UpdateUserKycByUid(review.Uid, map[string]interface{}{
+		"operator": "1",
+	})
 	// 异步发送邮件和站内信通知
 	go sendKycReviewNotifications(review.Uid, reviewStatus, callbackData.AuditTime, callbackData.AuditRemark, "personal")
 

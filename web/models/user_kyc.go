@@ -23,6 +23,7 @@ type UserKyc struct {
 	UpdateTime        int64  `json:"update_time"`          // 更新时间
 	ExpireTime        int64  `json:"expire_time"`          // 过期时间
 	Country           string `json:"country"`              // 国家
+	Operator          string `json:"operator"`             // 操作人  0:机器  1：人工
 }
 
 var userKycTable = "cm_user_kyc"
