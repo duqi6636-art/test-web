@@ -68,6 +68,9 @@ func SubmitEnterpriseKyc(c *gin.Context) {
 	// 生成申请人ID
 	applicantID := fmt.Sprintf("ENT_KYC_%d_%d", uid, util.GetNowInt())
 
+	// 获取用户历史购买记录类型
+	orderTypes := getUserOrderTypes(uid)
+
 	// 创建企业认证记录
 	kyc := models.EnterpriseKyc{
 		Uid:                  uid,
@@ -78,6 +81,7 @@ func SubmitEnterpriseKyc(c *gin.Context) {
 		WaterBill:            req.WaterBill,
 		ElectricityBill:      req.ElectricityBill,
 		ReviewStatus:         0, // 待审核
+		OrderType:            orderTypes,
 	}
 
 	// 保存认证记录
@@ -89,7 +93,7 @@ func SubmitEnterpriseKyc(c *gin.Context) {
 
 	// 异步调用第三方审核接口
 	go func() {
-		err := submitEnterpriseToThirdParty(kycId, kyc)
+		err := submitEnterpriseToThirdParty(kycId, kyc, orderTypes)
 		if err != nil {
 			// 更新状态为提交失败
 			updateData := map[string]interface{}{
@@ -118,7 +122,7 @@ func SubmitEnterpriseKyc(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "success", response)
 }
 
-func submitEnterpriseToThirdParty(kycId int, kyc models.EnterpriseKyc) error {
+func submitEnterpriseToThirdParty(kycId int, kyc models.EnterpriseKyc, orderTypes string) error {
 	// 获取用户信息
 	err, userInfo := models.GetUserById(kyc.Uid)
 	if userInfo.Id == 0 {
@@ -141,6 +145,7 @@ func submitEnterpriseToThirdParty(kycId int, kyc models.EnterpriseKyc) error {
 		"corporate_certificate": kyc.CorporateCertificate,
 		"bank_month_bill":       kyc.BankMonthBill,
 		"lease_contract":        kyc.LeaseContract,
+		"order_type":            orderTypes,
 	}
 
 	// 生成签名

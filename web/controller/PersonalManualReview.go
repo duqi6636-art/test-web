@@ -227,6 +227,9 @@ func SubmitKycManualReview(c *gin.Context) {
 	// 生成申请人ID
 	applicantID := fmt.Sprintf("KYC_%d_%d", uid, util.GetNowInt())
 
+	// 获取用户历史购买记录类型
+	orderTypes := getUserOrderTypes(uid)
+
 	// 创建审核记录
 	review := models.KycManualReview{
 		Uid:             uid,
@@ -238,6 +241,7 @@ func SubmitKycManualReview(c *gin.Context) {
 		Identity:        req.Identity,
 		Address:         req.AddressInfo,
 		ReviewStatus:    0, // 待审核
+		OrderType:       orderTypes,
 	}
 
 	// 保存审核记录
@@ -249,7 +253,7 @@ func SubmitKycManualReview(c *gin.Context) {
 
 	// 异步调用第三方审核接口
 	go func() {
-		err := submitToThirdParty(reviewId, review)
+		err := submitToThirdParty(reviewId, review, orderTypes)
 		if err != nil {
 			// 更新状态为提交失败
 			updateData := map[string]interface{}{
@@ -279,7 +283,7 @@ func SubmitKycManualReview(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "success", response)
 }
 
-func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
+func submitToThirdParty(reviewId int, kyc models.KycManualReview, orderTypes string) error {
 	// 获取用户信息
 	err, userInfo := models.GetUserById(kyc.Uid)
 	if err != nil || userInfo.Id == 0 {
@@ -390,6 +394,7 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
 		"water_bill":       kyc.WaterBill,
 		"electricity_bill": kyc.ElectricityBill,
 		"credit_card_bill": kyc.CreditCardBill,
+		"order_type":       orderTypes,
 	}
 
 	// 如果是国内认证，添加照片路由地址和腾讯KYC参数
@@ -989,10 +994,10 @@ func sendKycReviewEmail(uid int, reviewStatus int) {
 
 	switch reviewStatus {
 	case 2: // 审核通过
-		descriptionText = "Hello! The domain name application you submitted at {submission time} has been reviewed. The results are as follows:"
+		descriptionText = "Hello, your real-name authentication application has been approved. You can now [immediately] check your status and experience more services."
 		authStatusText = ""
 	case 3: // 审核拒绝
-		descriptionText = "Hello, your real-name authentication application has been approved. You can now [immediately] check your status and experience more services."
+		descriptionText = "Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate."
 		authStatusText = "Re-authentication"
 	default:
 		params["auth_status"] = "Invalid review status for personal KYC"
@@ -1119,19 +1124,19 @@ func sendEnterpriseKycReviewMsg(uid int, reviewStatus int, reviewReason string) 
 		code = "enterprise"
 		title = "Enterprise Authentication Approved"
 		brief = "Your enterprise authentication has been approved."
-		content = "<p>Dear user,</p><p>Your enterprise authentication application has been successfully approved. You can now enjoy all the features of our platform.</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication application has been approved. You can now [immediately] check your status and experience more services.</p><p>If you have any questions, please feel free to contact us through our official email!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy Team</p>"
 		titleZh = "企業認證已通過"
 		briefZh = "您的企業認證已通過審核。"
-		contentZh = "<p>親愛的用戶，</p><p>您的企業認證申請已成功通過審核。現在您可以享受我們平台的所有功能。</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核已通過，您現在可以【立即查看】認證狀態並體驗更多服務。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
 	case 3: // 审核拒绝
 		msgCate = "enterprise_kyc_reject"
 		code = "enterprise"
 		title = "Enterprise Authentication Rejected"
 		brief = "Your enterprise authentication has been rejected."
-		content = "<p>Dear user,</p><p>Unfortunately, your enterprise authentication application has been rejected.</p><p>Reason: %s</p><p>Please check and resubmit your application.</p><p>Best regards,<br>922 S5 Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate.</p><p>Re-authentication</p><p>If you have any questions, please feel free to contact us through our official email address!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Telegram: @Olivia_257856</p><p>Cherry Proxy Team</p>"
 		titleZh = "企業認證未通過"
 		briefZh = "您的企業認證未通過審核。"
-		contentZh = "<p>親愛的用戶，</p><p>很遺憾，您的企業認證申請未通過審核。</p><p>原因：%s</p><p>請檢查並重新提交您的申請。</p><p>敬上，<br>922 S5 Proxy團隊</p>"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>重新認證</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
 		// 替换拒绝原因
 		if reviewReason != "" {
 			content = fmt.Sprintf(content, reviewReason)

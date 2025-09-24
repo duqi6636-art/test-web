@@ -16,6 +16,7 @@ type EnterpriseKyc struct {
 	ReviewStatus         int    `json:"review_status"`         // 审核状态：0=待审核,1=审核中，2=审核通过，3=审核拒绝，4=未提交审核，-1=提交失败
 	ReviewReason         string `json:"review_reason"`         // 审核原因
 	Reviewer             string `json:"reviewer"`              // 审核人
+	OrderType            string `json:"order_type"`            // 订单类型
 	ThirdPartyReqId      string `json:"third_party_req_id"`    // 第三方请求ID
 	ThirdPartyStatus     int    `json:"third_party_status"`    // 第三方状态：0=未提交，1=已提交，2=审核通过，3=审核拒绝
 	ThirdPartyResult     string `json:"third_party_result"`    // 第三方审核结果

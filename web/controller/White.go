@@ -247,6 +247,9 @@ func submitDomainsToThirdPartyBatch(uid int, username string, domains []DomainRe
 		remarkList = append(remarkList, pair.Remark)
 	}
 
+	// 获取用户历史购买记录类型
+	orderTypes := getUserOrderTypes(userInfo.Id)
+
 	// 准备提交数据
 	submitData := map[string]interface{}{
 		"oa_platform_name": "360cherry",
@@ -257,6 +260,7 @@ func submitDomainsToThirdPartyBatch(uid int, username string, domains []DomainRe
 		"apply_remark":     strings.Join(remarkList, ","),
 		"reg_time":         userInfo.CreateTime,
 		"domains":          strings.Join(domainList, ","),
+		"order_type":       orderTypes,
 	}
 
 	// 生成签名
