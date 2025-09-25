@@ -116,7 +116,7 @@ func SubmitEnterpriseKyc(c *gin.Context) {
 		"kyc_id":       kycId,
 		"applicant_id": applicantID,
 		"status":       "submitted",
-		"message":      "您的企业认证申请已提交，我们将在3-5个工作日内完成审核",
+		"message":      "您的企业认证申请已提交，我们将在24小时内完成审核",
 	}
 
 	JsonReturn(c, e.SUCCESS, "success", response)

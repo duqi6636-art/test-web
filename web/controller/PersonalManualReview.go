@@ -277,7 +277,7 @@ func SubmitKycManualReview(c *gin.Context) {
 		"id":           reviewId,
 		"applicant_id": applicantID,
 		"status":       "submitted",
-		"message":      "您的实名认证申请已提交，我们将在1-3个工作日内完成审核",
+		"message":      "您的实名认证申请已提交，我们将在24小时内完成审核",
 	}
 
 	JsonReturn(c, e.SUCCESS, "success", response)
@@ -1064,14 +1064,6 @@ func sendPersonalKycReviewMsg(uid int, reviewStatus int, reviewReason string) {
 		titleZh = "個人認證未通過"
 		briefZh = "您的個人認證未通過審核。"
 		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>重新認證</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
-		// 替换拒绝原因
-		if reviewReason != "" {
-			content = fmt.Sprintf(content, reviewReason)
-			contentZh = fmt.Sprintf(contentZh, reviewReason)
-		} else {
-			content = fmt.Sprintf(content, "No specific reason provided")
-			contentZh = fmt.Sprintf(contentZh, "未提供具體原因")
-		}
 	default:
 		fmt.Printf("Invalid review status for personal KYC message: %d\n", reviewStatus)
 		return
@@ -1137,14 +1129,6 @@ func sendEnterpriseKycReviewMsg(uid int, reviewStatus int, reviewReason string) 
 		titleZh = "企業認證未通過"
 		briefZh = "您的企業認證未通過審核。"
 		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>重新認證</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
-		// 替换拒绝原因
-		if reviewReason != "" {
-			content = fmt.Sprintf(content, reviewReason)
-			contentZh = fmt.Sprintf(contentZh, reviewReason)
-		} else {
-			content = fmt.Sprintf(content, "No specific reason provided")
-			contentZh = fmt.Sprintf(contentZh, "未提供具體原因")
-		}
 	default:
 		fmt.Printf("Invalid review status for enterprise KYC message: %d\n", reviewStatus)
 		return
