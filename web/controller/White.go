@@ -96,7 +96,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 			}
 
 			// 检查是否已存在
-			userDomains := models.GetUserDomainWhiteByUid(uid)
+			userDomains := models.GetUserDomainWhiteByUid(uid, "")
 			hasExisting := false
 			var existingDomain *models.MdUserApplyDomain
 			for _, d := range userDomains {
@@ -191,6 +191,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 			Remark:       pair.Remark,
 			CreateTime:   util.GetNowInt(),
 			UpdateTime:   util.GetNowInt(),
+			SubmitTime:   util.GetNowInt(),
 			IsLastSubmit: true,
 		}
 

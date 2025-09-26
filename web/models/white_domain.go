@@ -2,6 +2,8 @@ package models
 
 import (
 	"api-360proxy/web/pkg/util"
+	"net"
+	"strings"
 )
 
 // MdUserApplyDomain 添加申请域名白名单
@@ -144,5 +146,46 @@ func CheckDomainInBlacklist(domain string) bool {
 		return true
 	}
 
+	// 提取主域名进行检查
+	hostname := getMainDomain(domain)
+	if hostname != "" && hostname != domain {
+		// 检查主域名是否在 cm_black_domain 表中
+		db.Table("cm_black_domain").Where("domain = ?", hostname).Count(&count)
+		if count > 0 {
+			return true
+		}
+
+		// 检查主域名是否在 md_domain_black 表中
+		db.Table("cm_domain_black").Where("domain = ?", hostname).Count(&count)
+		if count > 0 {
+			return true
+		}
+	}
+
 	return false
+}
+
+// getMainDomain 提取域名的主域名部分
+func getMainDomain(domain string) string {
+	// 移除端口号（如果有）
+	if strings.Contains(domain, ":") {
+		parts := strings.Split(domain, ":")
+		domain = parts[0]
+	}
+
+	// 检查是否为IP地址
+	ip := net.ParseIP(domain)
+	if ip != nil {
+		return domain
+	}
+
+	// 分割域名部分
+	hostParts := strings.Split(domain, ".")
+	n := len(hostParts)
+	if n < 2 {
+		return ""
+	}
+
+	// 返回主域名（最后两部分）
+	return hostParts[n-2] + "." + hostParts[n-1]
 }
