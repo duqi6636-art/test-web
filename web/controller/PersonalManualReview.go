@@ -829,6 +829,7 @@ type UnifiedKycCallbackData struct {
 
 // EnterpriseKycNotify 认证结果回调
 func EnterpriseKycNotify(c *gin.Context) {
+	AddLogs("EnterpriseKycNotify", "接口被调用")
 	// 验证签名
 	signature := c.GetHeader("sign")
 	departmentId := c.GetHeader("departmentId")
@@ -840,6 +841,7 @@ func EnterpriseKycNotify(c *gin.Context) {
 	signKey := models.GetConfigVal("third_party_sign_key")
 	expectedSign := generateThirdPartySign(departmentId, timestamp, signKey)
 	if signature != expectedSign {
+		AddLogs("EnterpriseKycNotify", fmt.Sprintf("签名验证失败: expected: %s, received: %s", expectedSign, signature))
 		JsonReturn(c, e.ERROR, "Invalid signature", nil)
 		return
 	}
@@ -847,26 +849,44 @@ func EnterpriseKycNotify(c *gin.Context) {
 	// 解析回调数据
 	var callbackData UnifiedKycCallbackData
 	if err := json.Unmarshal(reqBody, &callbackData); err != nil {
+		AddLogs("EnterpriseKycNotify", fmt.Sprintf("JSON解析失败: %v, body: %s", err, string(reqBody)))
 		JsonReturn(c, e.ERROR, "json unmarshal error", nil)
 		return
 	}
-	AddLogs("EnterpriseKycNotify", string(reqBody))
 
 	// 根据认证类型分别处理
+	hasError := false
+	errorMsg := ""
 	switch callbackData.VerifyType {
 	case 1: // 个人认证
 		if err := handlePersonalKycCallback(callbackData); err != nil {
+			hasError = true
+			errorMsg = err.Error()
+			AddLogs("EnterpriseKycNotify", errorMsg)
 			JsonReturn(c, e.ERROR, err.Error(), nil)
 			return
 		}
 	case 2: // 企业认证
 		if err := handleEnterpriseKycCallback(callbackData); err != nil {
+			hasError = true
+			errorMsg = err.Error()
+			AddLogs("EnterpriseKycNotify", errorMsg)
 			JsonReturn(c, e.ERROR, err.Error(), nil)
 			return
 		}
 	default:
+		hasError = true
+		errorMsg = "未知的认证类型"
+		AddLogs("EnterpriseKycNotify", fmt.Sprintf("未知的认证类型: %d", callbackData.VerifyType))
 		JsonReturn(c, e.ERROR, "unknow callback type", nil)
 		return
+	}
+
+	// 记录处理结果
+	if hasError {
+		AddLogs("EnterpriseKycNotify", fmt.Sprintf("处理失败: %s", errorMsg))
+	} else {
+		AddLogs("EnterpriseKycNotify", "处理成功")
 	}
 
 	JsonReturn(c, e.SUCCESS, "success", nil)
