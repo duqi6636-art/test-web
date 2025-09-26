@@ -615,6 +615,7 @@ func sendDomainReviewNotificationMsg(callbackData models.DomainReviewCallbackDat
 	// 根据审核结果构造不同的站内信内容
 	msgCate = "domain_white_review"
 	code = "domain"
+	applyTime := util.GetTimeStr(callbackData.ApplyTime, "d/m/Y H:i:s")
 
 	// 同时有通过和未通过的域名
 	if len(passDomains) > 0 && len(noPassDomains) > 0 {
@@ -624,9 +625,8 @@ func sendDomainReviewNotificationMsg(callbackData models.DomainReviewCallbackDat
 		titleZh = "域名白名單審核結果"
 		briefZh = "您的域名白名單申請已審核。"
 		contentZh = "<p>尊敬的CherryProxy用戶:</p><p>您好！您於 %s 提交的域名申請已經審核，審核結果如下：</p><p>通過域名：%s</p><p>未通過域名：%s</p><p>如對審核結果有疑問，請及時聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
-
-		content = fmt.Sprintf(content, callbackData.ApplyTime, callbackData.PassDomains, callbackData.NoPassDomains)
-		contentZh = fmt.Sprintf(contentZh, callbackData.ApplyTime, callbackData.PassDomains, callbackData.NoPassDomains)
+		content = fmt.Sprintf(content, applyTime, callbackData.PassDomains, callbackData.NoPassDomains)
+		contentZh = fmt.Sprintf(contentZh, applyTime, callbackData.PassDomains, callbackData.NoPassDomains)
 	} else if len(passDomains) > 0 { // 只有通过的域名
 		title = "Domain Whitelist Approved"
 		brief = "Your domain whitelist application has been approved."
@@ -634,9 +634,8 @@ func sendDomainReviewNotificationMsg(callbackData models.DomainReviewCallbackDat
 		titleZh = "域名白名單已通過"
 		briefZh = "您的域名白名單申請已通過審核。"
 		contentZh = "<p>尊敬的CherryProxy用戶:</p><p>您好！您於 %s 提交的域名申請已經審核，審核結果如下：</p><p>通過域名：%s</p><p>如對審核結果有疑問，請及時聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
-
-		content = fmt.Sprintf(content, callbackData.ApplyTime, callbackData.PassDomains)
-		contentZh = fmt.Sprintf(contentZh, callbackData.ApplyTime, callbackData.PassDomains)
+		content = fmt.Sprintf(content, applyTime, callbackData.PassDomains)
+		contentZh = fmt.Sprintf(contentZh, applyTime, callbackData.PassDomains)
 	} else if len(noPassDomains) > 0 { // 只有未通过的域名
 		title = "Domain Whitelist Rejected"
 		brief = "Your domain whitelist application has been rejected."
@@ -645,8 +644,8 @@ func sendDomainReviewNotificationMsg(callbackData models.DomainReviewCallbackDat
 		briefZh = "您的域名白名單申請未通過審核。"
 		contentZh = "<p>尊敬的CherryProxy用戶:</p><p>您好！您於 %s 提交的域名申請已經審核，審核結果如下：</p><p>未通過域名：%s</p><p>如對審核結果有疑問，請及時聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
 
-		content = fmt.Sprintf(content, callbackData.ApplyTime, callbackData.NoPassDomains)
-		contentZh = fmt.Sprintf(contentZh, callbackData.ApplyTime, callbackData.NoPassDomains)
+		content = fmt.Sprintf(content, applyTime, callbackData.NoPassDomains)
+		contentZh = fmt.Sprintf(contentZh, applyTime, callbackData.NoPassDomains)
 
 	} else {
 		log.Printf("No domains found in callback data")

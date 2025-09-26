@@ -850,6 +850,7 @@ func EnterpriseKycNotify(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "json unmarshal error", nil)
 		return
 	}
+	AddLogs("EnterpriseKycNotify", string(reqBody))
 
 	// 根据认证类型分别处理
 	switch callbackData.VerifyType {

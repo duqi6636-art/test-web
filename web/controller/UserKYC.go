@@ -227,7 +227,7 @@ func IdVerifyStepThree(c *gin.Context) {
 	data["expire_date"] = ""
 	data["operator"] = userKycInfo.Operator
 	status := 0
-	if userKycInfo.Status == "0" {
+	if userKycInfo.Status == "0" || userKycInfo.Status == "" {
 		status = 0
 	} else if userKycInfo.Status == "1" {
 		status = 1
