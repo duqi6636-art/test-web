@@ -76,7 +76,14 @@ func AddDomainWhiteApply(c *gin.Context) {
 	existsDomains := []string{}                   // 已经存在的域名
 
 	blacklistDomainIDs := []int{} // 黑名单ID
-	// 保存到数据库
+
+	// 验证所有域名并分类
+	// 先将用户所有记录的IsLastSubmit设置为false
+	updateOldRecords := map[string]interface{}{
+		"is_last_submit": false,
+		"update_time":    util.GetNowInt(),
+	}
+	models.UpdateAllDomainApplyByUser(uid, updateOldRecords)
 	for _, pair := range domainRemarkPairs {
 		domain := strings.TrimSpace(pair.Domain)
 		if domain != "" {
@@ -105,8 +112,9 @@ func AddDomainWhiteApply(c *gin.Context) {
 				if existingDomain.Status == 2 { // 审核通过
 					// 直接更新提交时间，无需提交
 					updateData := map[string]interface{}{
-						"update_time": nowTime,
-						"submit_time": nowTime,
+						"update_time":    nowTime,
+						"submit_time":    nowTime,
+						"is_last_submit": true,
 					}
 					if err := models.UpdateDomainApplyID(existingDomain.Id, updateData); err != nil {
 						failedDomains = append(failedDomains, domain)
@@ -153,15 +161,16 @@ func AddDomainWhiteApply(c *gin.Context) {
 	// 不在黑名单中，直接审核通过
 	for _, pair := range validWhitelistDomains {
 		addInfo := models.MdUserApplyDomain{
-			Uid:        uid,
-			Username:   username,
-			Domain:     pair.Domain,
-			Status:     2, // 直接审核通过
-			Remark:     pair.Remark,
-			CreateTime: util.GetNowInt(),
-			UpdateTime: util.GetNowInt(),
-			ReviewTime: util.GetNowInt(), // 设置审核时间
-			SubmitTime: util.GetNowInt(),
+			Uid:          uid,
+			Username:     username,
+			Domain:       pair.Domain,
+			Status:       2, // 直接审核通过
+			Remark:       pair.Remark,
+			CreateTime:   util.GetNowInt(),
+			UpdateTime:   util.GetNowInt(),
+			ReviewTime:   util.GetNowInt(), // 设置审核时间
+			SubmitTime:   util.GetNowInt(),
+			IsLastSubmit: true,
 		}
 
 		_, err := models.AddUserDomainWhite(addInfo)
@@ -175,13 +184,14 @@ func AddDomainWhiteApply(c *gin.Context) {
 	for _, pair := range validBlacklistDomains {
 		// 在黑名单中，需要第三方审核
 		addInfo := models.MdUserApplyDomain{
-			Uid:        uid,
-			Username:   username,
-			Domain:     pair.Domain,
-			Status:     0, // 待审核
-			Remark:     pair.Remark,
-			CreateTime: util.GetNowInt(),
-			UpdateTime: util.GetNowInt(),
+			Uid:          uid,
+			Username:     username,
+			Domain:       pair.Domain,
+			Status:       0, // 待审核
+			Remark:       pair.Remark,
+			CreateTime:   util.GetNowInt(),
+			UpdateTime:   util.GetNowInt(),
+			IsLastSubmit: true,
 		}
 
 		domainID, err := models.AddUserDomainWhite(addInfo)
@@ -341,19 +351,16 @@ func submitDomainsToThirdPartyBatch(uid int, username string, domains []DomainRe
 func DomainWhiteList(c *gin.Context) {
 	//language := c.DefaultPostForm("lang", "en")
 	resCode, msg, userInfo := DealUser(c) //处理用户信息
+	isLastSubmit := c.DefaultPostForm("is_last_submit", "")
 	if resCode != e.SUCCESS {
 		JsonReturn(c, resCode, msg, nil)
 		return
 	}
 	uid := userInfo.Id
 
-	domaoinList := models.GetUserDomainWhiteByUid(uid)
+	domaoinList := models.GetUserDomainWhiteByUid(uid, isLastSubmit)
 	resList := []models.ResUserApplyDomain{}
 	for _, domaoin := range domaoinList {
-		// 过滤已删除状态(-2)的域名
-		if domaoin.Status == -2 {
-			continue
-		}
 		resInfo := models.ResUserApplyDomain{
 			Id:         domaoin.Id,
 			Domain:     domaoin.Domain,

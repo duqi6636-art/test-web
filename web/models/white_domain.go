@@ -20,6 +20,7 @@ type MdUserApplyDomain struct {
 	ReviewTime       int    `json:"review_time"`        // 审核时间
 	CreateTime       int    `json:"create_time"`        // 创建时间
 	UpdateTime       int    `json:"update_time"`        // 更新时间
+	IsLastSubmit     bool   `json:"is_last_submit"`     // 是否是上次提交
 }
 
 // DomainReviewCallbackData 第三方审核通知数据结构
@@ -91,9 +92,21 @@ func UpdateDomainApplyID(uid int, updateData map[string]interface{}) error {
 		Where("id = ?", uid).Updates(updateData).Error
 }
 
+// UpdateAllDomainApplyByUser 更新用户的所有域名记录
+func UpdateAllDomainApplyByUser(uid int, updateData map[string]interface{}) error {
+	return db.Table(userApplyDomainTable).
+		Where("uid = ?", uid).
+		Updates(updateData).Error
+}
+
 // GetUserDomainWhiteByUid 获取列表 By Uid
-func GetUserDomainWhiteByUid(uid int) (info []MdUserApplyDomain) {
+func GetUserDomainWhiteByUid(uid int, isLastSubmit string) (info []MdUserApplyDomain) {
 	dbs := db.Table(userApplyDomainTable).Where("uid =?", uid).Where("status != ?", -2)
+	if isLastSubmit != "" {
+		if isLastSubmit == "1" {
+			dbs = dbs.Where("is_last_submit = ?", true)
+		}
+	}
 	dbs = dbs.Order("id desc").Find(&info)
 	return
 }
