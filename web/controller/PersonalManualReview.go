@@ -1072,19 +1072,19 @@ func sendPersonalKycReviewMsg(uid int, reviewStatus int, reviewReason string) {
 		code = "personal"
 		title = "Personal Authentication Approved"
 		brief = "Your personal authentication has been approved."
-		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication application has been approved. You can now [immediately] check your status and experience more services.</p><p>If you have any questions, please feel free to contact us through our official email!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication application has been approved. You can now experience many more services.</p><p>If you have any questions, please feel free to contact us through our official email!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy Team</p>"
 		titleZh = "個人認證已通過"
 		briefZh = "您的個人認證已通過審核。"
-		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核已通過，您現在可以【立即查看】認證狀態並體驗更多服務。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核已通過，您現在可以體驗更多服務。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
 	case 3: // 审核拒绝
 		msgCate = "personal_kyc_reject"
 		code = "personal"
 		title = "Personal Authentication Rejected"
 		brief = "Your personal authentication has been rejected."
-		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate.</p><p>Re-authentication</p><p>If you have any questions, please feel free to contact us through our official email address!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Telegram: @Olivia_257856</p><p>Cherry Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate.</p><p>If you have any questions, please feel free to contact us through our official email address!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Telegram: @Olivia_257856</p><p>Cherry Proxy Team</p>"
 		titleZh = "個人認證未通過"
 		briefZh = "您的個人認證未通過審核。"
-		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>重新認證</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
 	default:
 		fmt.Printf("Invalid review status for personal KYC message: %d\n", reviewStatus)
 		return
@@ -1137,19 +1137,19 @@ func sendEnterpriseKycReviewMsg(uid int, reviewStatus int, reviewReason string) 
 		code = "enterprise"
 		title = "Enterprise Authentication Approved"
 		brief = "Your enterprise authentication has been approved."
-		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication application has been approved. You can now [immediately] check your status and experience more services.</p><p>If you have any questions, please feel free to contact us through our official email!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication application has been approved. You can now experience many more services.</p><p>If you have any questions, please feel free to contact us through our official email!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy Team</p>"
 		titleZh = "企業認證已通過"
 		briefZh = "您的企業認證已通過審核。"
-		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核已通過，您現在可以【立即查看】認證狀態並體驗更多服務。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核已通過，您現在可以體驗更多服務。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
 	case 3: // 审核拒绝
 		msgCate = "enterprise_kyc_reject"
 		code = "enterprise"
 		title = "Enterprise Authentication Rejected"
 		brief = "Your enterprise authentication has been rejected."
-		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate.</p><p>Re-authentication</p><p>If you have any questions, please feel free to contact us through our official email address!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Telegram: @Olivia_257856</p><p>Cherry Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate.</p><p>If you have any questions, please feel free to contact us through our official email address!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Telegram: @Olivia_257856</p><p>Cherry Proxy Team</p>"
 		titleZh = "企業認證未通過"
 		briefZh = "您的企業認證未通過審核。"
-		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>重新認證</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
 	default:
 		fmt.Printf("Invalid review status for enterprise KYC message: %d\n", reviewStatus)
 		return
