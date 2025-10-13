@@ -41,6 +41,11 @@ func ListPoolFlowDayByUid(uid int) (info []PoolFlowDayModel) {
 	return
 }
 
+func GetPoolFlowDayById(uid int, id int) (info PoolFlowDayDetailModel) {
+	db.Table("cm_pool_flow_day").Where("uid = ? ", uid).Where("id = ? ", id).Where("status =? ", 1).First(&info)
+	return
+}
+
 // 获取 不限量列表-全部
 func ListPoolFlowDayByUidAll(uid int) (info []PoolFlowDayModel) {
 	db.Table("cm_pool_flow_day").Where("uid = ? ", uid).Where("status =? ", 1).Find(&info)
