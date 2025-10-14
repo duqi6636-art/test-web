@@ -113,7 +113,7 @@ var userAutoRenewDetailTable = "cm_user_auto_renew_detail"
 // GetUserAutoRenewDetailListJoin 获取详细列表信息
 func GetUserAutoRenewDetailListJoin(uid int, cate string) (data []UserAutoRenewDetailJoinModel) {
 	fields := "auto.*,us.balance as user_balance,b.balance as r_balance"
-	joinTable := "cm_users"
+	joinTable := CmUserTable
 	if cate == "flow" {
 		fields = "auto.*,us.flows as user_balance,us.expire_time,b.balance as r_balance"
 		joinTable = userFlowTable
@@ -123,10 +123,16 @@ func GetUserAutoRenewDetailListJoin(uid int, cate string) (data []UserAutoRenewD
 		joinTable = userDynamicIspTable
 	}
 
+	// cm_users 使用 id 字段关联，其他用户相关表使用 uid 字段关联
+	joinKey := "id"
+	if joinTable != CmUserTable {
+		joinKey = "uid"
+	}
+
 	dbs := db.Table(userAutoRenewDetailTable + " as auto").
 		Select(fields).
 		Joins("left join cm_user_balance as b on auto.uid=b.uid").
-		Joins("left join " + joinTable + " as us on auto.uid=us.id")
+		Joins("left join " + joinTable + " as us on auto.uid=us." + joinKey)
 
 	if uid > 0 {
 		dbs = dbs.Where("auto.uid =?", uid)
@@ -239,7 +245,7 @@ func DealUserBalance(uid int, value, oldBalance int64, cate string, tMoney float
 	//扣除余额
 	editMap := map[string]interface{}{}
 	editMap["balance"] = gorm.Expr("balance - ?", tMoney)
-	editMap["balance"] = gorm.Expr("all_buy + ?", tMoney)
+	editMap["all_buy"] = gorm.Expr("all_buy + ?", tMoney)
 	err1 := tx.Table(userBalanceTable).Where("uid = ?", uid).Updates(editMap).Error
 	if err1 != nil {
 		tx.Rollback()

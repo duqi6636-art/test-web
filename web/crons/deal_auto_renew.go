@@ -61,23 +61,23 @@ func DoAutoRenewWithOrder() {
 func executeRenewByType(uid int, renewType string, userConfig models.UserAutoRenewModel) {
 	switch renewType {
 	case "isp":
-		executeIspRenew(uid, userConfig)
+		executeIspRenew(uid, renewType, userConfig)
+	case "flow":
+		executeFlowRenew(uid, renewType, userConfig)
+	case "rotating":
+		executeFlowRenew(uid, renewType, userConfig)
 		//case "static":
 		//	return executeStaticRenew(uid, userConfig)
-		//case "flow":
-		//	return executeFlowRenew(uid, userConfig)
-		//case "rotating":
-		//	return executeRotatingRenew(uid, userConfig)
+
 		//case "unlimited":
 		//	return executeUnlimitedRenew(uid, userConfig)
 	}
 }
 
-// 检查ISP续费余额
-func executeIspRenew(uid int, userConfig models.UserAutoRenewModel) {
+func executeIspRenew(uid int, cate string, userConfig models.UserAutoRenewModel) {
 	// 获取用户ISP续费配置
-	detailList := models.GetUserAutoRenewDetailListJoin(uid, "isp")
-	confList := models.GetConfBalanceRenewList("", "isp")
+	detailList := models.GetUserAutoRenewDetailListJoin(uid, cate)
+	confList := models.GetConfBalanceRenewList("", cate)
 
 	confMap := map[int]models.ConfBalanceRenewModel{}
 	for _, conf := range confList {
@@ -107,7 +107,7 @@ func executeIspRenew(uid int, userConfig models.UserAutoRenewModel) {
 				models.EditUserAutoRenew(uid, upPause)
 
 				if userConfig.EmailSwitch == 1 { // 是有效邮箱才发送
-					SendAutoRenewEmail(detail.Cate, userConfig.Email, detail.RBalance) //发邮件
+					sendAutoRenewEmail(detail.Cate, userConfig.Email, detail.RBalance) //发邮件
 				}
 				result = "insufficient"
 			} else {
@@ -125,16 +125,85 @@ func executeIspRenew(uid int, userConfig models.UserAutoRenewModel) {
 				}
 			}
 			// 操作日志
-			opLogCode := "isp_auto_renew"
+			opLogCode := cate + "_auto_renew"
 			opLog := fmt.Sprintf("uid:%d;result:%s;kf:%s;value:%d;name:%s", uid, result, util.FtoS2(totalMoney, 3), value, confName)
 			insertLogs(opLogCode, opLog)
 		}
 	}
 }
 
-// 余额不足发送邮件
+func executeFlowRenew(uid int, cate string, userConfig models.UserAutoRenewModel) {
+	// 获取用户续费配置
+	detailList := models.GetUserAutoRenewDetailListJoin(uid, cate)
+	confList := models.GetConfBalanceRenewList("", cate)
 
-func SendAutoRenewEmail(cate, email string, balance float64) {
+	confMap := map[int]models.ConfBalanceRenewModel{}
+	for _, conf := range confList {
+		confMap[conf.Id] = conf
+	}
+
+	for _, detail := range detailList {
+		nowTime := util.GetNowInt()
+		dTime := detail.ExpireTime - nowTime
+		value := detail.Value
+		confInfo, ok := confMap[detail.ConfId]
+		if !ok {
+			continue
+		}
+
+		szBalance := detail.Balance * confInfo.UnitValue
+
+		insertLogs("测试住宅====", fmt.Sprintf("%d:%d", szBalance, detail.UserBalance))
+		// 当用户剩余余额  <= 用户配置的自动续费余额时 或者是有效期小于等于配置的时间时，触发自动续费
+		if detail.UserBalance <= szBalance || dTime <= (detail.SyDay*86400) {
+			confName := confInfo.Name
+			if confInfo.IsCustom == 1 {
+				confName = fmt.Sprintf("%d %s", detail.Value/confInfo.UnitValue, confInfo.Unit)
+			}
+
+			totalMoney := confInfo.Price * float64(detail.Value/confInfo.UnitValue)
+
+			expireDay := detail.ExpireDay
+			if expireDay == 0 {
+				expireDay = 30
+			}
+			expireTime := detail.ExpireTime + expireDay*86400
+			if detail.ExpireTime < nowTime {
+				expireTime = nowTime + expireDay*86400
+			}
+			result := ""
+			// 判断扣费的余额用户是否余额足够
+			if totalMoney > detail.RBalance {
+				// 更新暂停状态
+				upPause := map[string]interface{}{}
+				pauseType := "pause_" + cate
+				upPause[pauseType] = nowTime
+				models.EditUserAutoRenew(uid, upPause)
+				if userConfig.EmailSwitch == 1 { // 是有效邮箱才发送
+					sendAutoRenewEmail(detail.Cate, userConfig.Email, detail.RBalance) //发邮件
+				}
+				result = "insufficient"
+			} else {
+				oldBalance := detail.UserBalance
+				balanceNew := detail.RBalance - totalMoney
+				res := models.DealUserBalance(uid, value, oldBalance, detail.Cate, totalMoney, expireTime)
+				result = "fail"
+				if res == nil {
+					eee := models.AddUserBalanceLog(uid, 3, balanceNew, float64(oldBalance), confInfo.Cate, value, 1, -1, nowTime, "")
+					fmt.Println("add user balance log", eee)
+					result = "success"
+				}
+
+			}
+			// 操作日志
+			opLogCode := cate + "_auto_renew"
+			opLog := fmt.Sprintf("uid:%d;result:%s;kf:%s;value:%d;name:%s", uid, result, util.FtoS2(totalMoney, 3), value, confName)
+			insertLogs(opLogCode, opLog)
+		}
+	}
+}
+
+func sendAutoRenewEmail(cate, email string, balance float64) {
 	isSend := 0
 	if email != "" {
 		default_mail := models.GetConfigVal("default_email")
