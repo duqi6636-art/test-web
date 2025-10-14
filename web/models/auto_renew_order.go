@@ -21,6 +21,7 @@ type UserAutoRenewOrderResModel struct {
 	Uid       int    `json:"uid"`        // 用户ID
 	Username  string `json:"username"`   // 用户名
 	RenewType string `json:"renew_type"` // 续费类型: isp, static, flow, rotating, unlimited
+	Status    int    `json:"status"`
 }
 
 var userAutoRenewOrderTable = "cm_user_auto_renew_order"

@@ -1,5 +1,7 @@
 package models
 
+import "github.com/jinzhu/gorm"
+
 // ConfBalanceRenewModel 余额自动续费配置
 type ConfBalanceRenewModel struct {
 	Id             int     `json:"id"`
@@ -49,7 +51,7 @@ var confBalanceAutoRenewTable = "conf_balance_renew"
 
 // GetConfBalanceRenewById 获取信息
 func GetConfBalanceRenewById(id int) (data ConfBalanceRenewModel) {
-	db.Table("conf_balance_renew").Where("id = ?", id).First(&data)
+	db.Table(confBalanceAutoRenewTable).Where("id = ?", id).First(&data)
 	return
 }
 
@@ -88,7 +90,56 @@ type UserAutoRenewDetailModel struct {
 	CreateTime int     `json:"create_time"`
 }
 
+type UserAutoRenewDetailJoinModel struct {
+	Id          int     `json:"id"`
+	Uid         int     `json:"uid"`
+	Username    string  `json:"username"`
+	Email       string  `json:"email"`
+	ConfId      int     `json:"conf_id"`      // 配置ID
+	Cate        string  `json:"cate"`         // 类型
+	Value       int64   `json:"value"`        // 续费的数量
+	Balance     int64   `json:"balance"`      // 余额剩余
+	ExpireDay   int     `json:"expire_day"`   // 续费的有效期 比如流量 30天  静态有 7天 10天
+	SyDay       int     `json:"sy_day"`       // 剩余几天有效期自动续费
+	Method      string  `json:"method"`       // 续费方式 static  静态余额 balance 余额充值
+	ExId        int     `json:"ex_id"`        // 提取IP信息ID
+	UserBalance int64   `json:"user_balance"` // 用户余额
+	ExpireTime  int     `json:"expire_time"`  // 用户流量余额有效期
+	RBalance    float64 `json:"r_balance"`    // 用户余额充值的余额
+}
+
 var userAutoRenewDetailTable = "cm_user_auto_renew_detail"
+
+// GetUserAutoRenewDetailListJoin 获取详细列表信息
+func GetUserAutoRenewDetailListJoin(uid int, cate string) (data []UserAutoRenewDetailJoinModel) {
+	fields := "auto.*,us.balance as user_balance,b.balance as r_balance"
+	joinTable := "cm_users"
+	if cate == "flow" {
+		fields = "auto.*,us.flows as user_balance,us.expire_time,b.balance as r_balance"
+		joinTable = userFlowTable
+	}
+	if cate == "rotating" {
+		fields = "auto.*,us.flows as user_balance,us.expire_time,b.balance as r_balance"
+		joinTable = userDynamicIspTable
+	}
+
+	dbs := db.Table(userAutoRenewDetailTable + " as auto").
+		Select(fields).
+		Joins("left join cm_user_balance as b on auto.uid=b.uid").
+		Joins("left join " + joinTable + " as us on auto.uid=us.id")
+
+	if uid > 0 {
+		dbs = dbs.Where("auto.uid =?", uid)
+	}
+	if cate != "" {
+		dbs = dbs.Where("auto.cate =?", cate)
+	}
+	dbs = dbs.Where("auto.status=?", 1).
+		Where("us.status=?", 1).
+		Where("b.status=?", 1).
+		Find(&data)
+	return
+}
 
 // GetUserAutoRenewDetail 获取详细信息
 func GetUserAutoRenewDetail(uid int, cate string, exId int) (data UserAutoRenewDetailModel) {
@@ -131,20 +182,31 @@ type UserAutoRenewAlreadyModel struct {
 }
 
 type UserAutoRenewModel struct {
-	Id          int    `json:"id"`
-	Uid         int    `json:"uid"`
-	Username    string `json:"username"`
-	Email       string `json:"email"`
-	Open        int    `json:"open"`         // 开关
-	EmailSwitch int    `json:"email_switch"` // 邮件预警开关 0关闭 1开启
-	IsEmail     int    `json:"is_email"`     // 是否是有效邮箱
-	Method      string `json:"method"`       // 续费方式 static  静态余额 balance 余额充值
-	Ip          string `json:"ip"`           // 操作IP
-	UpdateTime  int    `json:"update_time"`  // 最后操作时间
-	CreateTime  int    `json:"create_time"`  // 设置时间
+	Id             int    `json:"id"`
+	Uid            int    `json:"uid"`
+	Username       string `json:"username"`
+	Email          string `json:"email"`
+	Open           int    `json:"open"`            // 开关
+	EmailSwitch    int    `json:"email_switch"`    // 邮件预警开关 0关闭 1开启
+	IsEmail        int    `json:"is_email"`        // 是否是有效邮箱
+	Method         string `json:"method"`          // 续费方式 static  静态余额 balance 余额充值
+	Ip             string `json:"ip"`              // 操作IP
+	UpdateTime     int    `json:"update_time"`     // 最后操作时间
+	CreateTime     int    `json:"create_time"`     // 设置时间
+	PauseIsp       int    `json:"pause_isp"`       //ISP代理暂停时间戳
+	PauseStatic    int    `json:"pause_static"`    // 静态IP暂停时间戳
+	PauseFlow      int    `json:"pause_flow"`      // 住宅代理暂停时间戳
+	PauseRotating  int    `json:"pause_rotating"`  // 轮转ISP暂停时间戳
+	PauseUnlimited int    `json:"pause_unlimited"` // 不限量代理暂停时间戳
 }
 
 var userAutoRenewTable = "cm_user_auto_renew"
+
+// GetAutoRenewRecordByOpen 获取开启 未暂停的列表信息
+func GetAutoRenewRecordByOpen() (data []UserAutoRenewModel) {
+	db.Table(userAutoRenewTable).Where("open =? ", 1).Find(&data)
+	return
+}
 
 // GetUserAutoRenewInfo 查询用户设置信息
 func GetUserAutoRenewInfo(uid int) (data UserAutoRenewModel) {
@@ -162,4 +224,61 @@ func EditUserAutoRenew(uid int, param interface{}) (err error) {
 func AddUserAutoRenew(info UserAutoRenewModel) (err error) {
 	err = db.Table(userAutoRenewTable).Create(&info).Error
 	return
+}
+
+// DealUserBalance 处理用户余额
+// uid 用户Id
+// value 增加的用户余额
+// oldBalance 原来用户余额数
+// tMoney 扣除的余额金额
+// expireTime 设置用户过期时间
+func DealUserBalance(uid int, value, oldBalance int64, cate string, tMoney float64, expireTime int) (err error) {
+	// 开始扣费
+	tx := db.Begin()
+
+	//扣除余额
+	editMap := map[string]interface{}{}
+	editMap["balance"] = gorm.Expr("balance - ?", tMoney)
+	editMap["balance"] = gorm.Expr("all_buy + ?", tMoney)
+	err1 := tx.Table(userBalanceTable).Where("uid = ?", uid).Updates(editMap).Error
+	if err1 != nil {
+		tx.Rollback()
+		return err1
+	}
+	if cate == "isp" {
+		userIpMap := map[string]interface{}{}
+		userIpMap["balance"] = gorm.Expr("balance + ?", value)
+		userIpMap["pay_ip"] = gorm.Expr("pay_ip + ?", value)
+		err2 := tx.Table(CmUserTable).Where("id = ?", uid).Updates(userIpMap).Error
+		if err2 != nil {
+			tx.Rollback()
+			return err2
+		}
+	}
+	if cate == "flow" {
+		userIpMap := map[string]interface{}{}
+		userIpMap["pre_flow"] = oldBalance
+		userIpMap["expire_time"] = expireTime
+		userIpMap["flows"] = gorm.Expr("flows + ?", value)
+		userIpMap["all_flow"] = gorm.Expr("all_flow + ?", value)
+		err2 := tx.Table(userFlowTable).Where("uid = ?", uid).Updates(userIpMap).Error
+		if err2 != nil {
+			tx.Rollback()
+			return err2
+		}
+	}
+	if cate == "rotating" {
+		userIpMap := map[string]interface{}{}
+		userIpMap["pre_flow"] = oldBalance
+		userIpMap["expire_time"] = expireTime
+		userIpMap["flows"] = gorm.Expr("flows + ?", value)
+		userIpMap["all_flow"] = gorm.Expr("all_flow + ?", value)
+		err2 := tx.Table(userDynamicIspTable).Where("uid = ?", uid).Updates(userIpMap).Error
+		if err2 != nil {
+			tx.Rollback()
+			return err2
+		}
+	}
+	tx.Commit()
+	return err1
 }
