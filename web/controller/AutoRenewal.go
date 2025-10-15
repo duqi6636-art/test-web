@@ -160,6 +160,9 @@ func GetAutoRenewConfig(c *gin.Context) {
 	resData["has_config"] = hasConfig             // 已配置的信息
 	resData["email"] = hasInfo.Email              // 邮件地址
 	resData["email_switch"] = hasInfo.EmailSwitch // 邮件开关
+	if hasInfo.Email == "" {
+		resData["email"] = user.Email
+	}
 
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resData)
 	return
@@ -249,20 +252,45 @@ func SetAutoRenewConfig(c *gin.Context) {
 	valueStr := strings.TrimSpace(c.DefaultPostForm("value", ""))       //自动续费值
 	dayStr := strings.TrimSpace(c.DefaultPostForm("day", ""))           //剩余天数  剩余几天有效期时自动续费
 	method := strings.TrimSpace(c.DefaultPostForm("method", "balance")) //扣费类型
+	cate := strings.TrimSpace(c.DefaultPostForm("cate", "isp"))         //扣费类型
 	if method == "" {
 		method = "balance"
 	}
-
-	valueId := util.StoI(valueIdStr)
-	if valueId == 0 {
-		JsonReturn(c, e.ERROR, "__T_CONFIG_INFO_ERROR", nil)
-		return
-	}
-
-	status := util.StoI(statusStr)
 	balance := util.StoI(balanceStr)
 	value := util.StoI(valueStr)
 	day := util.StoI(dayStr)
+	status := util.StoI(statusStr)
+	valueId := util.StoI(valueIdStr)
+
+	// 如果用户关闭自动续费（status=0）或者没有选择套餐，允许保存
+	if status == 0 || valueId == 0 {
+		// 查找用户现有的自动续费配置列表（所有类型）
+		hasInfoList := models.GetUserAutoRenewDetailList(uid, cate)
+
+		if len(hasInfoList) > 0 {
+			// 如果存在配置，将所有配置更新为关闭状态
+			for _, hasInfo := range hasInfoList {
+				upInfo := map[string]interface{}{}
+				upInfo["status"] = status
+				upInfo["balance"] = balance
+				upInfo["expire_day"] = 30
+				upInfo["sy_day"] = day
+				upInfo["method"] = method
+				upInfo["update_time"] = util.GetNowInt()
+				upInfo["status"] = 0 // 强制设置为关闭状态
+				upInfo["update_time"] = util.GetNowInt()
+
+				err := models.EditUserAutoRenewDetail(hasInfo.Id, upInfo)
+				if err != nil {
+					JsonReturn(c, e.ERROR, "__T_FAIL", nil)
+					return
+				}
+			}
+		}
+		// 如果没有现有配置且用户选择关闭，直接返回成功（无需创建记录）
+		JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
+		return
+	}
 
 	configInfo := models.GetConfBalanceRenewById(valueId)
 	if configInfo.Id == 0 {
