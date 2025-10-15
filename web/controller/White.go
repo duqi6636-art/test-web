@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -381,6 +382,21 @@ func DomainWhiteList(c *gin.Context) {
 }
 
 func DomainWhiteReviewNotify(c *gin.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			// 获取堆栈信息
+			stack := make([]byte, 4096)
+			length := runtime.Stack(stack, false)
+			stackTrace := string(stack[:length])
+			// 记录详细的panic信息
+			panicMsg := fmt.Sprintf("[PANIC] DomainWhiteReviewNotify: %v\nStack trace:\n%s", r, stackTrace)
+			AddLogs("DomainWhiteReviewNotify", panicMsg)
+			// 确保响应已经发送
+			if !c.Writer.Written() {
+				JsonReturn(c, e.ERROR, "Internal server error", nil)
+			}
+		}
+	}()
 	// 验证签名
 	departmentId := c.GetHeader("departmentId")
 	timestamp := c.GetHeader("timestamp")

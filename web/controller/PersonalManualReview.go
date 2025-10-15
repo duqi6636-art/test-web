@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -829,7 +830,21 @@ type UnifiedKycCallbackData struct {
 
 // EnterpriseKycNotify 认证结果回调
 func EnterpriseKycNotify(c *gin.Context) {
-	AddLogs("EnterpriseKycNotify", "接口被调用")
+	defer func() {
+		if r := recover(); r != nil {
+			// 获取堆栈信息
+			stack := make([]byte, 4096)
+			length := runtime.Stack(stack, false)
+			stackTrace := string(stack[:length])
+			// 记录详细的panic信息
+			panicMsg := fmt.Sprintf("[PANIC] EnterpriseKycNotify: %v\nStack trace:\n%s", r, stackTrace)
+			AddLogs("EnterpriseKycNotify", panicMsg)
+			// 确保响应已经发送
+			if !c.Writer.Written() {
+				JsonReturn(c, e.ERROR, "Internal server error", nil)
+			}
+		}
+	}()
 	// 验证签名
 	signature := c.GetHeader("sign")
 	departmentId := c.GetHeader("departmentId")
