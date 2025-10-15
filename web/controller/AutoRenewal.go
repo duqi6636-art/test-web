@@ -77,7 +77,18 @@ func GetAutoRenewConfig(c *gin.Context) {
 		}
 		totalPrices := util.StoF(util.FtoS2(totalPrice, 3)) //数据保留三位小数
 		info.Id = idStr
+
+		// 处理名字中的加号，拆分成 Name 和 NameExtra
+		nameExtra := ""
+		if strings.Contains(name, "+") {
+			parts := strings.SplitN(name, "+", 2)
+			if len(parts) == 2 {
+				name = strings.TrimSpace(parts[0])
+				nameExtra = strings.TrimSpace(parts[1])
+			}
+		}
 		info.Name = name
+		info.NameExtra = nameExtra
 		info.Price = conf.Price
 		info.Unit = conf.Unit
 		info.Value = int(setValue)

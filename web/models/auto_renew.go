@@ -25,6 +25,7 @@ type ConfBalanceRenewModel struct {
 type ResConfBalanceRenewModel struct {
 	Id         string  `json:"id"`
 	Name       string  `json:"name"`        // 名称
+	NameExtra  string  `json:"name_extra"`  // 名称中加号后面的部分
 	Value      int     `json:"value"`       // 兑换套餐值
 	Price      float64 `json:"price"`       // 单价
 	TotalPrice float64 `json:"total_price"` // 展示总价
