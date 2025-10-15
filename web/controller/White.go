@@ -387,33 +387,48 @@ func DomainWhiteReviewNotify(c *gin.Context) {
 	sign := c.GetHeader("sign")
 
 	if departmentId == "" || timestamp == "" || sign == "" {
-		log.Println("Missing headers")
-		JsonReturn(c, e.SUCCESS, "Missing headers", nil)
+		AddLogs("DomainWhiteReviewNotify", "Missing headers")
+		JsonReturn(c, e.ERROR, "Missing headers", nil)
 		return
 	}
 
 	signKey := models.GetConfigVal("third_party_sign_key")
+	if signKey == "" {
+		AddLogs("DomainWhiteReviewNotify", "third_party_sign_key is null")
+		JsonReturn(c, e.ERROR, "third_party_sign_key failed", nil)
+		return
+	}
 	expectedSign := generateThirdPartySign(departmentId, timestamp, signKey)
 	if sign != expectedSign {
-		log.Println("Invalid signature, expected:", expectedSign, "got:", sign)
+		AddLogs("DomainWhiteReviewNotify", "Invalid signature, expected")
 		JsonReturn(c, e.ERROR, "Invalid signature", nil)
 		return
 	}
 
 	// 解析回调数据
-	reqBody, _ := io.ReadAll(c.Request.Body)
-	log.Printf("Received callback data: %s", string(reqBody))
+	if c.Request.Body == nil {
+		AddLogs("DomainWhiteReviewNotify", "Empty request body")
+		JsonReturn(c, e.ERROR, "Empty request body", nil)
+		return
+	}
+	reqBody, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		AddLogs("DomainWhiteReviewNotify", "ReadAll request body fail")
+		JsonReturn(c, e.ERROR, "Read body error", nil)
+		return
+	}
 
 	var callbackData models.DomainReviewCallbackData
 	if err := json.Unmarshal(reqBody, &callbackData); err != nil {
-		log.Printf("Parse error: %v", err)
+		AddLogs("DomainWhiteReviewNotify", "Unmarshal request body fail=="+err.Error())
 		JsonReturn(c, e.ERROR, "Parse error", nil)
 		return
 	}
 
 	// 处理审核结果
-	err := processDomainsByStatus(callbackData)
+	err = processDomainsByStatus(callbackData)
 	if err != nil {
+		AddLogs("DomainWhiteReviewNotify", "processDomainsByStatus fail")
 		JsonReturn(c, e.ERROR, "process processDomainsByStatus failed", nil)
 		return
 	}
