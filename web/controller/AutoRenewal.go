@@ -5,6 +5,7 @@ import (
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"strconv"
 	"strings"
@@ -467,4 +468,365 @@ func SetAutoRenewOrder(c *gin.Context) {
 	}
 
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
+}
+
+// SetStaticAutoRenewSort 设置静态扣款顺序
+func SetStaticAutoRenewSort(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	method := strings.TrimSpace(c.DefaultPostForm("method", "")) //设置优先扣费方式  static   balance
+	hasInfo := models.GetUserAutoRenewInfo(uid)
+	var err error
+	if hasInfo.Id == 0 {
+		addInfo := models.UserAutoRenewModel{}
+		addInfo.Uid = uid
+		addInfo.Username = user.Username
+		addInfo.Method = method
+		addInfo.Email = user.Email
+		addInfo.Ip = c.ClientIP()
+		addInfo.CreateTime = util.GetNowInt()
+		err = models.AddUserAutoRenew(addInfo)
+	} else {
+		upInfo := map[string]interface{}{}
+		upInfo["method"] = method
+		upInfo["ip"] = c.ClientIP()
+		upInfo["update_time"] = util.GetNowInt()
+
+		err = models.EditUserAutoRenew(uid, upInfo)
+	}
+	// 更新详细信息配置
+	upDetail := map[string]interface{}{}
+	upDetail["method"] = method
+	upDetail["update_time"] = util.GetNowInt()
+	models.EditAutoRenewDetailList(uid, "static", upDetail)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_FAIL", nil)
+		return
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
+	return
+}
+
+// GetStaticConfLists 获取静态配置列表信息
+func GetStaticConfLists(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	country := strings.TrimSpace(c.DefaultPostForm("region", "")) //国家地区
+	ip := strings.TrimSpace(c.DefaultPostForm("ip", ""))          //ip /备注筛选
+	lang := strings.ToLower(c.DefaultPostForm("lang", "en"))      //语言
+	if country != "" {
+		country = strings.ToUpper(country)
+	}
+
+	offlineIps := models.GetStaticOfflineIps() //下线IP列表
+	offlineIpList := []string{}
+	for _, ipModel := range offlineIps {
+		offlineIpList = append(offlineIpList, ipModel.Ip)
+	}
+
+	confList := models.GetConfBalanceRenewList("renew", "static") //配置信息
+	confMap := map[int]string{}
+	for _, conf := range confList {
+		confMap[conf.Id] = conf.Name
+	}
+	// 获取用户已配置的自动续费信息
+	autoRenewList := models.GetUserAutoRenewDetailList(uid, "static")
+	autoRenewArr := map[int]models.UserAutoRenewDetailShortModel{}
+	for _, autoRenew := range autoRenewList {
+		name, ok := confMap[autoRenew.ConfId]
+		if !ok {
+			name = ""
+		}
+		aInfo := models.UserAutoRenewDetailShortModel{
+			Id:      autoRenew.Id,
+			Value:   autoRenew.Value,
+			Balance: autoRenew.Balance,
+			SyDay:   autoRenew.SyDay,
+			Method:  autoRenew.Method,
+			ExId:    autoRenew.ExId,
+			Status:  autoRenew.Status,
+			ConfId:  autoRenew.ConfId,
+			Name:    name,
+		}
+		autoRenewArr[autoRenew.ExId] = aInfo
+	}
+
+	// 获取用户提取静态未过期的IP
+	_, usedList := models.GetIpStaticIpBy(uid, ip, "1", "", country)
+
+	//nowTime := util.GetNowInt()
+
+	logData := []models.ResAutoRenewStaticDetailModel{}
+	for _, v := range usedList {
+		info := models.ResAutoRenewStaticDetailModel{}
+		is_expire := 1
+
+		idStr := util.ItoS(v.Id)
+		// 检查当前 IP 是否在 offlineIps 列表中
+		if util.InArrayString(v.Ip, offlineIpList) {
+			is_expire = 3 // 已下线
+		}
+		isRenew, valueId, syDay := 0, 0, 0
+		xfName := "" //已设置续费套餐信息
+		value := int64(0)
+		renewInfo, ok := autoRenewArr[v.Id]
+		if ok {
+			isRenew = renewInfo.Status
+			value = renewInfo.Value
+			valueId = renewInfo.Id
+			syDay = renewInfo.SyDay
+			xfName = renewInfo.Name
+
+			if isRenew == 2 {
+				isRenew = 0
+			}
+		}
+
+		info.Id = idStr
+		info.Ip = v.Ip
+		info.Country = v.Country
+		info.State = v.State
+		info.City = v.City
+		info.IsExpire = is_expire
+		info.ExpireTime = util.GetTimeByLang(v.ExpireTime, lang)
+		info.CreateTime = util.GetTimeByLang(v.CreateTime, lang)
+		info.IsRenew = isRenew
+		info.ValueId = valueId
+		info.Value = value
+		info.SyDay = syDay
+		info.Name = xfName
+		logData = append(logData, info)
+	}
+
+	resData := map[string]interface{}{
+		"list": logData,
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resData)
+	return
+}
+
+// BatchSetAutoRenewConfig 批量设置自动续费 静态+不限量
+func BatchSetAutoRenewConfig(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+
+	ids := strings.TrimSpace(c.DefaultPostForm("ids", ""))              //批量续费ID 静态id 或者是不限量ID
+	statusStr := strings.TrimSpace(c.DefaultPostForm("status", ""))     //状态  1开启
+	valueIdStr := strings.TrimSpace(c.DefaultPostForm("value_id", ""))  //自动续费ID
+	balanceStr := strings.TrimSpace(c.DefaultPostForm("balance", ""))   //剩余余额值
+	dayStr := strings.TrimSpace(c.DefaultPostForm("day", ""))           //到期前天数
+	method := strings.TrimSpace(c.DefaultPostForm("method", "balance")) //余额类型
+
+	valueId := util.StoI(valueIdStr)
+	if valueId == 0 {
+		JsonReturn(c, e.ERROR, "__T_CONFIG_INFO_ERROR", nil)
+		return
+	}
+
+	day := util.StoI(dayStr)
+	status := util.StoI(statusStr)
+	balance := util.StoI(balanceStr)
+
+	// 当ids为空时，只保存天数参数
+	if ids == "" {
+		// 批量更新所有用户的自动续费天数设置
+		upInfo := map[string]interface{}{}
+		upInfo["sy_day"] = day
+		// 更新所有类别的自动续费天数
+		models.EditAutoRenewDetailList(uid, "static", upInfo)
+		models.EditAutoRenewDetailList(uid, "unlimited", upInfo)
+		JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
+		return
+	}
+
+	configInfo := models.GetConfBalanceRenewById(valueId)
+	if configInfo.Id == 0 {
+		JsonReturn(c, e.ERROR, "__T_CONFIG_NOT_EXIST", nil)
+		return
+	}
+	if configInfo.Cate != "static" && configInfo.Cate != "unlimited" {
+		JsonReturn(c, e.ERROR, "__T_CONFIG_ERROR", nil)
+		return
+	}
+	//续费设置信息错误
+	if configInfo.Value == 0 {
+		JsonReturn(c, e.ERROR, "__T_RENEW_NUMBER_ERROR", nil)
+		return
+	}
+	value := configInfo.Value
+
+	hasConfig := models.GetUserAutoRenewInfo(uid)
+	if hasConfig.Method != "" && configInfo.Cate == "static" {
+		method = hasConfig.Method
+	}
+
+	idArr := strings.Split(ids, ",")
+	for _, val := range idArr {
+		id := util.StoI(val)
+		hasInfo := models.GetUserAutoRenewDetail(uid, configInfo.Cate, id)
+
+		var err error
+		if hasInfo.Id == 0 {
+			addInfo := models.UserAutoRenewDetailModel{}
+			addInfo.Uid = uid
+			addInfo.Username = user.Username
+			addInfo.Email = user.Email
+			addInfo.ConfId = configInfo.Id
+			addInfo.Cate = configInfo.Cate
+			addInfo.Balance = int64(balance)
+			addInfo.Value = int64(value) * configInfo.UnitValue
+			addInfo.ExpireDay = value
+			addInfo.SyDay = day
+			addInfo.Method = method
+			addInfo.ExId = id
+			addInfo.Status = status
+			addInfo.CreateTime = util.GetNowInt()
+			err = models.AddUserAutoRenewDetail(addInfo)
+		} else {
+			upInfo := map[string]interface{}{}
+			upInfo["status"] = status
+			upInfo["balance"] = balance
+			upInfo["conf_id"] = configInfo.Id
+			upInfo["value"] = int64(value) * configInfo.UnitValue
+			upInfo["expire_day"] = value
+			upInfo["sy_day"] = day
+			upInfo["method"] = method
+			upInfo["update_time"] = util.GetNowInt()
+			err = models.EditUserAutoRenewDetail(hasInfo.Id, upInfo)
+		}
+		fmt.Println(err)
+	}
+
+	// 批量更新天数
+	upInfo := map[string]interface{}{}
+	upInfo["sy_day"] = day
+	models.EditAutoRenewDetailList(uid, configInfo.Cate, upInfo)
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
+	return
+}
+
+// GetUnlimitedConfList 获取不限量配置列表信息
+func GetUnlimitedConfList(c *gin.Context) {
+	ip := c.DefaultPostForm("ip", "")
+	valueIdStr := strings.TrimSpace(c.DefaultPostForm("value_id", "")) //自动续费ID
+	resCode, msg, user := DealUser(c)                                  //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	valueId := util.StoI(valueIdStr)
+	if valueId == 0 {
+		JsonReturn(c, e.ERROR, "__T_CONFIG_INFO_ERROR", nil)
+		return
+	}
+
+	configInfo := models.GetConfBalanceRenewById(valueId)
+	if configInfo.Id == 0 {
+		JsonReturn(c, e.ERROR, "__T_CONFIG_NOT_EXIST", nil)
+		return
+	}
+
+	confList := models.GetConfBalanceRenewList("renew", "unlimited") //配置信息
+	confMap := map[int]string{}
+	for _, conf := range confList {
+		confMap[conf.Id] = conf.Name
+	}
+
+	// 获取用户已配置的自动续费信息
+	autoRenewList := models.GetUserAutoRenewDetailList(uid, "unlimited")
+	autoRenewArr := map[int]models.UserAutoRenewDetailShortModel{}
+	for _, autoRenew := range autoRenewList {
+		name, ok := confMap[autoRenew.ConfId]
+		if !ok {
+			name = ""
+		}
+		aInfo := models.UserAutoRenewDetailShortModel{
+			Id:      autoRenew.Id,
+			Value:   autoRenew.Value,
+			Balance: autoRenew.Balance,
+			SyDay:   autoRenew.SyDay,
+			Method:  autoRenew.Method,
+			ExId:    autoRenew.ExId,
+			Status:  autoRenew.Status,
+			ConfId:  autoRenew.ConfId,
+			Name:    name,
+		}
+		autoRenewArr[autoRenew.ExId] = aInfo
+	}
+
+	packagePriceList := models.PackageUnlimitedListBy(configInfo.PakId, "bandwidth")
+	bandwidthArr := map[int]float64{}
+	for _, v := range packagePriceList {
+		bandwidthArr[v.Config] = v.Money
+	}
+
+	unlimitedList := models.ListPoolFlowDayByUidIpAll(uid, ip)
+	resLists := []models.ResAutoRenewUnlimitedDetailModel{}
+	nowTime := util.GetNowInt()
+	for _, val := range unlimitedList {
+		idStr := util.ItoS(val.Id)
+		status := 1 //默认状态为正常
+		if val.ExpireTime < nowTime {
+			status = 2 //已过期
+		}
+		isRenew, confValueId, syDay := 0, 0, 0
+		bMoney, ok := bandwidthArr[val.Bandwidth]
+		if !ok {
+			bMoney = 0
+		}
+		tMoney := configInfo.Price + bMoney
+
+		xfName := "" //已设置续费套餐信息
+		value := int64(0)
+		renewInfo, ok := autoRenewArr[val.Id]
+		if ok {
+			isRenew = renewInfo.Status
+			value = renewInfo.Value
+			confValueId = renewInfo.Id
+			syDay = renewInfo.SyDay
+			xfName = renewInfo.Name
+			if renewInfo.Money > 0 {
+				tMoney = renewInfo.Money
+			}
+			if isRenew == 2 {
+				isRenew = 0
+			}
+		}
+
+		exDate := ""
+		if val.ExpireTime > 0 {
+			exDate = util.GetTimeStr(val.ExpireTime, "d/m/Y H:i:s")
+		}
+		info := models.ResAutoRenewUnlimitedDetailModel{}
+		info.Id = idStr
+		info.ConfigNum = val.Config
+		info.BandwidthNum = val.Bandwidth
+		info.Config = fmt.Sprintf("%d K", val.Config)
+		info.Bandwidth = fmt.Sprintf("%d M", val.Bandwidth)
+		info.ExpireTime = exDate
+		info.Ip = val.Ip
+		info.Status = status
+		info.IsRenew = isRenew
+		info.ValueId = confValueId
+		info.Value = value
+		info.SyDay = syDay
+		info.Name = xfName
+		info.TotalPrice = tMoney
+		resLists = append(resLists, info)
+	}
+	JsonReturn(c, e.SUCCESS, "success", resLists)
+	return
 }

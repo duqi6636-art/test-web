@@ -109,6 +109,55 @@ type UserAutoRenewDetailJoinModel struct {
 	RBalance    float64 `json:"r_balance"`    // 用户余额充值的余额
 }
 
+type UserAutoRenewDetailShortModel struct {
+	Id      int     `json:"id"`
+	Value   int64   `json:"value"`   // 续费的数量
+	Balance int64   `json:"balance"` // 余额剩余
+	SyDay   int     `json:"sy_day"`  // 剩余几天有效期自动续费
+	Money   float64 `json:"money"`   // 展示价格 ，如果配置了这个值就展示这个，没有配置，则展示基础配置的价格
+	Method  string  `json:"method"`  // 续费方式 static  静态余额 balance 余额充值
+	ExId    int     `json:"ex_id"`   // 提取IP信息ID
+	Status  int     `json:"status"`  // 状态 1正常 2禁用
+	ConfId  int     `json:"conf_id"` // 已设置续费配置ID
+	Name    string  `json:"name"`    // 已设置续费配置名称
+}
+
+// ResAutoRenewStaticDetailModel 静态自动续费配置详细信息列表
+type ResAutoRenewStaticDetailModel struct {
+	Id         string `json:"id"`
+	Ip         string `json:"ip"`
+	Country    string `json:"country"`
+	State      string `json:"state"`
+	City       string `json:"city"`
+	ExpireTime string `json:"expire_time"`
+	IsExpire   int    `json:"is_expire"` //1:未过期 2:过期 3:未过期但已下线
+	CreateTime string `json:"create_time"`
+	IsRenew    int    `json:"is_renew"` //是否配置自动续订 1是
+	ValueId    int    `json:"value_id"` //自动续订ID
+	Value      int64  `json:"value"`    //自动续订天数
+	SyDay      int    `json:"sy_day"`   //剩余几天 会触发自动续订
+	Name       string `json:"name"`     //已设置续费套餐信息
+}
+
+// ResAutoRenewUnlimitedDetailModel 不限量自动续费配置详细信息列表返回
+type ResAutoRenewUnlimitedDetailModel struct {
+	Id           string  `json:"id"`
+	Config       string  `json:"config"`        // 标识 并发配置
+	Bandwidth    string  `json:"bandwidth"`     // 类型 带宽
+	ConfigNum    int     `json:"config_num"`    // 标识 并发配置
+	BandwidthNum int     `json:"bandwidth_num"` // 类型 带宽
+	ExpireTime   string  `json:"expire_time"`   // 过期时间
+	Ip           string  `json:"ip"`            // 不限量IP
+	Status       int     `json:"status"`        // 状态 1待使用 2已过期
+	Category     string  `json:"category"`      // 类型  all 默认  us 高级美国池 flow 高速流量池
+	IsRenew      int     `json:"is_renew"`      // 是否配置自动续订 1是
+	ValueId      int     `json:"value_id"`      // 自动续订ID
+	Value        int64   `json:"value"`         // 自动续订天数
+	SyDay        int     `json:"sy_day"`        // 剩余几天 会触发自动续订
+	TotalPrice   float64 `json:"total_price"`   // 展示总价
+	Name         string  `json:"name"`          // 已设置续费套餐信息
+}
+
 var userAutoRenewDetailTable = "cm_user_auto_renew_detail"
 
 // GetUserAutoRenewDetailListJoin 获取详细列表信息
@@ -180,6 +229,12 @@ func AddUserAutoRenewDetail(info UserAutoRenewDetailModel) (err error) {
 // EditUserAutoRenewDetail 更新详细信息
 func EditUserAutoRenewDetail(id int, param interface{}) (err error) {
 	err = db.Table(userAutoRenewDetailTable).Where("id = ?", id).Update(param).Error
+	return
+}
+
+// EditAutoRenewDetailList 批量更新信息
+func EditAutoRenewDetailList(uid int, cate, upParams interface{}) {
+	db.Table(userAutoRenewDetailTable).Where("uid =? ", uid).Where("cate =? ", cate).Update(upParams)
 	return
 }
 

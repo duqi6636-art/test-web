@@ -52,6 +52,15 @@ func ListPoolFlowDayByUidAll(uid int) (info []PoolFlowDayModel) {
 	return
 }
 
+func ListPoolFlowDayByUidIpAll(uid int, ip string) (info []PoolFlowDayModel) {
+	dbs := db.Table("cm_pool_flow_day").Where("uid = ? ", uid)
+	if ip != "" {
+		dbs = dbs.Where("ip like ?", "%"+ip+"%")
+	}
+	dbs.Where("status =? ", 1).Find(&info)
+	return
+}
+
 func GetPoolFlowDayByIp(uid int, ip string) (info PoolFlowDayDetailModel) {
 	db.Table("cm_pool_flow_day").Where("uid = ? ", uid).Where("ip = ? ", ip).Where("status =? ", 1).First(&info)
 	return
