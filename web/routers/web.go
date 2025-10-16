@@ -54,6 +54,9 @@ func webRouter(router *gin.Engine) {
 	web.POST("/msg/notice_pop", controller.GetNoticePop)                // 获取公告弹窗
 	web.POST("/msg/close_notice_pop", controller.CloseNoticePop)        // 关闭公告弹窗
 
+	web.POST("/msg/batch_read", controller.MoreReadNotice) // 批量读取公告
+	web.POST("/msg/notice_msg", controller.GetNoticeMsg)   // 消息通知
+
 	// google 验证器接口
 	web.POST("/auth/auth_info", controller.GetGoogleAuth)      // 创建信息
 	web.POST("/auth/verify_code", controller.VerifyCode)       // 验证
@@ -130,6 +133,7 @@ func webRouter(router *gin.Engine) {
 	web.POST("/user/get_isp", controller.GetCountryIsp)                    // 城市
 	web.POST("/user/get_domain", controller.GetUserDomain)                 // 获取域名列表
 	web.POST("/user/country_domain_list", controller.GetCountryDomainList) // 获取国家域名列表
+	web.POST("/user/country_info", controller.GetUserCountryInfo)          // 获取当前用户的国家信息
 
 	// 流量帐密子账号
 	web.POST("/account/get_info", controller.GetAccountInfo)                          // 获取流量信息
@@ -170,6 +174,7 @@ func webRouter(router *gin.Engine) {
 	packages.POST("/flow", controller.GetPackageFlow)                             //获取流量套餐
 	packages.POST("/custom_flow", controller.GetPackageCustomFlow)                //获取自定义流量套餐
 	packages.POST("/coupon", controller.GetPackageCustomCoupons)                  //获取自定义流量优惠卷
+	packages.POST("/custom_flow_new", controller.GetPackageCustomFlowNew)         //获取自定义流量套餐
 	packages.POST("/static_num", controller.GetStaticRegionNum)                   // 获取静态地区数量
 	packages.POST("/halloween_activity", controller.GetHalloweenActivityPackages) //获取万圣节活动套餐
 	packages.POST("/flow_list_new", controller.GetPackageNewFlowList)             //获取新用户5G流量套餐列表
@@ -228,6 +233,8 @@ func webRouter(router *gin.Engine) {
 	kyc.POST("/verify/step_three", controller.IdVerifyStepThree) // 检测验证结果
 	kyc.POST("/verify/get_face_url", controller.GetFaceUrl)      // 获取腾讯人脸核验链接
 	kyc.POST("/verify/get_country", controller.GetKycCountry)    // 获取国家列表
+	kyc.POST("/verify/all_status", controller.CheckKycStatus)
+	kyc.POST("/verify/operator", controller.CheckKycOperator)
 
 	domain := router.Group("/domain")
 

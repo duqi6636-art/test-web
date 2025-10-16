@@ -13,6 +13,7 @@ type KycManualReview struct {
 	CreditCardBill   string `json:"credit_card_bill"`   //信用卡账单
 	Email            string `json:"email"`              //邮箱
 	Address          string `json:"address"`            //地址信息
+	OrderType        string `json:"order_type"`         // 订单类型
 	OtherDocuments   string `json:"other_documents"`    // 其他证明文件JSON
 	ReviewStatus     int    `json:"review_status"`      // 审核状态：0=待审核,1=审核中，2=审核通过，3=审核失败，4=未提交审核 -1=提交失败
 	ReviewReason     string `json:"review_reason"`      // 审核原因
@@ -102,7 +103,7 @@ func CheckUserCanSubmitKyc(uid int) (bool, string) {
 	}
 
 	// 如果审核被拒绝或提交失败，可以重新提交
-	if review.ReviewStatus == 3 || review.ReviewStatus == -1 {
+	if review.ReviewStatus == 3 || review.ReviewStatus == -1 || review.ReviewStatus == 4 {
 		return true, ""
 	}
 

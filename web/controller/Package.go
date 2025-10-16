@@ -112,6 +112,36 @@ func GetPackageCustomCoupons(c *gin.Context) {
 	return
 }
 
+// GetPackageCustomFlowNew 获取自动住宅自定义套餐
+func GetPackageCustomFlowNew(c *gin.Context) {
+	sessionId := c.DefaultPostForm("session", "")
+	lang := strings.ToLower(c.DefaultPostForm("lang", "en"))
+	if lang == "" {
+		lang = "en"
+	}
+	if lang == "zh-tw" || lang == "zh" || lang == "tw" || lang == "zh-cn" || lang == "cn" {
+		lang = "zh-tw"
+	}
+	if sessionId == "" {
+		JsonReturn(c, e.SESSION_EXPIRED, "__T_SESSION_EMPTY", nil)
+		return
+	}
+	res, _ := GetUIDbySession(sessionId)
+	if !res {
+		JsonReturn(c, e.SESSION_EXPIRED, "__T_SESSION_ERROR", nil)
+		return
+	}
+
+	err, flow := models.GetPackageListFlow("flow_custom", 0)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_PACKAGE_NOT_FOUND", nil)
+		return
+	}
+
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", flow)
+	return
+}
+
 // GetPackageNewFlowList 获取新用户5G流量套餐列表
 func GetPackageNewFlowList(c *gin.Context) {
 	_, packageList := models.GetNewPackageFlowList()

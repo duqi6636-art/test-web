@@ -8,7 +8,12 @@ import (
 	"github.com/garyburd/redigo/redis"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"gorm.io/driver/mysql"
+	gormV2 "gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 	"log"
+	"os"
 	"time"
 )
 
@@ -16,6 +21,7 @@ import (
 var db *gorm.DB
 var dbRead *gorm.DB
 var dnsDb *gorm.DB
+var MasterWriteDb *gormV2.DB
 
 // var logDb *gorm.DB
 var RedisPool *redis.Pool
@@ -93,7 +99,56 @@ func Setup() {
 	InitOemVersion()
 	// 初始化国家城市端口Redis数据库
 	initCountryCityPortRedis()
+	MasterWriteDbInit()
 
+}
+
+// WriteDbSetup
+func MasterWriteDbInit() {
+	var (
+		err                          error
+		dbName, user, password, host string
+	)
+
+	dbName = setting.DatabaseConfig.DbName
+	user = setting.DatabaseConfig.User
+	password = setting.DatabaseConfig.Password
+	host = setting.DatabaseConfig.Host
+	MasterWriteDb, err = gormV2.Open(mysql.Open(fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		user,
+		password,
+		host,
+		dbName)), &gormV2.Config{
+		NamingStrategy: schema.NamingStrategy{
+			SingularTable: true,
+		},
+	})
+
+	if setting.RunMode == "debug" {
+		MasterWriteDb.Logger = logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             time.Second, // 慢查询阈值，超过这个阈值的查询将被认为是慢查询
+				Colorful:                  true,        // 彩色输出
+				IgnoreRecordNotFoundError: true,        // 忽略记录未找到的错误
+				LogLevel:                  logger.Info, // 日志级别
+			},
+		)
+	} else {
+		MasterWriteDb.Logger = logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             time.Second,  // 慢查询阈值，超过这个阈值的查询将被认为是慢查询
+				Colorful:                  true,         // 彩色输出
+				IgnoreRecordNotFoundError: true,         // 忽略记录未找到的错误
+				LogLevel:                  logger.Error, // 日志级别
+			},
+		)
+	}
+
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
 
 // 加载 只读库

@@ -1,6 +1,10 @@
 package models
 
-import "api-360proxy/web/pkg/util"
+import (
+	"api-360proxy/web/pkg/util"
+	"net"
+	"strings"
+)
 
 // MdUserApplyDomain 添加申请域名白名单
 type MdUserApplyDomain struct {
@@ -18,6 +22,7 @@ type MdUserApplyDomain struct {
 	ReviewTime       int    `json:"review_time"`        // 审核时间
 	CreateTime       int    `json:"create_time"`        // 创建时间
 	UpdateTime       int    `json:"update_time"`        // 更新时间
+	IsLastSubmit     bool   `json:"is_last_submit"`     // 是否是上次提交
 }
 
 // DomainReviewCallbackData 第三方审核通知数据结构
@@ -44,13 +49,22 @@ type ResUserApplyDomain struct {
 	Remark     string `json:"remark"`      //备注信息
 }
 
-var userApplyDomainTable = "cm_manual_review_domain_white"
+var userApplyDomainTable = "cm_apply_domain_white"
 
-// CheckUserDomainExists 检查用户是否已申请过该域名
+// CheckUserDomainExists 检查用户是否已申请过该域名（排除已删除状态）
 func CheckUserDomainExists(uid int, domain string) bool {
 	var count int64
 	db.Table(userApplyDomainTable).
-		Where("uid = ? AND domain = ?", uid, domain).
+		Where("uid = ? AND domain = ? AND status != ?", uid, domain, -2).
+		Count(&count)
+	return count > 0
+}
+
+// CheckUserHasPendingDomain 检查用户是否有审核中的域名申请
+func CheckUserHasPendingDomain(uid int) bool {
+	var count int64
+	db.Table(userApplyDomainTable).
+		Where("uid = ? AND status IN (0, 1)", uid).
 		Count(&count)
 	return count > 0
 }
@@ -80,9 +94,21 @@ func UpdateDomainApplyID(uid int, updateData map[string]interface{}) error {
 		Where("id = ?", uid).Updates(updateData).Error
 }
 
+// UpdateAllDomainApplyByUser 更新用户的所有域名记录
+func UpdateAllDomainApplyByUser(uid int, updateData map[string]interface{}) error {
+	return db.Table(userApplyDomainTable).
+		Where("uid = ?", uid).
+		Updates(updateData).Error
+}
+
 // GetUserDomainWhiteByUid 获取列表 By Uid
-func GetUserDomainWhiteByUid(uid int) (info []MdUserApplyDomain) {
-	dbs := db.Table(userApplyDomainTable).Where("uid =?", uid)
+func GetUserDomainWhiteByUid(uid int, isLastSubmit string) (info []MdUserApplyDomain) {
+	dbs := db.Table(userApplyDomainTable).Where("uid =?", uid).Where("status != ?", -2)
+	if isLastSubmit != "" {
+		if isLastSubmit == "1" {
+			dbs = dbs.Where("is_last_submit = ?", true)
+		}
+	}
 	dbs = dbs.Order("id desc").Find(&info)
 	return
 }
@@ -93,6 +119,15 @@ func UpdateDomainApplyByDomains(applyId int, domains []string, updateData map[st
 		return nil
 	}
 	return db.Table(userApplyDomainTable).Where("third_party_req_id = ? AND domain IN (?)", applyId, domains).Updates(updateData).Error
+}
+
+// GetDomainApplyByDomainAndThirdPartyId 根据域名和第三方ID查询域名申请记录
+func GetDomainApplyByDomainAndThirdPartyId(domain string, thirdPartyId int) (MdUserApplyDomain, error) {
+	var applyRecord MdUserApplyDomain
+	err := db.Table(userApplyDomainTable).
+		Where("domain = ? AND third_party_req_id = ?", domain, thirdPartyId).
+		First(&applyRecord).Error
+	return applyRecord, err
 }
 
 // CheckDomainInBlacklist 检查域名是否在黑名单中
@@ -111,5 +146,46 @@ func CheckDomainInBlacklist(domain string) bool {
 		return true
 	}
 
+	// 提取主域名进行检查
+	hostname := getMainDomain(domain)
+	if hostname != "" && hostname != domain {
+		// 检查主域名是否在 cm_black_domain 表中
+		db.Table("cm_black_domain").Where("domain = ?", hostname).Count(&count)
+		if count > 0 {
+			return true
+		}
+
+		// 检查主域名是否在 md_domain_black 表中
+		db.Table("cm_domain_black").Where("domain = ?", hostname).Count(&count)
+		if count > 0 {
+			return true
+		}
+	}
+
 	return false
+}
+
+// getMainDomain 提取域名的主域名部分
+func getMainDomain(domain string) string {
+	// 移除端口号（如果有）
+	if strings.Contains(domain, ":") {
+		parts := strings.Split(domain, ":")
+		domain = parts[0]
+	}
+
+	// 检查是否为IP地址
+	ip := net.ParseIP(domain)
+	if ip != nil {
+		return domain
+	}
+
+	// 分割域名部分
+	hostParts := strings.Split(domain, ".")
+	n := len(hostParts)
+	if n < 2 {
+		return ""
+	}
+
+	// 返回主域名（最后两部分）
+	return hostParts[n-2] + "." + hostParts[n-1]
 }

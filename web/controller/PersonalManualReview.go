@@ -4,6 +4,7 @@ import (
 	"api-360proxy/web/e"
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
+	"api-360proxy/web/service/email"
 	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
@@ -225,6 +226,9 @@ func SubmitKycManualReview(c *gin.Context) {
 	// 生成申请人ID
 	applicantID := fmt.Sprintf("KYC_%d_%d", uid, util.GetNowInt())
 
+	// 获取用户历史购买记录类型
+	orderTypes := getUserOrderTypes(uid)
+
 	// 创建审核记录
 	review := models.KycManualReview{
 		Uid:             uid,
@@ -236,6 +240,7 @@ func SubmitKycManualReview(c *gin.Context) {
 		Identity:        req.Identity,
 		Address:         req.AddressInfo,
 		ReviewStatus:    0, // 待审核
+		OrderType:       orderTypes,
 	}
 
 	// 保存审核记录
@@ -247,7 +252,7 @@ func SubmitKycManualReview(c *gin.Context) {
 
 	// 异步调用第三方审核接口
 	go func() {
-		err := submitToThirdParty(reviewId, review)
+		err := submitToThirdParty(reviewId, review, orderTypes)
 		if err != nil {
 			// 更新状态为提交失败
 			updateData := map[string]interface{}{
@@ -260,6 +265,9 @@ func SubmitKycManualReview(c *gin.Context) {
 			}
 			models.UpdateKycReviewThirdPartyInfo(reviewId, updateData)
 			log.Println("submitToThirdParty error", err)
+			_ = models.UpdateUserKycByUid(review.Uid, map[string]interface{}{
+				"operator": "1",
+			})
 		}
 	}()
 
@@ -268,13 +276,13 @@ func SubmitKycManualReview(c *gin.Context) {
 		"id":           reviewId,
 		"applicant_id": applicantID,
 		"status":       "submitted",
-		"message":      "您的实名认证申请已提交，我们将在1-3个工作日内完成审核",
+		"message":      "您的实名认证申请已提交，我们将在24小时内完成审核",
 	}
 
 	JsonReturn(c, e.SUCCESS, "success", response)
 }
 
-func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
+func submitToThirdParty(reviewId int, kyc models.KycManualReview, orderTypes string) error {
 	// 获取用户信息
 	err, userInfo := models.GetUserById(kyc.Uid)
 	if err != nil || userInfo.Id == 0 {
@@ -374,28 +382,29 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
 
 	// 准备提交数据
 	submitData := map[string]interface{}{
-		"oa_platform_name":     "360cherry",
-		"uid":                  kyc.Uid,
-		"account":              userInfo.Username,
-		"account_type":         1, // 1：普通账号，2：代理商
-		"reg_time":             userInfo.CreateTime,
-		"apply_time":           util.GetNowInt(),
-		"verify_type":          1, // 1：个人，2：企业
-		"source":               3, // 3：平台自审
-		"water_bill":           kyc.WaterBill,
-		"electricity_bill":     kyc.ElectricityBill,
-		"credit_card_bill":     kyc.CreditCardBill,
-		"identity_certificate": kyc.Identity,
+		"oa_platform_name": "360cherry",
+		"uid":              kyc.Uid,
+		"account":          userInfo.Username,
+		"account_type":     1, // 1：普通账号，2：代理商
+		"reg_time":         userInfo.CreateTime,
+		"apply_time":       util.GetNowInt(),
+		"verify_type":      1, // 1：个人，2：企业
+		"source":           3, // 3：平台自审
+		"water_bill":       kyc.WaterBill,
+		"electricity_bill": kyc.ElectricityBill,
+		"credit_card_bill": kyc.CreditCardBill,
+		"order_type":       orderTypes,
 	}
 
 	// 如果是国内认证，添加照片路由地址和腾讯KYC参数
 	if isDomestic {
 		// 添加照片路由地址
-		if photoURL != "" {
+		if kyc.Identity != "" {
+			submitData["face_photo"] = kyc.Identity
+		} else if photoURL != "" {
 			submitData["face_photo"] = photoURL
-		} else {
-			return fmt.Errorf("查询照片失败")
 		}
+		submitData["identity_certificate"] = kyc.Identity
 	} else {
 		// Onfido认证：添加证件图片和人脸视频
 		if certImages != "" {
@@ -474,6 +483,11 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview) error {
 		} else {
 			log.Printf("Successfully updated KYC third party info for review: %d with ID: %d", reviewId, int(response.Data.Id))
 		}
+		_ = models.UpdateUserKycByUid(kyc.Uid, map[string]interface{}{
+			"operator": "1",
+		})
+	} else {
+		return fmt.Errorf("response ID failed")
 	}
 	return nil
 }
@@ -785,6 +799,7 @@ type UnifiedKycCallbackData struct {
 
 // EnterpriseKycNotify 认证结果回调
 func EnterpriseKycNotify(c *gin.Context) {
+	AddLogs("EnterpriseKycNotify", "接口被调用")
 	// 验证签名
 	signature := c.GetHeader("sign")
 	departmentId := c.GetHeader("departmentId")
@@ -796,6 +811,7 @@ func EnterpriseKycNotify(c *gin.Context) {
 	signKey := models.GetConfigVal("third_party_sign_key")
 	expectedSign := generateThirdPartySign(departmentId, timestamp, signKey)
 	if signature != expectedSign {
+		AddLogs("EnterpriseKycNotify", fmt.Sprintf("签名验证失败: expected: %s, received: %s", expectedSign, signature))
 		JsonReturn(c, e.ERROR, "Invalid signature", nil)
 		return
 	}
@@ -803,25 +819,44 @@ func EnterpriseKycNotify(c *gin.Context) {
 	// 解析回调数据
 	var callbackData UnifiedKycCallbackData
 	if err := json.Unmarshal(reqBody, &callbackData); err != nil {
+		AddLogs("EnterpriseKycNotify", fmt.Sprintf("JSON解析失败: %v, body: %s", err, string(reqBody)))
 		JsonReturn(c, e.ERROR, "json unmarshal error", nil)
 		return
 	}
 
 	// 根据认证类型分别处理
+	hasError := false
+	errorMsg := ""
 	switch callbackData.VerifyType {
 	case 1: // 个人认证
 		if err := handlePersonalKycCallback(callbackData); err != nil {
+			hasError = true
+			errorMsg = err.Error()
+			AddLogs("EnterpriseKycNotify", errorMsg)
 			JsonReturn(c, e.ERROR, err.Error(), nil)
 			return
 		}
 	case 2: // 企业认证
 		if err := handleEnterpriseKycCallback(callbackData); err != nil {
+			hasError = true
+			errorMsg = err.Error()
+			AddLogs("EnterpriseKycNotify", errorMsg)
 			JsonReturn(c, e.ERROR, err.Error(), nil)
 			return
 		}
 	default:
+		hasError = true
+		errorMsg = "未知的认证类型"
+		AddLogs("EnterpriseKycNotify", fmt.Sprintf("未知的认证类型: %d", callbackData.VerifyType))
 		JsonReturn(c, e.ERROR, "unknow callback type", nil)
 		return
+	}
+
+	// 记录处理结果
+	if hasError {
+		AddLogs("EnterpriseKycNotify", fmt.Sprintf("处理失败: %s", errorMsg))
+	} else {
+		AddLogs("EnterpriseKycNotify", "处理成功")
 	}
 
 	JsonReturn(c, e.SUCCESS, "success", nil)
@@ -864,6 +899,12 @@ func handlePersonalKycCallback(callbackData UnifiedKycCallbackData) error {
 	//if reviewStatus == 2 {
 	//	models.UpdateUserKycStatus(review.Uid, 1) // 更新用户KYC状态为已认证
 	//}
+	_ = models.UpdateUserKycByUid(review.Uid, map[string]interface{}{
+		"operator": "1",
+	})
+	// 异步发送邮件和站内信通知
+	go sendKycReviewNotifications(review.Uid, reviewStatus, callbackData.AuditTime, callbackData.AuditRemark, "personal")
+
 	return nil
 }
 
@@ -908,5 +949,220 @@ func handleEnterpriseKycCallback(callbackData UnifiedKycCallbackData) error {
 	//if reviewStatus == 2 {
 	//	models.UpdateUserEnterpriseKycStatus(kyc.Uid, 1) // 更新用户企业认证状态为已认证
 	//}
+	// 异步发送邮件和站内信通知
+	go sendKycReviewNotifications(kyc.Uid, reviewStatus, callbackData.AuditTime, callbackData.AuditRemark, "enterprise")
 	return nil
+}
+
+// sendKycReviewEmail 统一的KYC审核结果邮件发送函数
+func sendKycReviewEmail(uid int, reviewStatus int) {
+	// 获取用户信息
+	err, user := models.GetUserById(uid)
+	if err != nil || user.Id == 0 {
+		fmt.Printf("Failed to get user info for uid %d: %v\n", uid, err)
+		return
+	}
+
+	// 检查用户邮箱
+	if user.Email == "" {
+		fmt.Printf("User email is empty for uid: %d\n", uid)
+		return
+	}
+
+	// 获取邮件服务配置
+	useEmail := models.GetConfigVal("default_email")
+	if useEmail == "" {
+		fmt.Printf("Email service not configured\n")
+		return
+	}
+
+	// 准备基础邮件变量
+	params := make(map[string]string)
+	// 根据KYC类型设置认证类型文本和邮件类型
+	emailType := 11
+	var authStatusText string
+	var descriptionText string
+
+	switch reviewStatus {
+	case 2: // 审核通过
+		descriptionText = "Hello, your real-name authentication application has been approved. You can now [immediately] check your status and experience more services."
+		authStatusText = ""
+	case 3: // 审核拒绝
+		descriptionText = "Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate."
+		authStatusText = "Re-authentication"
+	default:
+		params["auth_status"] = "Invalid review status for personal KYC"
+	}
+
+	params["auth_description"] = descriptionText
+	params["auth_status"] = authStatusText
+
+	params["email"] = "support@cherryproxy.com"
+	params["whatsapp"] = "+85267497336"
+	params["telegram"] = "@Olivia_257856"
+	params["team_name"] = "Cherry Proxy Team"
+	log.Println(params)
+
+	// 根据邮件服务类型发送邮件
+	var result bool
+	switch useEmail {
+	case "aws_mail":
+		result = email.AwsSendEmail(user.Email, emailType, params, "")
+	case "tencent_mail":
+		result = email.TencentSendEmail(user.Email, emailType, params, "")
+	default:
+		fmt.Printf("Unsupported email service: %s\n", useEmail)
+		return
+	}
+
+	if result {
+		fmt.Printf("%s KYC review email sent successfully to %s\n", authStatusText, user.Email)
+	} else {
+		fmt.Printf("Failed to send %s KYC review email to %s\n", authStatusText, user.Email)
+	}
+}
+
+// sendPersonalKycReviewMsg 发送个人认证审核结果站内信
+func sendPersonalKycReviewMsg(uid int, reviewStatus int, reviewReason string) {
+	nowTime := util.GetNowInt()
+	// 获取用户信息
+	err, user := models.GetUserById(uid)
+	if err != nil || user.Id == 0 {
+		fmt.Printf("Failed to get user info for uid %d: %v\n", uid, err)
+		return
+	}
+
+	// 根据审核状态构造站内信内容
+	var msgCate, code, title, brief, content, titleZh, briefZh, contentZh string
+	sort := 10
+
+	switch reviewStatus {
+	case 2: // 审核通过
+		msgCate = "personal_kyc_pass"
+		code = "personal"
+		title = "Personal Authentication Approved"
+		brief = "Your personal authentication has been approved."
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication application has been approved. You can now experience many more services.</p><p>If you have any questions, please feel free to contact us through our official email!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy Team</p>"
+		titleZh = "個人認證已通過"
+		briefZh = "您的個人認證已通過審核。"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核已通過，您現在可以體驗更多服務。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
+	case 3: // 审核拒绝
+		msgCate = "personal_kyc_reject"
+		code = "personal"
+		title = "Personal Authentication Rejected"
+		brief = "Your personal authentication has been rejected."
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate.</p><p>If you have any questions, please feel free to contact us through our official email address!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Telegram: @Olivia_257856</p><p>Cherry Proxy Team</p>"
+		titleZh = "個人認證未通過"
+		briefZh = "您的個人認證未通過審核。"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
+	default:
+		fmt.Printf("Invalid review status for personal KYC message: %d\n", reviewStatus)
+		return
+	}
+
+	// 构造站内信
+	msgInfo := models.CmNoticeMsg{
+		Title:      title,
+		Brief:      brief,
+		Content:    content,
+		TitleZh:    titleZh,
+		BriefZh:    briefZh,
+		ContentZh:  contentZh,
+		ShowType:   1, // 显示类型：1-普通通知
+		CreateTime: nowTime,
+		Cate:       msgCate,
+		Uid:        uid,
+		ReadTime:   0, // 0-未读
+		PushTime:   nowTime,
+		Sort:       sort,
+		Admin:      code,
+	}
+
+	// 添加站内信
+	msgList := []models.CmNoticeMsg{msgInfo}
+	if err := models.BatchAddNoticeMsgLog(msgList); err != nil {
+		fmt.Printf("Failed to add personal KYC message for uid %d: %v\n", uid, err)
+	} else {
+		fmt.Printf("Personal KYC review message added successfully for uid: %d\n", uid)
+	}
+}
+
+// sendEnterpriseKycReviewMsg 发送企业认证审核结果站内信
+func sendEnterpriseKycReviewMsg(uid int, reviewStatus int, reviewReason string) {
+	nowTime := util.GetNowInt()
+	// 获取用户信息
+	err, user := models.GetUserById(uid)
+	if err != nil || user.Id == 0 {
+		fmt.Printf("Failed to get user info for uid %d: %v\n", uid, err)
+		return
+	}
+
+	// 根据审核状态构造站内信内容
+	var msgCate, code, title, brief, content, titleZh, briefZh, contentZh string
+	sort := 10
+
+	switch reviewStatus {
+	case 2: // 审核通过
+		msgCate = "enterprise_kyc_pass"
+		code = "enterprise"
+		title = "Enterprise Authentication Approved"
+		brief = "Your enterprise authentication has been approved."
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication application has been approved. You can now experience many more services.</p><p>If you have any questions, please feel free to contact us through our official email!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy Team</p>"
+		titleZh = "企業認證已通過"
+		briefZh = "您的企業認證已通過審核。"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核已通過，您現在可以體驗更多服務。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
+	case 3: // 审核拒绝
+		msgCate = "enterprise_kyc_reject"
+		code = "enterprise"
+		title = "Enterprise Authentication Rejected"
+		brief = "Your enterprise authentication has been rejected."
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate.</p><p>If you have any questions, please feel free to contact us through our official email address!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Telegram: @Olivia_257856</p><p>Cherry Proxy Team</p>"
+		titleZh = "企業認證未通過"
+		briefZh = "您的企業認證未通過審核。"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
+	default:
+		fmt.Printf("Invalid review status for enterprise KYC message: %d\n", reviewStatus)
+		return
+	}
+
+	// 构造站内信
+	msgInfo := models.CmNoticeMsg{
+		Title:      title,
+		Brief:      brief,
+		Content:    content,
+		TitleZh:    titleZh,
+		BriefZh:    briefZh,
+		ContentZh:  contentZh,
+		ShowType:   1, // 显示类型：1-普通通知
+		CreateTime: nowTime,
+		Cate:       msgCate,
+		Uid:        uid,
+		ReadTime:   0, // 0-未读
+		PushTime:   nowTime,
+		Sort:       sort,
+		Admin:      code,
+	}
+
+	// 添加站内信
+	msgList := []models.CmNoticeMsg{msgInfo}
+	if err := models.BatchAddNoticeMsgLog(msgList); err != nil {
+		fmt.Printf("Failed to add enterprise KYC message for uid %d: %v\n", uid, err)
+	} else {
+		fmt.Printf("Enterprise KYC review message added successfully for uid: %d\n", uid)
+	}
+}
+
+// sendKycReviewNotifications 统一处理KYC审核结果的邮件和站内信通知
+func sendKycReviewNotifications(uid int, reviewStatus int, auditTime int, reviewReason string, kycType string) {
+	// 发送邮件通知
+	sendKycReviewEmail(uid, reviewStatus)
+
+	// 根据KYC类型发送不同的站内信
+	if kycType == "personal" {
+		sendPersonalKycReviewMsg(uid, reviewStatus, reviewReason)
+	} else if kycType == "enterprise" {
+		sendEnterpriseKycReviewMsg(uid, reviewStatus, reviewReason)
+	} else {
+		fmt.Printf("Invalid KYC type for notifications: %s\n", kycType)
+	}
 }
