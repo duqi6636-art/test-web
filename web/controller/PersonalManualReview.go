@@ -6,6 +6,7 @@ import (
 	"api-360proxy/web/pkg/util"
 	"api-360proxy/web/service/email"
 	"bytes"
+	"crypto/md5"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
@@ -796,6 +797,35 @@ type UnifiedKycCallbackData struct {
 	AuditUserName  string `json:"audit_user_name"`  // 审核人姓名
 	AuditTime      int    `json:"audit_time"`       // 审核时间
 	AuditRemark    string `json:"audit_remark"`     // 审核备注
+}
+
+// 生成第三方签名
+func generateThirdPartySign(departmentId string, timestamp string, signKey string) string {
+	params := map[string]string{
+		"departmentId": departmentId,
+		"timestamp":    timestamp,
+	}
+
+	var keys []string
+	for k := range params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var arr []string
+	for _, k := range keys {
+		if params[k] != "" {
+			arr = append(arr, fmt.Sprintf("%s=%s", k, params[k]))
+		}
+	}
+
+	signData := strings.Join(arr, "&") + "&key=" + signKey
+
+	h := md5.New()
+	h.Write([]byte(signData))
+	sign := strings.ToUpper(hex.EncodeToString(h.Sum(nil)))
+
+	return sign
 }
 
 // EnterpriseKycNotify 认证结果回调
