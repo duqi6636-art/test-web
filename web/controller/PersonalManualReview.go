@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -799,16 +800,52 @@ type UnifiedKycCallbackData struct {
 
 // EnterpriseKycNotify 认证结果回调
 func EnterpriseKycNotify(c *gin.Context) {
-	AddLogs("EnterpriseKycNotify", "接口被调用")
+	defer func() {
+		if r := recover(); r != nil {
+			// 获取堆栈信息
+			stack := make([]byte, 4096)
+			length := runtime.Stack(stack, false)
+			stackTrace := string(stack[:length])
+			// 记录详细的panic信息
+			panicMsg := fmt.Sprintf("[PANIC] EnterpriseKycNotify: %v\nStack trace:\n%s", r, stackTrace)
+			AddLogs("EnterpriseKycNotify", panicMsg)
+			// 确保响应已经发送
+			if !c.Writer.Written() {
+				JsonReturn(c, e.ERROR, "Internal server error", nil)
+			}
+		}
+	}()
 	// 验证签名
 	signature := c.GetHeader("sign")
 	departmentId := c.GetHeader("departmentId")
 	timestamp := c.GetHeader("timestamp")
 
-	reqBody, _ := io.ReadAll(c.Request.Body)
+	if departmentId == "" || timestamp == "" || signature == "" {
+		AddLogs("EnterpriseKycNotify", "Missing headers")
+		JsonReturn(c, e.ERROR, "Missing headers", nil)
+		return
+	}
+
+	if c.Request.Body == nil {
+		AddLogs("EnterpriseKycNotify", "Empty request body")
+		JsonReturn(c, e.ERROR, "Empty request body", nil)
+		return
+	}
+
+	reqBody, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		AddLogs("EnterpriseKycNotify", "read body fail"+err.Error())
+		JsonReturn(c, e.ERROR, "read body fail", nil)
+		return
+	}
 
 	// 验证签名
 	signKey := models.GetConfigVal("third_party_sign_key")
+	if signKey == "" {
+		AddLogs("EnterpriseKycNotify", "third_party_sign_key is null")
+		JsonReturn(c, e.ERROR, "third_party_sign_key failed", nil)
+		return
+	}
 	expectedSign := generateThirdPartySign(departmentId, timestamp, signKey)
 	if signature != expectedSign {
 		AddLogs("EnterpriseKycNotify", fmt.Sprintf("签名验证失败: expected: %s, received: %s", expectedSign, signature))
