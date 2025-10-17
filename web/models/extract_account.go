@@ -78,6 +78,15 @@ type ExtractCity struct {
 	Num     int    `json:"num"`
 }
 
+// 返回city 信息
+type ResExtractCity struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+	Code string `json:"code"`
+	//Country string `json:"country"`
+	//State   string `json:"state"`
+}
+
 // 获取所有城市数据
 func GetAllCity() (list []ExtractCity) {
 
@@ -178,5 +187,79 @@ func GetIspCountry(country string) (list []ExtractIsp) {
 		dbt = dbt.Where("country = ?", country)
 	}
 	dbt.Where("status = ?", 1).Find(&list)
+	return
+}
+
+// ------------------------ISP 地区  查询 cm_area 表数据
+type ExtractIspCountry struct {
+	Country string `json:"country"`
+	State   string `json:"state"`
+	City    string `json:"city"`
+}
+
+// 获取国家地区数据 根据国家
+func GetIspCountryList() (list []ExtractIspCountry) {
+	tables := "ncm_area"
+	dbArea.Table(tables).
+		Select("country").
+		Group("country").
+		Find(&list)
+
+	return
+}
+
+// 获取州/省数据
+func GetIspStateBy(country, state string) (list []ExtractIspCountry) {
+	tables := "ncm_area"
+	dbs := dbArea.Table(tables).
+		Select("state").
+		Where("country = ?", country)
+
+	if state != "" {
+		dbs = dbs.Where("state = ?", state)
+	}
+	dbs.Group("state").
+		Find(&list)
+	return
+}
+
+// 获取城市数据
+func GetIspCityBy(country, state, city string) (list []ExtractIspCountry) {
+	tables := "ncm_area"
+	dbs := dbArea.Table(tables).
+		Select("state,city").
+		Where("country = ?", country)
+	if state != "" {
+		dbs = dbs.Where("state = ?", state)
+	}
+	if city != "" {
+		dbs = dbs.Where("city like ?", "%"+city+"%")
+	}
+	dbs.Group("state,city").
+		Find(&list)
+	return
+}
+
+// ------------------------ISP 地区  查询 ncm_isp 表数据
+type ExtractIspAsn struct {
+	Id      int    `json:"id"`
+	Country string `json:"country"`
+	Isp     string `json:"isp"`
+	Asn     string `json:"asn"`
+}
+
+// 获取isp数据
+func GetIspAsnBy(country, asn, isp string) (list []ExtractIspAsn) {
+	tables := "ncm_isp"
+	dbs := dbArea.Table(tables).
+		Select("id,country,isp,asn").
+		Where("country = ?", country)
+	if asn != "" {
+		dbs = dbs.Where("asn = ?", asn)
+	}
+	if isp != "" {
+		dbs = dbs.Where("isp like ?", "%"+isp+"%")
+	}
+	dbs.Find(&list)
 	return
 }

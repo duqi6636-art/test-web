@@ -42,7 +42,9 @@ type Redis struct {
 var DatabaseConfig = &Database{}
 var ClickhouseDbConfig = &Database{}
 var DatabaseReadConfig = &Database{}
-var DatabaseDnsConfig = &Database{}
+var DatabaseAreaConfig = &Database{}
+
+// var DatabaseDnsConfig = &Database{}
 var DatabaseStatisticsConfig = &Database{}
 var AppConfig = &App{}
 var RedisConfig = &Redis{}
@@ -66,7 +68,8 @@ func Setup() {
 	LoadApp()
 	LoadDataBase()
 	LoadReadDataBase()
-	LoadDnsataBase()
+	LoadDatabaseArea() //资源架构地区
+	//LoadDnsataBase()
 	LoadRedisDb()
 	LoadStatisticsDataBase()
 	LoadClickhouseDb()
@@ -110,16 +113,25 @@ func LoadReadDataBase() {
 	}
 }
 
-func LoadDnsataBase() {
-	dsConfig := "dns_database"
-	//if RunMode != "" {
-	//	dsConfig = dsConfig + "-" + RunMode
-	//}
-	err := Cfg.Section(dsConfig).MapTo(DatabaseDnsConfig)
+// 资源架构库
+func LoadDatabaseArea() {
+	dsConfig := "area_database"
+	err := Cfg.Section(dsConfig).MapTo(DatabaseAreaConfig)
 	if err != nil {
-		log.Fatalf("Cfg.MapTo read_databaseConfig err: %v", err)
+		log.Fatalf("Cfg.MapTo area_databasecConfig err: %v", err)
 	}
 }
+
+//func LoadDnsataBase() {
+//	dsConfig := "dns_database"
+//	//if RunMode != "" {
+//	//	dsConfig = dsConfig + "-" + RunMode
+//	//}
+//	err := Cfg.Section(dsConfig).MapTo(DatabaseDnsConfig)
+//	if err != nil {
+//		log.Fatalf("Cfg.MapTo read_databaseConfig err: %v", err)
+//	}
+//}
 
 func LoadStatisticsDataBase() {
 	dsConfig := "statistics_database"
