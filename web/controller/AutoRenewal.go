@@ -628,6 +628,10 @@ func BatchSetAutoRenewConfig(c *gin.Context) {
 	balanceStr := strings.TrimSpace(c.DefaultPostForm("balance", ""))   //剩余余额值
 	dayStr := strings.TrimSpace(c.DefaultPostForm("day", ""))           //到期前天数
 	method := strings.TrimSpace(c.DefaultPostForm("method", "balance")) //余额类型
+	if ids == "" {
+		JsonReturn(c, e.ERROR, "__T_PARAM_ERROR--Renew Info", nil)
+		return
+	}
 
 	valueId := util.StoI(valueIdStr)
 	if valueId == 0 {
@@ -638,18 +642,6 @@ func BatchSetAutoRenewConfig(c *gin.Context) {
 	day := util.StoI(dayStr)
 	status := util.StoI(statusStr)
 	balance := util.StoI(balanceStr)
-
-	// 当ids为空时，只保存天数参数
-	if ids == "" {
-		// 批量更新所有用户的自动续费天数设置
-		upInfo := map[string]interface{}{}
-		upInfo["sy_day"] = day
-		// 更新所有类别的自动续费天数
-		models.EditAutoRenewDetailList(uid, "static", upInfo)
-		models.EditAutoRenewDetailList(uid, "unlimited", upInfo)
-		JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
-		return
-	}
 
 	configInfo := models.GetConfBalanceRenewById(valueId)
 	if configInfo.Id == 0 {
@@ -666,11 +658,6 @@ func BatchSetAutoRenewConfig(c *gin.Context) {
 		return
 	}
 	value := configInfo.Value
-
-	hasConfig := models.GetUserAutoRenewInfo(uid)
-	if hasConfig.Method != "" && configInfo.Cate == "static" {
-		method = hasConfig.Method
-	}
 
 	idArr := strings.Split(ids, ",")
 	for _, val := range idArr {

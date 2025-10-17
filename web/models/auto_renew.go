@@ -1,6 +1,10 @@
 package models
 
-import "github.com/jinzhu/gorm"
+import (
+	"fmt"
+	"github.com/jinzhu/gorm"
+	"strings"
+)
 
 // ConfBalanceRenewModel 余额自动续费配置
 type ConfBalanceRenewModel struct {
@@ -158,6 +162,46 @@ type ResAutoRenewUnlimitedDetailModel struct {
 	Name         string  `json:"name"`          // 已设置续费套餐信息
 }
 
+// UserAutoRenewDetailJoinStaticModel 静态使用
+type UserAutoRenewDetailJoinStaticModel struct {
+	Id         int    `json:"id"`
+	Uid        int    `json:"uid"`
+	Username   string `json:"username"`
+	Email      string `json:"email"`
+	ConfId     int    `json:"conf_id"`     // 配置ID
+	Cate       string `json:"cate"`        // 类型
+	Value      int64  `json:"value"`       // 续费的数量
+	Balance    int64  `json:"balance"`     // 余额剩余
+	ExpireDay  int    `json:"expire_day"`  // 续费的有效期 比如流量 30天  静态有 7天 10天
+	SyDay      int    `json:"sy_day"`      // 剩余几天有效期自动续费
+	Method     string `json:"method"`      // 续费方式 static  静态余额 balance 余额充值
+	ExId       int    `json:"ex_id"`       // 提取IP信息ID
+	StaticIp   string `json:"static_ip"`   // 提取IP信息
+	ExpireTime int    `json:"expire_time"` // 用户有效期
+	Country    string `json:"country"`     // 套餐地区
+	//RBalance    float64 `json:"r_balance"`    // 用户余额充值的余额
+}
+
+// UserAutoRenewDetailJoinFlowDayModel 不限量
+type UserAutoRenewDetailJoinFlowDayModel struct {
+	Id         int     `json:"id"`
+	Uid        int     `json:"uid"`
+	Username   string  `json:"username"`
+	Email      string  `json:"email"`
+	ConfId     int     `json:"conf_id"`     // 配置ID
+	Cate       string  `json:"cate"`        // 类型
+	Value      int64   `json:"value"`       // 续费的数量
+	Balance    int64   `json:"balance"`     // 余额剩余
+	ExpireDay  int     `json:"expire_day"`  // 续费的有效期 比如流量 30天  静态有 7天 10天
+	SyDay      int     `json:"sy_day"`      // 剩余几天有效期自动续费
+	ExId       int     `json:"ex_id"`       // 提取IP信息ID
+	HostIp     string  `json:"host_ip"`     // 服务器IP
+	Money      float64 `json:"money"`       // 待扣除的余额
+	ExpireTime int     `json:"expire_time"` // 用户流量余额有效期
+	Config     int     `json:"config"`      // 用户流量余额有效期
+	Bandwidth  int     `json:"bandwidth"`   // 用户流量余额有效期
+}
+
 var userAutoRenewDetailTable = "cm_user_auto_renew_detail"
 
 // GetUserAutoRenewDetailListJoin 获取详细列表信息
@@ -193,6 +237,45 @@ func GetUserAutoRenewDetailListJoin(uid int, cate string) (data []UserAutoRenewD
 	dbs = dbs.Where("auto.status=?", 1).
 		Where("us.status=?", 1).
 		Where("b.status=?", 1).
+		Find(&data)
+	return
+}
+
+// GetUserAutoRenewDetailListJoinStatic 获取静态详细列表信息
+func GetUserAutoRenewDetailListJoinStatic(uid int, cate string) (data []UserAutoRenewDetailJoinStaticModel) {
+	fields := "auto.*,logs.expire_time,logs.ip as static_ip,logs.country" //,us.balance as user_balance,us.isp_type,us.pak_region
+	joinTable := "cm_log_static"
+
+	dbs := db.Table(userAutoRenewDetailTable + " as auto").
+		Select(fields).
+		Joins("left join " + joinTable + " as logs on auto.ex_id=logs.id and auto.uid=logs.uid")
+
+	if uid > 0 {
+		dbs = dbs.Where("auto.uid =?", uid)
+	}
+	if cate != "" {
+		dbs = dbs.Where("auto.cate =?", cate)
+	}
+	dbs = dbs.Where("auto.status=?", 1).
+		Find(&data)
+	return
+}
+
+// GetUserAutoRenewDetailListJoinFlowDay 获取不限量详细信息列表
+func GetUserAutoRenewDetailListJoinFlowDay(uid int, cate string) (data []UserAutoRenewDetailJoinFlowDayModel) {
+	fields := "auto.*,us.ip as host_ip,us.expire_time as expire_time,us.config,us.bandwidth"
+	dbs := db.Table(userAutoRenewDetailTable + " as auto").
+		Select(fields).
+		Joins("left join cm_pool_flow_day as us on auto.uid=us.uid and auto.ex_id=us.id")
+
+	if uid > 0 {
+		dbs = dbs.Where("auto.uid =?", uid)
+	}
+	if cate != "" {
+		dbs = dbs.Where("auto.cate =?", cate)
+	}
+	dbs = dbs.Where("auto.status=?", 1).
+		Where("us.status=?", 1).
 		Find(&data)
 	return
 }
@@ -340,6 +423,157 @@ func DealUserBalance(uid int, value, oldBalance int64, cate string, tMoney float
 			tx.Rollback()
 			return err2
 		}
+	}
+	tx.Commit()
+	return err1
+}
+
+func DealUserBalanceUnlimited(uid int, value int64, tMoney float64, expireTime int, autoInfo UserAutoRenewDetailJoinFlowDayModel) (err error) {
+	// 开始扣费
+	tx := db.Begin()
+	//扣除余额
+	editMap := map[string]interface{}{}
+	editMap["balance"] = gorm.Expr("balance - ?", tMoney)
+	editMap["all_buy"] = gorm.Expr("all_buy + ?", tMoney)
+	err1 := tx.Table(userBalanceTable).Where("uid = ?", uid).Updates(editMap).Error
+	if err1 != nil {
+		tx.Rollback()
+		return err1
+	}
+
+	expireDay := autoInfo.ExpireDay //过期天数
+
+	//更新不限量池子的过期时间
+	upIpInfo := map[string]interface{}{}
+	upIpInfo["expire_time"] = expireTime
+	err2 := tx.Table("cm_pool_flow_day").Where("id=?", autoInfo.ExId).Update(upIpInfo).Error
+	fmt.Println("repay-unlimited-pool", err1)
+	if err2 != nil {
+		tx.Rollback()
+		return err2
+	}
+
+	//更新用户余额过期时间
+	upParam := map[string]interface{}{}
+	upParam["all_day"] = gorm.Expr("all_day + ?", expireDay)
+	upParam["pre_day"] = autoInfo.ExpireTime //购买前时间
+	upParam["expire_time"] = expireTime
+	errU := tx.Table(userFlowDayTable).Where("uid =?", uid).Where("hostname =?", autoInfo.HostIp).Update(upParam).Error
+	fmt.Println("repay-unlimited-user", errU)
+	if errU != nil {
+		tx.Rollback()
+		return errU
+	}
+	tx.Commit()
+	return err1
+}
+
+func DealUserStaticRecharge(uid, pakId, nowTime int, value int64, pakRegion string, autoInfo UserAutoRenewDetailJoinStaticModel) error {
+	// 开始扣费
+	tx := db.Begin()
+
+	//扣除余额
+	editMap := map[string]interface{}{}
+	editMap["balance"] = gorm.Expr("balance - ?", 1)
+	editMap["last_use_time"] = nowTime
+	err1 := tx.Table(UserStaticIpTable).
+		Where("uid = ?", uid).
+		Where("pak_id = ?", pakId).
+		Where("pak_region = ?", pakRegion).
+		Updates(editMap).Error
+	if err1 != nil {
+		tx.Rollback()
+		return err1
+	}
+	expireDay := autoInfo.ExpireDay    //过期天数
+	expireTime1 := autoInfo.ExpireTime //过期时间
+	if autoInfo.ExpireTime < nowTime {
+		expireTime1 = nowTime
+	}
+	expireTime := expireTime1 + int(value)
+	logMap := map[string]interface{}{}
+	logMap["expire_day"] = gorm.Expr("expire_day + ?", expireDay)
+	logMap["expire_time"] = expireTime
+	logMap["update_time"] = nowTime
+
+	err1 = tx.Table("cm_log_static").Where("id = ?", autoInfo.ExId).Updates(logMap).Error
+	if err1 != nil {
+		tx.Rollback()
+		return err1
+	}
+	//添加续费日志
+	ipRepayModel := IpStaticRepayModel{}
+	ipRepayModel.StaticId = autoInfo.ExId
+	ipRepayModel.Uid = uid
+	ipRepayModel.Username = autoInfo.Username
+	ipRepayModel.Code = pakRegion
+	ipRepayModel.Ip = autoInfo.StaticIp
+	ipRepayModel.Port = 6505
+	ipRepayModel.Country = strings.ToUpper(pakRegion)
+	ipRepayModel.State = ""
+	ipRepayModel.City = ""
+	ipRepayModel.ExpireDay = expireDay
+	ipRepayModel.ExpireTime = expireTime
+	ipRepayModel.CreateTime = nowTime
+	ipRepayModel.UserIp = "auto-renew-static"
+	err1 = tx.Table("cm_ip_static_repay").Create(&ipRepayModel).Error
+	if err1 != nil {
+		tx.Rollback()
+		return err1
+	}
+	tx.Commit()
+	return err1
+}
+
+func DealUserBalanceStatic(uid int, value int64, tMoney float64, pakRegion string, nowTime int, autoInfo UserAutoRenewDetailJoinStaticModel) (err error) {
+	// 开始扣费
+	tx := db.Begin()
+	//扣除余额
+	editMap := map[string]interface{}{}
+	editMap["balance"] = gorm.Expr("balance - ?", tMoney)
+	editMap["all_buy"] = gorm.Expr("all_buy + ?", tMoney)
+	err1 := tx.Table(userBalanceTable).Where("uid = ?", uid).Updates(editMap).Error
+	if err1 != nil {
+		tx.Rollback()
+		return err1
+	}
+
+	expireDay := autoInfo.ExpireDay   //过期天数
+	expireTime := autoInfo.ExpireTime //过期时间
+	if autoInfo.ExpireTime < nowTime {
+		expireTime = nowTime
+	}
+	expireTime = expireTime + int(value)
+
+	logMap := map[string]interface{}{}
+	logMap["expire_day"] = gorm.Expr("expire_day + ?", expireDay)
+	logMap["expire_time"] = expireTime
+	logMap["update_time"] = nowTime
+
+	err1 = tx.Table("cm_log_static").Where("id = ?", autoInfo.ExId).Updates(logMap).Error
+	if err1 != nil {
+		tx.Rollback()
+		return err1
+	}
+	//添加续费日志
+	ipRepayModel := IpStaticRepayModel{}
+	ipRepayModel.StaticId = autoInfo.ExId
+	ipRepayModel.Uid = uid
+	ipRepayModel.Username = autoInfo.Username
+	ipRepayModel.Code = pakRegion
+	ipRepayModel.Ip = autoInfo.StaticIp
+	ipRepayModel.Port = 6505
+	ipRepayModel.Country = strings.ToUpper(pakRegion)
+	ipRepayModel.State = ""
+	ipRepayModel.City = ""
+	ipRepayModel.ExpireDay = expireDay
+	ipRepayModel.ExpireTime = expireTime
+	ipRepayModel.CreateTime = nowTime
+	ipRepayModel.UserIp = "auto-renew-static"
+	err1 = tx.Table("cm_ip_static_repay").Create(&ipRepayModel).Error
+	if err1 != nil {
+		tx.Rollback()
+		return err1
 	}
 	tx.Commit()
 	return err1

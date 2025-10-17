@@ -25,6 +25,16 @@ type ResUserStaticIp struct {
 
 var UserStaticIpTable = "cm_user_static_ip"
 
+// 获取用户静态余额
+func GetUserStaticIpByBalance(uid int) (user []UserStaticIpModel) {
+	db.Table(UserStaticIpTable).Where("uid = ?", uid).
+		Where("pak_region <> ?", "all").
+		Where("balance > ?", 0).
+		Order("sort desc").
+		Find(&user)
+	return
+}
+
 // 创建用户静态余额
 func AddUserStatic(data UserStaticIp) (err error) {
 	err = db.Table(UserStaticIpTable).Create(&data).Error
