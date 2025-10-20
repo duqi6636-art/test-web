@@ -53,7 +53,8 @@ func ListPoolFlowDayByUidAll(uid int) (info []PoolFlowDayModel) {
 }
 
 func ListPoolFlowDayByUidIpAll(uid int, ip string) (info []PoolFlowDayModel) {
-	dbs := db.Table("cm_pool_flow_day").Where("uid = ? ", uid)
+	nowTime := util.GetNowInt()
+	dbs := db.Table("cm_pool_flow_day").Where("uid = ? ", uid).Where("expire_time >=? ", nowTime)
 	if ip != "" {
 		dbs = dbs.Where("ip like ?", "%"+ip+"%")
 	}
