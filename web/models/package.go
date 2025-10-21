@@ -164,6 +164,20 @@ func GetPackageListFlow(pakType string, isOld int) (err error, data []CmPackage)
 	return
 }
 
+// GetPackageListFlowByCodes 根据指定的 code 列表查询套餐数据
+func GetPackageListFlowByCodes(pakType string, codes []string) (err error, data []CmPackage) {
+	dbs := db.Table(packageTable).Where("pak_type = ?", pakType).Where("code IN (?)", codes)
+	err = dbs.Where("status = ?", 1).Order("sort desc").Find(&data).Error
+	return
+}
+
+// GetPackageListFlowByCode 根据单个 code 查询套餐数据
+func GetPackageListFlowByCode(pakType string, code string) (err error, data CmPackage) {
+	dbs := db.Table(packageTable).Where("pak_type = ?", pakType).Where("code = ?", code)
+	err = dbs.Where("status = ?", 1).Order("sort desc").First(&data).Error
+	return
+}
+
 func GetPackageListFlowV1(code string) (err error, data CmPackage) {
 	dbs := db.Table(packageTable).Where("pak_type =?", "flow").Where("code=?", code)
 	err = dbs.Where("status=?", 1).Order("sort desc").First(&data).Error

@@ -121,8 +121,8 @@ func GetPackageCustomFlowNew(c *gin.Context) {
 	if lang == "zh-tw" || lang == "zh" || lang == "tw" || lang == "zh-cn" || lang == "cn" {
 		lang = "zh-tw"
 	}
-
-	err, flow := models.GetPackageListFlow("flow_custom", 0)
+	targetCodes := []string{"flow_custom_5", "flow_custom_50", "flow_custom_200", "flow_custom_1000"}
+	err, flow := models.GetPackageListFlowByCodes("flow", targetCodes)
 	if err != nil {
 		JsonReturn(c, e.ERROR, "__T_PACKAGE_NOT_FOUND", nil)
 		return
