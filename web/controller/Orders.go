@@ -58,6 +58,9 @@ func UserOrderListBy(c *gin.Context) {
 		} else if v.PakType == "flow" {
 			pakType = "Residential Proxies"
 			char = "GB"
+		} else if v.PakType == "flow_custom" {
+			pakType = "Residential Proxies"
+			char = "GB"
 		} else if v.PakType == "flow_agent" {
 			pakType = "Residential Proxies (Business)"
 			char = "GB"
