@@ -210,6 +210,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 		log.Printf("准备批量提交 %d 个黑名单域名到第三方审核", len(validBlacklistDomains))
 		// 异步提交到第三方审核
 		go func() {
+			AddLogs("validBlacklistDomains", fmt.Sprintf("准备批量提交 %d 个黑名单域名到第三方审核", len(validBlacklistDomains)))
 			err := submitDomainsToThirdPartyBatch(uid, username, validBlacklistDomains, blacklistDomainIDs)
 			if err != nil {
 				for _, id := range blacklistDomainIDs {
@@ -224,7 +225,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 					}
 					models.UpdateDomainApplyID(id, updateData)
 				}
-				log.Printf("批量提交域名到第三方失败: %v", err)
+				AddLogs("submitDomainsToThirdPartyBatch", fmt.Sprintf("提交到第三方失败:%s", err.Error()))
 			}
 		}()
 	}
@@ -382,6 +383,20 @@ func DomainWhiteList(c *gin.Context) {
 }
 
 func DomainWhiteReviewNotify(c *gin.Context) {
+	var (
+		callbackData models.DomainReviewCallbackData
+		reqBody      []byte
+		err          error
+	)
+
+	reqBody, err = io.ReadAll(c.Request.Body)
+	if err != nil {
+		AddLogs("DomainWhiteReviewNotify read body error", err.Error())
+		JsonReturn(c, e.ERROR, "read body error", nil)
+		return
+	}
+
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(reqBody))
 	defer func() {
 		if r := recover(); r != nil {
 			// 获取堆栈信息
@@ -391,6 +406,16 @@ func DomainWhiteReviewNotify(c *gin.Context) {
 			// 记录详细的panic信息
 			panicMsg := fmt.Sprintf("[PANIC] DomainWhiteReviewNotify: %v\nStack trace:\n%s", r, stackTrace)
 			AddLogs("DomainWhiteReviewNotify", panicMsg)
+			if callbackData.Id == 0 && len(reqBody) > 0 {
+				err = json.Unmarshal(reqBody, &callbackData)
+			}
+			// 若回调数据已解析成功则尝试更新状态为失败
+			if callbackData.Id != 0 {
+				err = processDomainsByStatus(callbackData)
+				if err != nil {
+					AddLogs("DomainWhiteReviewNotify panic batch update error in recover", err.Error())
+				}
+			}
 			// 确保响应已经发送
 			if !c.Writer.Written() {
 				JsonReturn(c, e.ERROR, "Internal server error", nil)
@@ -427,14 +452,13 @@ func DomainWhiteReviewNotify(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "Empty request body", nil)
 		return
 	}
-	reqBody, err := io.ReadAll(c.Request.Body)
+	reqBody, err = io.ReadAll(c.Request.Body)
 	if err != nil {
 		AddLogs("DomainWhiteReviewNotify", "ReadAll request body fail")
 		JsonReturn(c, e.ERROR, "Read body error", nil)
 		return
 	}
 
-	var callbackData models.DomainReviewCallbackData
 	if err := json.Unmarshal(reqBody, &callbackData); err != nil {
 		AddLogs("DomainWhiteReviewNotify", "Unmarshal request body fail=="+err.Error())
 		JsonReturn(c, e.ERROR, "Parse error", nil)
@@ -462,7 +486,7 @@ func processDomainsByStatus(data models.DomainReviewCallbackData) error {
 		if len(domains) > 0 {
 			updateData := map[string]interface{}{
 				"status":             2,
-				"review_time":        util.GetNowInt(),
+				"review_time":        data.AuditTime,
 				"update_time":        util.GetNowInt(),
 				"audit_user_name":    data.AuditUserName,
 				"third_party_result": "",
@@ -484,7 +508,7 @@ func processDomainsByStatus(data models.DomainReviewCallbackData) error {
 		if len(domains) > 0 {
 			updateData := map[string]interface{}{
 				"status":             4,
-				"review_time":        util.GetNowInt(),
+				"review_time":        data.AuditTime,
 				"update_time":        util.GetNowInt(),
 				"audit_user_name":    data.AuditUserName,
 				"third_party_result": data.AuditRemark,
