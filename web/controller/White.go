@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -209,6 +210,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 		log.Printf("准备批量提交 %d 个黑名单域名到第三方审核", len(validBlacklistDomains))
 		// 异步提交到第三方审核
 		go func() {
+			AddLogs("validBlacklistDomains", fmt.Sprintf("准备批量提交 %d 个黑名单域名到第三方审核", len(validBlacklistDomains)))
 			err := submitDomainsToThirdPartyBatch(uid, username, validBlacklistDomains, blacklistDomainIDs)
 			if err != nil {
 				for _, id := range blacklistDomainIDs {
@@ -223,7 +225,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 					}
 					models.UpdateDomainApplyID(id, updateData)
 				}
-				log.Printf("批量提交域名到第三方失败: %v", err)
+				AddLogs("submitDomainsToThirdPartyBatch", fmt.Sprintf("提交到第三方失败:%s", err.Error()))
 			}
 		}()
 	}
@@ -381,39 +383,92 @@ func DomainWhiteList(c *gin.Context) {
 }
 
 func DomainWhiteReviewNotify(c *gin.Context) {
+	var (
+		callbackData models.DomainReviewCallbackData
+		reqBody      []byte
+		err          error
+	)
+
+	reqBody, err = io.ReadAll(c.Request.Body)
+	if err != nil {
+		AddLogs("DomainWhiteReviewNotify read body error", err.Error())
+		JsonReturn(c, e.ERROR, "read body error", nil)
+		return
+	}
+
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(reqBody))
+	defer func() {
+		if r := recover(); r != nil {
+			// 获取堆栈信息
+			stack := make([]byte, 4096)
+			length := runtime.Stack(stack, false)
+			stackTrace := string(stack[:length])
+			// 记录详细的panic信息
+			panicMsg := fmt.Sprintf("[PANIC] DomainWhiteReviewNotify: %v\nStack trace:\n%s", r, stackTrace)
+			AddLogs("DomainWhiteReviewNotify", panicMsg)
+			if callbackData.Id == 0 && len(reqBody) > 0 {
+				err = json.Unmarshal(reqBody, &callbackData)
+			}
+			// 若回调数据已解析成功则尝试更新状态为失败
+			if callbackData.Id != 0 {
+				err = processDomainsByStatus(callbackData)
+				if err != nil {
+					AddLogs("DomainWhiteReviewNotify panic batch update error in recover", err.Error())
+				}
+			}
+			// 确保响应已经发送
+			if !c.Writer.Written() {
+				JsonReturn(c, e.ERROR, "Internal server error", nil)
+			}
+		}
+	}()
 	// 验证签名
 	departmentId := c.GetHeader("departmentId")
 	timestamp := c.GetHeader("timestamp")
 	sign := c.GetHeader("sign")
 
 	if departmentId == "" || timestamp == "" || sign == "" {
-		log.Println("Missing headers")
-		JsonReturn(c, e.SUCCESS, "Missing headers", nil)
+		AddLogs("DomainWhiteReviewNotify", "Missing headers")
+		JsonReturn(c, e.ERROR, "Missing headers", nil)
 		return
 	}
 
 	signKey := models.GetConfigVal("third_party_sign_key")
+	if signKey == "" {
+		AddLogs("DomainWhiteReviewNotify", "third_party_sign_key is null")
+		JsonReturn(c, e.ERROR, "third_party_sign_key failed", nil)
+		return
+	}
 	expectedSign := generateThirdPartySign(departmentId, timestamp, signKey)
 	if sign != expectedSign {
-		log.Println("Invalid signature, expected:", expectedSign, "got:", sign)
+		AddLogs("DomainWhiteReviewNotify", "Invalid signature, expected")
 		JsonReturn(c, e.ERROR, "Invalid signature", nil)
 		return
 	}
 
 	// 解析回调数据
-	reqBody, _ := io.ReadAll(c.Request.Body)
-	log.Printf("Received callback data: %s", string(reqBody))
+	if c.Request.Body == nil {
+		AddLogs("DomainWhiteReviewNotify", "Empty request body")
+		JsonReturn(c, e.ERROR, "Empty request body", nil)
+		return
+	}
+	reqBody, err = io.ReadAll(c.Request.Body)
+	if err != nil {
+		AddLogs("DomainWhiteReviewNotify", "ReadAll request body fail")
+		JsonReturn(c, e.ERROR, "Read body error", nil)
+		return
+	}
 
-	var callbackData models.DomainReviewCallbackData
 	if err := json.Unmarshal(reqBody, &callbackData); err != nil {
-		log.Printf("Parse error: %v", err)
+		AddLogs("DomainWhiteReviewNotify", "Unmarshal request body fail=="+err.Error())
 		JsonReturn(c, e.ERROR, "Parse error", nil)
 		return
 	}
 
 	// 处理审核结果
-	err := processDomainsByStatus(callbackData)
+	err = processDomainsByStatus(callbackData)
 	if err != nil {
+		AddLogs("DomainWhiteReviewNotify", "processDomainsByStatus fail")
 		JsonReturn(c, e.ERROR, "process processDomainsByStatus failed", nil)
 		return
 	}
@@ -431,7 +486,7 @@ func processDomainsByStatus(data models.DomainReviewCallbackData) error {
 		if len(domains) > 0 {
 			updateData := map[string]interface{}{
 				"status":             2,
-				"review_time":        util.GetNowInt(),
+				"review_time":        data.AuditTime,
 				"update_time":        util.GetNowInt(),
 				"audit_user_name":    data.AuditUserName,
 				"third_party_result": "",
@@ -453,7 +508,7 @@ func processDomainsByStatus(data models.DomainReviewCallbackData) error {
 		if len(domains) > 0 {
 			updateData := map[string]interface{}{
 				"status":             4,
-				"review_time":        util.GetNowInt(),
+				"review_time":        data.AuditTime,
 				"update_time":        util.GetNowInt(),
 				"audit_user_name":    data.AuditUserName,
 				"third_party_result": data.AuditRemark,

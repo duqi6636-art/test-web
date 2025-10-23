@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -255,6 +256,7 @@ func SubmitKycManualReview(c *gin.Context) {
 	go func() {
 		err := submitToThirdParty(reviewId, review, orderTypes)
 		if err != nil {
+			AddLogs("submitToThirdParty", fmt.Sprintf("KYC ID: %d, 第三方提交失败: %s", reviewId, err.Error()))
 			// 更新状态为提交失败
 			updateData := map[string]interface{}{
 				"third_party_req_id": int(0),
@@ -265,7 +267,6 @@ func SubmitKycManualReview(c *gin.Context) {
 				"submit_time":        util.GetNowInt(),
 			}
 			models.UpdateKycReviewThirdPartyInfo(reviewId, updateData)
-			log.Println("submitToThirdParty error", err)
 			_ = models.UpdateUserKycByUid(review.Uid, map[string]interface{}{
 				"operator": "1",
 			})
@@ -307,8 +308,7 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview, orderTypes str
 		// 解析链接参数
 		tencentNonce, tencentOrderNo, err = parseTencentKycUrl(userKycInfo.LinkUrl)
 		if err != nil {
-			log.Printf("解析腾讯KYC链接失败: %v", err)
-			return fmt.Errorf("解析腾讯KYC链接失败")
+			return fmt.Errorf("解析腾讯KYC链接失败:%s", err.Error())
 		}
 
 		// 获取照片路由地址
@@ -316,17 +316,14 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview, orderTypes str
 		// 第一步：获取 KYC 访问令牌
 		accessToken, err := getKycAccessToken()
 		if err != nil {
-			log.Printf("获取KYC访问令牌失败: %v", err)
-			return err
+			return fmt.Errorf("获取KYC访问令牌失败: %s", err.Error())
 		} else {
 			// 第二步：获取 API 签名票据
 			ticketList, err := getApiTicket(accessToken, "SIGN", "")
 			if err != nil || len(ticketList) == 0 {
-				log.Printf("获取API签名票据失败: %v", err)
-				return err
+				return fmt.Errorf("获取API签名票据失败:%s", err.Error())
 			} else {
 				ticket := ticketList[0].Value
-
 				// 使用解析出的参数获取照片
 				param := []string{tencentNonce, tencentOrderNo, "1.0.0", kycAppId}
 				sign, err := getKycSign(param, ticket)
@@ -343,12 +340,10 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview, orderTypes str
 					if err == nil {
 						photoURL, err = SaveTencentKycPhoto(response.Result.Photo, tencentOrderNo)
 						if err != nil {
-							log.Printf("保存照片失败: %v", err)
-						} else {
-							log.Printf("成功获取照片URL: %s", photoURL)
+							AddLogs("SaveTencentKycPhoto", fmt.Sprintf("保存照片失败: %s", err.Error()))
 						}
 					} else {
-						log.Printf("查询照片失败: %v", err)
+						AddLogs("SaveTencentKycPhoto", fmt.Sprintf("查询照片失败: %s", err.Error()))
 					}
 				}
 			}
@@ -363,7 +358,7 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview, orderTypes str
 			} else {
 				// 如果解析失败，直接使用原始值
 				certImages = userKycInfo.CertImages
-				log.Printf("解析证件图片JSON失败: %v", err)
+				AddLogs("Unmarshal CertImages", fmt.Sprintf("解析证件图片JSON失败: %s", err.Error()))
 			}
 		}
 
@@ -374,7 +369,7 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview, orderTypes str
 			} else {
 				// 如果解析失败，直接使用原始值
 				certVideo = userKycInfo.CertVideo
-				log.Printf("解析人脸视频JSON失败: %v", err)
+				AddLogs("Unmarshal CertVideo", fmt.Sprintf("解析人脸视频JSON失败: %s", err.Error()))
 			}
 		}
 
@@ -428,7 +423,6 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview, orderTypes str
 	if apiUrl == "" {
 		return fmt.Errorf("第三方KYC接口URL未配置")
 	}
-	log.Println("submitData===", submitData)
 
 	jsonData, err := json.Marshal(submitData)
 	if err != nil {
@@ -479,10 +473,7 @@ func submitToThirdParty(reviewId int, kyc models.KycManualReview, orderTypes str
 		log.Println("updateData:", updateData)
 		err := models.UpdateKycReviewThirdPartyInfo(reviewId, updateData)
 		if err != nil {
-			log.Printf("Failed to update KYC third party info: reviewId=%d, error=%v", reviewId, err)
-			return err
-		} else {
-			log.Printf("Successfully updated KYC third party info for review: %d with ID: %d", reviewId, int(response.Data.Id))
+			return fmt.Errorf("UpdateKycReviewThirdPartyInfo reviewId=%d, error=%v", reviewId, err)
 		}
 		_ = models.UpdateUserKycByUid(kyc.Uid, map[string]interface{}{
 			"operator": "1",
@@ -829,16 +820,52 @@ type UnifiedKycCallbackData struct {
 
 // EnterpriseKycNotify 认证结果回调
 func EnterpriseKycNotify(c *gin.Context) {
-	AddLogs("EnterpriseKycNotify", "接口被调用")
+	defer func() {
+		if r := recover(); r != nil {
+			// 获取堆栈信息
+			stack := make([]byte, 4096)
+			length := runtime.Stack(stack, false)
+			stackTrace := string(stack[:length])
+			// 记录详细的panic信息
+			panicMsg := fmt.Sprintf("[PANIC] EnterpriseKycNotify: %v\nStack trace:\n%s", r, stackTrace)
+			AddLogs("EnterpriseKycNotify", panicMsg)
+			// 确保响应已经发送
+			if !c.Writer.Written() {
+				JsonReturn(c, e.ERROR, "Internal server error", nil)
+			}
+		}
+	}()
 	// 验证签名
 	signature := c.GetHeader("sign")
 	departmentId := c.GetHeader("departmentId")
 	timestamp := c.GetHeader("timestamp")
 
-	reqBody, _ := io.ReadAll(c.Request.Body)
+	if departmentId == "" || timestamp == "" || signature == "" {
+		AddLogs("EnterpriseKycNotify", "Missing headers")
+		JsonReturn(c, e.ERROR, "Missing headers", nil)
+		return
+	}
+
+	if c.Request.Body == nil {
+		AddLogs("EnterpriseKycNotify", "Empty request body")
+		JsonReturn(c, e.ERROR, "Empty request body", nil)
+		return
+	}
+
+	reqBody, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		AddLogs("EnterpriseKycNotify", "read body fail"+err.Error())
+		JsonReturn(c, e.ERROR, "read body fail", nil)
+		return
+	}
 
 	// 验证签名
 	signKey := models.GetConfigVal("third_party_sign_key")
+	if signKey == "" {
+		AddLogs("EnterpriseKycNotify", "third_party_sign_key is null")
+		JsonReturn(c, e.ERROR, "third_party_sign_key failed", nil)
+		return
+	}
 	expectedSign := generateThirdPartySign(departmentId, timestamp, signKey)
 	if signature != expectedSign {
 		AddLogs("EnterpriseKycNotify", fmt.Sprintf("签名验证失败: expected: %s, received: %s", expectedSign, signature))
