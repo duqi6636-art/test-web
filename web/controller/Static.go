@@ -365,6 +365,83 @@ func StaticIpList(c *gin.Context) {
 	city = strings.ToLower(city)       //城市
 
 	staticIpData := []models.StaticIpInfo{}
+	regionInfo := models.GetStaticRegionBy(country, state, city)
+	listRes, listMsg, lists := StaticZtList(regionInfo.RegionSn)
+	if listRes == false {
+		JsonReturn(c, -1, listMsg, gin.H{})
+		return
+	}
+
+	portStr := models.GetConfigVal("zt_static_ip_port") //静态IP端口
+	if portStr == "" {
+		portStr = "6505"
+	}
+	for _, v := range lists {
+		if usedStr != "" && strings.Contains(usedStr, ","+v.Ip+",") {
+			continue
+		}
+		ipArr := strings.Split(v.Ip, ".")
+		ip := ipArr[0] + "." + ipArr[1] + ".***.***"
+		info := models.StaticIpInfo{}
+		info.Ip = ip
+		info.Ping = util.GetRandomInt(30, 100)
+		info.Sn = util.MdEncode(v.Ip, MdKey)
+		info.Code = strings.ToLower(regionInfo.Country)
+		info.Country = regionInfo.Country
+		info.State = regionInfo.State
+		info.City = regionInfo.City
+		info.Port = portStr
+		staticIpData = append(staticIpData, info)
+		num := 50
+
+		if len(staticIpData) >= num {
+			break
+		}
+	}
+	JsonReturn(c, 0, "__T_SUCCESS", staticIpData)
+	return
+}
+
+// 静态 IP池列表
+// @BasePath /api/v1
+// @Summary 静态 IP池列表
+// @Description 静态 IP池列表
+// @Tags 个人中心 - 静态住宅代理
+// @Accept x-www-form-urlencoded
+// @Param session formData string false "用户登录信息"
+// @Param country formData string false "国家"
+// @Param state formData string false "洲/省"
+// @Param city formData string false "城市"
+// @Produce json
+// @Success 0 {array} []models.StaticIpInfo{} "成功"
+// @Router /web/static/pools [post]
+func StaticIpListBak(c *gin.Context) {
+	session := c.DefaultPostForm("session", "")                    // 用户名
+	country := strings.TrimSpace(c.DefaultPostForm("country", "")) //国家
+	state := strings.TrimSpace(c.DefaultPostForm("state", ""))     //州/省
+	city := strings.TrimSpace(c.DefaultPostForm("city", ""))       //城市
+	usedStr := ""
+	//uid := 0
+	if session != "" {
+		errs, uid := GetUIDbySession(session)
+		if errs == false {
+			JsonReturn(c, -1, "__T_SESSION_EXPIRE", gin.H{})
+			return
+		}
+		err, usedList := models.GetIpStaticIpByUid(uid)
+		if err == nil && len(usedList) > 0 {
+			for _, v := range usedList {
+				usedStr = usedStr + "," + v.Ip
+			}
+			usedStr = usedStr + ","
+		}
+	}
+
+	country = strings.ToLower(country) //国家
+	state = strings.ToLower(state)     //州/省
+	city = strings.ToLower(city)       //城市
+
+	staticIpData := []models.StaticIpInfo{}
 	lists := models.GetStaticIpPoolRand(country, state, city)
 	for _, v := range lists {
 		if usedStr != "" && strings.Contains(usedStr, ","+v.Ip+",") {
@@ -392,6 +469,126 @@ func StaticIpList(c *gin.Context) {
 	return
 }
 
+func UseStatic(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	_, staticInfo := models.GetUserStaticIp(uid)
+	for _, vu := range staticInfo {
+		if vu.Status == 2 {
+			JsonReturn(c, -1, "__T_PACKAGE_FORBIDDEN", gin.H{})
+			return
+		}
+	}
+
+	nowTime := util.GetNowInt()
+	ip := c.DefaultPostForm("ip", "")
+	country := c.DefaultPostForm("country", "") //国家地区
+	state := c.DefaultPostForm("state", "")     //州/省
+	city := c.DefaultPostForm("city", "")       //城市
+	if country == "" {
+		JsonReturn(c, -1, "__T_PARAM_ERROR--Region", nil)
+		return
+	}
+	if ip != "" {
+		// 提取记录
+		err_l, ipLog := models.GetIpStaticIp(uid, ip)
+		if err_l == nil && ipLog.Id > 0 {
+			if ipLog.ExpireTime < nowTime {
+				JsonReturn(c, -1, "__T_IP_EXPIRED", nil)
+				return
+			}
+			JsonReturn(c, 0, "__T_SUCCESS", nil)
+			return
+		}
+	}
+	sn := c.DefaultPostForm("sn", "")
+	staticIdStr := c.DefaultPostForm("static_id", "") //长效套餐ID
+	if staticIdStr == "" {
+		JsonReturn(c, -1, "__T_IP_BALANCE_LOW", nil)
+		return
+	}
+	static_id := util.StoI(staticIdStr)
+	if static_id == 0 {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	if sn != "" {
+		idStr := util.MdDecode(sn, MdKey)
+		id := util.StoI(idStr)
+		_, ipInfo := models.GetStaticIpById(id)
+		useIP := ipInfo.Ip
+		err_l, ipLog := models.GetIpStaticIp(uid, useIP)
+		if err_l == nil && ipLog.Id > 0 {
+			JsonReturn(c, -1, "__T_STATIC_IP_HAS_USED", nil) //已提取，请勿重复提取
+			return
+		}
+		code := strings.ToLower(ipInfo.Country)
+		err, balanceInfo := models.GetUserStaticByPakRegion(uid, static_id, code)
+		if err != nil || balanceInfo.Id == 0 {
+			JsonReturn(c, -1, "__T_IP_BALANCE_LOW", nil)
+			return
+		} else {
+			if balanceInfo.Balance < 1 {
+				JsonReturn(c, -1, "__T_IP_BALANCE_LOW", nil)
+				return
+			}
+		}
+
+		// region ip地区
+		regionInfo := models.GetStaticRegionBy(country, state, city)
+
+		orderId := "360" + util.GetOrderIds()
+		openRes, openMsg := StaticZtOpen(uid, balanceInfo.ExpireDay*86400, idStr, orderId, regionInfo.RegionSn)
+		if openRes == false {
+			JsonReturn(c, e.ERROR, openMsg, gin.H{"err": 01})
+			return
+		}
+		portStr := models.GetConfigVal("zt_static_ip_port") //静态IP端口
+		if portStr == "" {
+			portStr = "6505"
+		}
+		// 开始扣费
+		err1 := models.StaticKfNewZt(c.ClientIP(), idStr, portStr, orderId, regionInfo, user, balanceInfo)
+		if err1 == nil {
+			_, staticInfo := models.GetUserStaticIp(uid) //用户购买记录
+			packageList := models.GetStaticPackageList()
+
+			userBalance := map[int]int{}
+			for _, vu := range staticInfo {
+				if vu.PakRegion != "all" {
+					balance, ok := userBalance[vu.PakId]
+					if !ok {
+						balance = 0
+					}
+					userBalance[vu.PakId] = vu.Balance + balance
+				}
+			}
+
+			resInfo := []models.ResUserStaticIp{}
+			for _, vp := range packageList {
+				info := models.ResUserStaticIp{}
+				info.Id = vp.Id
+				ipNum, ok := userBalance[vp.Id]
+				if !ok {
+					ipNum = 0
+				}
+				info.PakName = vp.Name
+				info.ExpireDay = vp.Value
+				info.Balance = ipNum
+				resInfo = append(resInfo, info)
+			}
+			JsonReturn(c, 0, "__T_SUCCESS", resInfo)
+			return
+		}
+	}
+	JsonReturn(c, -1, "__T_FAIL", nil)
+	return
+}
+
 // 提取扣费IP
 // @BasePath /api/v1
 // @Summary 提取扣费IP
@@ -405,7 +602,7 @@ func StaticIpList(c *gin.Context) {
 // @Produce json
 // @Success 0 {object} []models.ResUserStaticIp{} "成功"
 // @Router /web/static/use [post]
-func UseStatic(c *gin.Context) {
+func UseStaticBak(c *gin.Context) {
 	resCode, msg, user := DealUser(c) //处理用户信息
 	if resCode != e.SUCCESS {
 		JsonReturn(c, resCode, msg, nil)
@@ -508,6 +705,147 @@ func UseStatic(c *gin.Context) {
 // 批量提取静态
 
 func BatchUseStatic(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	_, staticInfo := models.GetUserStaticIp(uid)
+	for _, vu := range staticInfo {
+		if vu.Status == 2 {
+			JsonReturn(c, -1, "__T_PACKAGE_FORBIDDEN", gin.H{})
+			return
+		}
+	}
+	sn := c.DefaultPostForm("sn_list", "")
+	var snList = make([]string, 0)
+	err := json.Unmarshal([]byte(sn), &snList)
+	if len(snList) <= 0 || err != nil {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	staticId := com.StrTo(c.DefaultPostForm("static_id", "0")).MustInt() //长效套餐ID
+	country := c.DefaultPostForm("country", "")                          // 国家地区
+	state := c.DefaultPostForm("state", "")                              //州/省
+	city := c.DefaultPostForm("city", "")                                //城市
+	if country == "" {
+		JsonReturn(c, -1, "__T_PARAM_ERROR--Region", nil)
+		return
+	}
+	if staticId <= 0 {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	resInfo := make(map[int]models.ResUserStaticIp)
+	_, staticInfoList := models.GetUserStaticIp(uid) //用户购买记录
+	packageList := models.GetStaticPackageList()
+	userBalance := map[int]int{}
+	for _, vu := range staticInfoList {
+		if vu.PakRegion != "all" {
+			balance, ok := userBalance[vu.PakId]
+			if !ok {
+				balance = 0
+			}
+			userBalance[vu.PakId] = vu.Balance + balance
+		}
+	}
+	for _, vp := range packageList {
+		info := models.ResUserStaticIp{}
+		info.Id = vp.Id
+		ipNum, ok := userBalance[vp.Id]
+		if !ok {
+			ipNum = 0
+		}
+		info.PakName = vp.Name
+		info.ExpireDay = vp.Value
+		info.Balance = ipNum
+		resInfo[info.Id] = info
+	}
+	var count = 0
+	for _, val := range snList {
+		idStr := util.MdDecode(val, MdKey)
+		id := util.StoI(idStr)
+		_, ipInfo := models.GetStaticIpById(id)
+		useIP := ipInfo.Ip
+		err_l, ipLog := models.GetIpStaticIp(uid, useIP)
+		if err_l == nil && ipLog.Id > 0 {
+			continue
+		}
+		code := strings.ToLower(ipInfo.Country)
+		err, balanceInfo := models.GetUserStaticByPakRegion(uid, staticId, code)
+		if err != nil || balanceInfo.Id == 0 {
+			continue
+		} else {
+			if balanceInfo.Balance < 1 {
+				continue
+			}
+		}
+
+		regionInfo := models.GetStaticRegionBy(country, state, city)
+
+		orderId := "360" + util.GetOrderIds()
+		openRes, openMsg := StaticZtOpen(uid, balanceInfo.ExpireDay*86400, idStr, orderId, regionInfo.RegionSn)
+		if openRes == false {
+			JsonReturn(c, e.ERROR, openMsg, gin.H{"err": 01})
+			return
+		}
+		portStr := models.GetConfigVal("zt_static_ip_port") //静态IP端口
+		if portStr == "" {
+			portStr = "6505"
+		}
+		// 开始扣费
+		err1 := models.StaticKfNewZt(c.ClientIP(), idStr, portStr, orderId, regionInfo, user, balanceInfo)
+		if err1 == nil {
+			_, staticInfo = models.GetUserStaticIp(uid) //用户购买记录
+			packageList = models.GetStaticPackageList()
+			userBalance := map[int]int{}
+			for _, vu := range staticInfo {
+				if vu.Status >= 1 {
+					if vu.PakRegion != "all" {
+						balance, ok := userBalance[vu.PakId]
+						if !ok {
+							balance = 0
+						}
+						userBalance[vu.PakId] = vu.Balance + balance
+					}
+				}
+			}
+
+			for _, vp := range packageList {
+				info := models.ResUserStaticIp{}
+				info.Id = vp.Id
+				ipNum, ok := userBalance[vp.Id]
+				if !ok {
+					ipNum = 0
+				}
+				info.PakName = vp.Name
+				info.ExpireDay = vp.Value
+				info.Balance = ipNum
+				resInfo[info.Id] = info
+			}
+			count++
+		}
+	}
+	var resList = make([]models.ResUserStaticIp, 0)
+	for _, val := range resInfo {
+		resList = append(resList, val)
+	}
+	sort.Slice(resList, func(i, j int) bool {
+		return resList[i].Id < resList[j].Id
+	})
+	if count <= 0 {
+		JsonReturn(c, e.ERROR, "__T_IP_BALANCE_LOW", nil)
+	} else {
+		JsonReturn(c, 0, "__T_SUCCESS", resList)
+	}
+
+	return
+}
+
+// 批量提取静态
+
+func BatchUseStaticBak(c *gin.Context) {
 	resCode, msg, user := DealUser(c) //处理用户信息
 	if resCode != e.SUCCESS {
 		JsonReturn(c, resCode, msg, nil)
@@ -950,6 +1288,16 @@ func IpRecharge(c *gin.Context) {
 		}
 	}
 
+	// 如果是新资源架构续费
+	if ipLog.IsNew == 1 {
+		durationTime := balanceInfo.ExpireDay
+		renRes, renMsg := StaticZtOpenRenew(ipLog.Uid, durationTime, ipLog.Ip, ipLog.OrderId)
+		if renRes == false {
+			JsonReturn(c, -1, renMsg, nil)
+			return
+		}
+	}
+
 	// 开始扣费
 	err1 := models.Recharge(c.ClientIP(), ipLog, balanceInfo)
 	if err1 == nil {
@@ -961,7 +1309,157 @@ func IpRecharge(c *gin.Context) {
 	return
 }
 
+// 续费
+// @BasePath /api/v1
+// @Summary 续费
+// @Description 续费
+// @Tags 个人中心 - 静态住宅代理
+// @Accept x-www-form-urlencoded
+// @Param session formData string true "用户登录信息"
+// @Param id formData string true "待续费的ID"
+// @Param static_id formData string true "购买的长效套餐ID"
+// @Produce json
+// @Success 0 {object} interface{} "成功"
+// @Router /web/static/recharge [post]
+func IpRechargeBak(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	staticIdStr := c.DefaultPostForm("static_id", "") //购买的长效套餐ID
+	idStr := c.DefaultPostForm("id", "")              //待续费的ID
+	if idStr == "" {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	id := util.StoI(idStr)
+
+	if staticIdStr == "" {
+		JsonReturn(c, -1, "__T_RECHARGE_IP_ERROR", nil)
+		return
+	}
+	static_id := util.StoI(staticIdStr)
+	if static_id == 0 {
+		JsonReturn(c, -1, "__T_RECHARGE_IP_ERROR", nil)
+		return
+	}
+
+	uid := user.Id
+	//nowTime := util.GetNowInt()
+	// 提取记录
+	err_l, ipLog := models.GetIpStaticIpById(id)
+	if err_l != nil || ipLog.Id == 0 {
+		JsonReturn(c, -1, "__T_STATIC_IP_USED_ERROR", nil)
+		return
+	}
+	_, ipInfo := models.GetStaticIpByIp(ipLog.Ip)
+	if ipInfo.Id == 0 || ipInfo.Status != 1 {
+		JsonReturn(c, -1, "__T_IP_OFFLINE", nil)
+		return
+	}
+	// 处理IP异常的情况，续费的IP不判断是否已被使用过的IP   20250122
+	//if ipInfo.Uid > 0 && ipInfo.Uid != uid {
+	//	JsonReturn(c, -1, "__T_IP_HAS_USED", nil)
+	//	return
+	//}
+
+	err, balanceInfo := models.GetUserStaticIpById(uid, static_id)
+	if err != nil || balanceInfo.Id == 0 {
+		JsonReturn(c, 2, "__T_IP_BALANCE_LOW", nil)
+		return
+	} else {
+		if balanceInfo.Balance < 1 {
+			JsonReturn(c, 2, "__T_IP_BALANCE_LOW", nil)
+			return
+		}
+	}
+
+	// 开始扣费
+	err1 := models.Recharge(c.ClientIP(), ipLog, balanceInfo)
+	if err1 == nil {
+		JsonReturn(c, 0, "__T_SUCCESS", nil)
+		return
+	}
+
+	JsonReturn(c, -1, "__T_FAIL", nil)
+	return
+}
+
+// BatchIpRecharge 批量续费
 func BatchIpRecharge(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	//staticId := util.StoI(c.DefaultPostForm("static_id", "0")) //购买的长效套餐ID
+	ids := c.DefaultPostForm("ids", "") //待续费的ID 格式：staticId:id,staticId1:id1,staticId2:id2
+
+	if len(ids) <= 0 {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	list := strings.Split(ids, ",")
+	uid := user.Id
+	var count int
+	for _, val := range list {
+		idList := strings.Split(val, ":")
+		if len(idList) < 2 {
+			continue
+		}
+		staticId := util.StoI(idList[0])
+		id := util.StoI(idList[1])
+		if staticId == 0 {
+			continue
+		}
+		// 提取记录
+		err_l, ipLog := models.GetIpStaticIpById(id)
+		if err_l != nil || ipLog.Id == 0 {
+			continue
+		}
+		_, ipInfo := models.GetStaticIpByIp(ipLog.Ip)
+		if ipInfo.Id == 0 || ipInfo.Status != 1 {
+			continue
+		}
+		// 处理IP异常的情况，续费的IP不判断是否已被使用过的IP   20250122
+		//if ipInfo.Uid > 0 && ipInfo.Uid != uid {
+		//	JsonReturn(c, -1, "__T_IP_HAS_USED", nil)
+		//	return
+		//}
+
+		err, balanceInfo := models.GetUserStaticIpById(uid, staticId)
+		if err != nil || balanceInfo.Id == 0 {
+			continue
+		} else {
+			if balanceInfo.Balance < 1 {
+				continue
+			}
+		}
+
+		// 如果是新资源架构续费
+		if ipLog.IsNew == 1 {
+			durationTime := balanceInfo.ExpireDay
+			renRes, renMsg := StaticZtOpenRenew(ipLog.Uid, durationTime, ipLog.Ip, ipLog.OrderId)
+			if renRes == false {
+				AddLogs("StaticZtOpenRenew", renMsg)
+				continue
+			}
+		}
+
+		// 开始扣费
+		_ = models.Recharge(c.ClientIP(), ipLog, balanceInfo)
+		count++
+	}
+	if count > 0 {
+		JsonReturn(c, 0, "__T_SUCCESS", nil)
+	} else {
+		JsonReturn(c, e.ERROR, "__T_IP_BALANCE_LOW", nil)
+	}
+
+}
+
+func BatchIpRechargeBak(c *gin.Context) {
 	resCode, msg, user := DealUser(c) //处理用户信息
 	if resCode != e.SUCCESS {
 		JsonReturn(c, resCode, msg, nil)
