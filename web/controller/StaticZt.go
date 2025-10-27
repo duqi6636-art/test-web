@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+var StaticZToken = "KkSEJVVWZtAthPonYtYZcppgacbbuZRC"
+
 // ResponseStaticZtListModel 请求资源中台列表信息返回值
 type ResponseStaticZtListModel struct {
 	Code int `json:"code"`
@@ -57,7 +59,7 @@ func StaticZtList(regionSn string) (bool, string, []StaticZtListModel) {
 	}
 	token := models.GetConfigVal("zt_static_ip_token") //资源中台账户Token
 	if token == "" {
-		token = "YnOlGyJcRFNLKqSjxEwtGtitTCcAFqYV"
+		token = StaticZToken
 	}
 	headerInfo := map[string]interface{}{
 		"token": token,
@@ -99,6 +101,12 @@ type ResponseStaticOpenZtModel struct {
 	Msg  string   `json:"msg"`
 }
 
+type ResponseStaticZtModel struct {
+	Code int               `json:"code"`
+	Data map[string]string `json:"data"`
+	Msg  string            `json:"msg"`
+}
+
 // StaticZtOpen 资源开通
 func StaticZtOpen(uid, durationTime int, ipStr, orderId, regionSn string) (bool, string) {
 	// IP属性
@@ -114,7 +122,7 @@ func StaticZtOpen(uid, durationTime int, ipStr, orderId, regionSn string) (bool,
 	}
 	token := models.GetConfigVal("zt_static_ip_token") //资源中台账户Token
 	if token == "" {
-		token = "YnOlGyJcRFNLKqSjxEwtGtitTCcAFqYV"
+		token = StaticZToken
 	}
 	headerInfo := map[string]interface{}{
 		"token": token,
@@ -181,11 +189,11 @@ func StaticZtStatus(ipStatusArr []string) (bool, string, []StaticZtStatusModel) 
 	}
 	oemName := models.GetConfigVal("zt_static_oem_name")
 	if oemName == "" {
-		oemName = "922"
+		oemName = "cherry"
 	}
 	token := models.GetConfigVal("zt_static_ip_token") //资源中台账户Token
 	if token == "" {
-		token = "YnOlGyJcRFNLKqSjxEwtGtitTCcAFqYV"
+		token = StaticZToken
 	}
 	headerInfo := map[string]interface{}{
 		"token": token,
@@ -220,11 +228,11 @@ func StaticZtOpenRenew(uid, durationTime int, ipStr, orderId string) (bool, stri
 	}
 	oemName := models.GetConfigVal("zt_static_oem_name")
 	if oemName == "" {
-		oemName = "922"
+		oemName = "cherry"
 	}
 	token := models.GetConfigVal("zt_static_ip_token") //资源中台账户Token
 	if token == "" {
-		token = "YnOlGyJcRFNLKqSjxEwtGtitTCcAFqYV"
+		token = StaticZToken
 	}
 	headerInfo := map[string]interface{}{
 		"token": token,
@@ -250,7 +258,7 @@ func StaticZtOpenRenew(uid, durationTime int, ipStr, orderId string) (bool, stri
 	fmt.Println(err1)
 	fmt.Println(requestStr)
 	AddLogs("IpRenew", requestStr) //写日志
-	responseInfo := ResponseStaticOpenZtModel{}
+	responseInfo := ResponseStaticZtModel{}
 	err1 = json.Unmarshal([]byte(requestStr), &responseInfo)
 	if err1 != nil {
 		return false, "__T_IP_RENEW_ERROR"
@@ -259,5 +267,48 @@ func StaticZtOpenRenew(uid, durationTime int, ipStr, orderId string) (bool, stri
 		AddLogs("IpRenewErr01", responseInfo.Msg) //写日志
 		return false, "__T_IP_RENEW_ERROR -- 1"
 	}
+	return true, ""
+}
+
+// StaticZtRelease 资源释放
+func StaticZtRelease(uid int, ipStr string) (bool, string) {
+	apiUrl := models.GetConfigVal("zt_static_ip_release") //资源中台开通
+	if apiUrl == "" {
+		apiUrl = "http://xc-static-mid-api.worldrift.com/api/release"
+	}
+	oemName := models.GetConfigVal("zt_static_oem_name")
+	if oemName == "" {
+		oemName = "cherry"
+	}
+	token := models.GetConfigVal("zt_static_ip_token") //资源中台账户Token
+	if token == "" {
+		token = StaticZToken
+	}
+	headerInfo := map[string]interface{}{
+		"token": token,
+	}
+
+	data_info := map[string]string{
+		"oem": oemName,        //被授权可使用的项目
+		"uid": util.ItoS(uid), //项目开通的用户ID
+		"ips": ipStr,          //自选IP，多个用,号隔开
+	}
+
+	//获取提取信息-开通扣费  ，请求资源中台
+	fmt.Println(data_info)
+	err1, requestStr := util.HttpPostFormHeader(apiUrl, data_info, headerInfo)
+	fmt.Println(err1)
+	fmt.Println(requestStr)
+	AddLogs("IpRelease", requestStr) //写日志
+	responseInfo := ResponseStaticOpenZtModel{}
+	err1 = json.Unmarshal([]byte(requestStr), &responseInfo)
+	if err1 != nil {
+		return false, "__T_IP_RELEASE_ERROR"
+	}
+	if responseInfo.Code != 200 {
+		AddLogs("IpReleaseErr01", responseInfo.Msg) //写日志
+		return false, "__T_IP_RELEASE_ERROR -- 1"
+	}
+
 	return true, ""
 }

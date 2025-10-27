@@ -274,6 +274,59 @@ func StaticKf(code, user_ip string, ipInfo StaticIpPoolModel, userInfo Users, ba
 	return err1
 }
 
+// 扣费
+func StaticKfZ(user_ip, ip, port, orderId string, areaInfo StaticRegionModel, userInfo Users, balanceInfo UserStaticIpModel) error {
+	nowTime := util.GetNowInt()
+	// 开始扣费
+	tx := db.Begin()
+	uid := userInfo.Id
+	balance := balanceInfo.Balance - 1
+	err1 := tx.Table(UserStaticIpTable).Where("id = ?", balanceInfo.Id).Updates(map[string]interface{}{"balance": balance, "last_use_time": nowTime}).Error
+	if err1 != nil {
+		tx.Rollback()
+	}
+	expireDay := balanceInfo.ExpireDay
+
+	ipLogInfo := IpStaticLogModel{}
+	ipLogInfo.Uid = uid
+	ipLogInfo.Username = userInfo.Username
+	ipLogInfo.Ip = ip
+	ipLogInfo.Code = areaInfo.RegionSn
+	ipLogInfo.Port = util.StoI(port)
+	ipLogInfo.Country = areaInfo.Country
+	ipLogInfo.State = areaInfo.State
+	ipLogInfo.City = areaInfo.City
+	ipLogInfo.ExpireDay = expireDay
+	ipLogInfo.ExpireTime = expireDay*86400 + nowTime
+	ipLogInfo.CreateTime = nowTime
+	ipLogInfo.UserIp = user_ip
+	ipLogInfo.Account = userInfo.Username
+	ipLogInfo.Password = util.RandStr("r", 8)
+	ipLogInfo.OrderId = orderId
+	ipLogInfo.IsNew = 1
+	err1 = tx.Table("cm_log_static").Create(&ipLogInfo).Error
+
+	// 独享改共享
+	//expire_rime := expireDay*86400 + nowTime
+	//upPool := map[string]interface{}{"uid": uid, "expired": expire_rime}
+	//err1 = tx.Table("cm_static_ip_pool").Where("id = ?", ipInfo.Id).Updates(upPool).Error
+	//添加扣费日志
+	ip_log := IpExtractModel{
+		Uid:         uid,
+		CreateTime:  time.Now().Unix(),
+		Username:    userInfo.Username,
+		UserBalance: 0,
+		Ip:          ip,
+		UserIp:      user_ip,
+		ExtractFrom: "web",
+		Cate:        balanceInfo.PakRegion,
+		Unit:        0,
+	}
+	err1 = AddIpExtract(ip_log)
+	tx.Commit()
+	return err1
+}
+
 // 扣费 新 资源中台
 func StaticKfNewZt(user_ip, ip, port, orderId string, areaInfo StaticRegionModel, userInfo Users, balanceInfo UserStaticIpModel) error {
 	nowTime := util.GetNowInt()
@@ -304,7 +357,7 @@ func StaticKfNewZt(user_ip, ip, port, orderId string, areaInfo StaticRegionModel
 	ipLogInfo.Password = util.RandStr("r", 8)
 	ipLogInfo.OrderId = orderId
 	ipLogInfo.IsNew = 1
-	err1 = tx.Table("cm_ip_static_log").Create(&ipLogInfo).Error
+	err1 = tx.Table("cm_log_static").Create(&ipLogInfo).Error
 	tx.Commit()
 	return err1
 }
@@ -431,6 +484,8 @@ func Recharge(user_ip string, ipLog IpStaticLogModel, balanceInfo UserStaticIpMo
 	ipRepayModel.ExpireTime = expire_rime
 	ipRepayModel.CreateTime = nowTime
 	ipRepayModel.UserIp = user_ip
+	ipRepayModel.OrderId = ipLog.OrderId
+	ipRepayModel.IsNew = ipLog.IsNew
 	err1 = tx.Table("cm_ip_static_repay").Create(&ipRepayModel).Error
 	tx.Commit()
 	return err1
