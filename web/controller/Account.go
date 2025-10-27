@@ -95,6 +95,14 @@ func GetAuthLogin(c *gin.Context) {
 		}
 	}
 	// 验证 -- end
+
+	// 登录成功，根据参数决定是否重置失败状态
+	verifyType := c.DefaultPostForm("verify_type", "") // 默认重置所有类型
+	if verifyType != "" {
+		// 获取重置类型参数
+		ResetLoginFailureStateByType(c, email, verifyType)
+	}
+
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
 }
 
@@ -362,12 +370,6 @@ func Login(c *gin.Context) {
 		RecordLoginFailure(c, email, "执行登录错误")
 		JsonReturn(c, -1, sessionRes, map[string]string{"error_position": "0"})
 		return
-	}
-	// 登录成功，根据参数决定是否重置失败状态
-	verifyType := c.DefaultPostForm("verify_type", "") // 默认重置所有类型
-	if verifyType != "" {
-		// 获取重置类型参数
-		ResetLoginFailureStateByType(c, email, verifyType)
 	}
 
 	if codeId > 0 {

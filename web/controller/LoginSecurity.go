@@ -106,17 +106,17 @@ func CheckLoginSecurity(email, ip string) (bool, []string, error) {
 	needCaptcha := false
 
 	// 1. 检查全局登录人机验证触发条件（基于20分钟登录次数与近30天同时段平均值比较）
-	globalNeedCaptcha, globalReason, err := models.CheckGlobalLoginCaptchaTrigger()
-	if err != nil {
-		return false, nil, fmt.Errorf("检查全局登录人机验证触发条件失败: %v", err)
-	}
-
-	if globalNeedCaptcha {
-		needCaptcha = true
-		result = append(result, "global")
-		// 可选：记录触发原因到日志
-		AddLogs("CheckLoginSecurity", globalReason)
-	}
+	//globalNeedCaptcha, globalReason, err := models.CheckGlobalLoginCaptchaTrigger()
+	//if err != nil {
+	//	return false, nil, fmt.Errorf("检查全局登录人机验证触发条件失败: %v", err)
+	//}
+	//
+	//if globalNeedCaptcha {
+	//	needCaptcha = true
+	//	result = append(result, "global")
+	//	// 可选：记录触发原因到日志
+	//	AddLogs("CheckLoginSecurity", globalReason)
+	//}
 
 	// 2. 检查用户级连续失败次数（基于status字段）
 	emailFailures, err := models.GetConsecutiveFailuresByEmail(email)
