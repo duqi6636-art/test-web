@@ -44,9 +44,10 @@ func AddDomainWhiteApply(c *gin.Context) {
 	uid := userInfo.Id
 	username := userInfo.Username
 
-	// 检查用户是否有审核中的域名申请
-	if models.CheckUserHasPendingDomain(uid) {
-		JsonReturn(c, e.ERROR, "有域名正在审核中，请等待审核完成后再提交", nil)
+	// 检查24小时内提交次数限制
+	submitCount := models.CheckUserSubmitCountIn24Hours(uid)
+	if submitCount >= 3 {
+		JsonReturn(c, e.ERROR, "24小时内最多可提交3次域名申请，请稍后再试", nil)
 		return
 	}
 
@@ -65,6 +66,47 @@ func AddDomainWhiteApply(c *gin.Context) {
 
 	if len(domainRemarkPairs) == 0 {
 		JsonReturn(c, e.ERROR, "__T_DOMAIN_TIP", nil)
+		return
+	}
+
+	// 检查提交的域名列表中是否有重复域名
+	domainMap := make(map[string]bool)
+	duplicateDomains := []string{}
+	for _, pair := range domainRemarkPairs {
+		domain := strings.ToLower(strings.TrimSpace(pair.Domain))
+		if domain == "" {
+			continue
+		}
+		if domain != "" {
+			if domainMap[domain] {
+				// 发现重复域名
+				duplicateDomains = append(duplicateDomains, domain)
+			} else {
+				domainMap[domain] = true
+			}
+		}
+	}
+
+	// 发现重复域名，返回错误信息
+	if len(duplicateDomains) > 0 {
+		duplicateList := strings.Join(duplicateDomains, ", ")
+		JsonReturn(c, e.ERROR, fmt.Sprintf("提交的域名列表中存在重复域名: %s", duplicateList), nil)
+		return
+	}
+
+	uniqueDomains := make([]string, 0, len(domainMap))
+	for d := range domainMap {
+		uniqueDomains = append(uniqueDomains, d)
+	}
+	existingDomains, err := models.CheckDomainsAlreadyApproved(uid, uniqueDomains)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "数据库查询失败", nil)
+		return
+	}
+
+	if len(existingDomains) > 0 {
+		existList := strings.Join(existingDomains, ", ")
+		JsonReturn(c, e.ERROR, fmt.Sprintf("以下域名已申请或审核通过，请勿重复提交：%s", existList), nil)
 		return
 	}
 
@@ -370,6 +412,7 @@ func DomainWhiteList(c *gin.Context) {
 			Status:     domaoin.Status,
 			SubmitTime: domaoin.SubmitTime,
 			ReviewTime: domaoin.ReviewTime,
+			Result:     domaoin.ThirdPartyResult,
 			Remark:     domaoin.Remark,
 		}
 		//if domaoin.SubmitTime > 0 {
@@ -613,6 +656,13 @@ func buildDomainReviewEmailParams(callbackData models.DomainReviewCallbackData, 
 		params["rejectedDomains"] = callbackData.NoPassDomains
 	} else {
 		params["rejectedDomains"] = ""
+	}
+
+	// 审核失败原因
+	if callbackData.AuditRemark != "" {
+		params["rejectionReason"] = callbackData.AuditRemark
+	} else {
+		params["rejectionReason"] = ""
 	}
 
 	// 联系信息
