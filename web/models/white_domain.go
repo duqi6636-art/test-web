@@ -94,10 +94,11 @@ func CheckDomainsAlreadyApproved(uid int, domains []string) ([]string, error) {
 	if len(domains) == 0 {
 		return existing, nil
 	}
+	statusList := []int{StatusPending, StatusReview, StatusApproved}
 
 	err := db.Table(userApplyDomainTable).
 		Select("DISTINCT domain").
-		Where("uid = ? AND domain IN ? AND status IN ?", uid, domains, []int{StatusPending, StatusReview, StatusApproved}).
+		Where("uid = ? AND domain IN (?) AND status IN (?)", uid, domains, statusList).
 		Find(&existing).Error
 
 	return existing, err
