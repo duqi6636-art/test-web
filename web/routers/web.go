@@ -241,6 +241,7 @@ func webRouter(router *gin.Engine) {
 	domain.POST("/apply", controller.AddDomainWhiteApply)                          // 添加域名白名单申请
 	domain.POST("/get_apply_domain", controller.DomainWhiteList)                   // 获取域名白名单申请列表
 	domain.POST("/notify/domain_white_review", controller.DomainWhiteReviewNotify) // 域名白名单审核回调
+	domain.POST("/check_kyc", controller.CheckDomainKyc)                           // 域名白名单审核回调
 
 	// KYC人工审核接口
 	kyc.POST("/upload_document", controller.UploadKycDocument)          // 上传证明材料

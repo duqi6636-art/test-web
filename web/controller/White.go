@@ -741,3 +741,32 @@ func sendDomainReviewNotificationMsg(callbackData models.DomainReviewCallbackDat
 		log.Printf("Domain review message added successfully for uid: %d\n", uid)
 	}
 }
+
+func CheckDomainKyc(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	needKyc := false
+	kycSwitch := 0
+
+	// 获取总开关配置
+	err, kycSwitchConfig := models.GetConfigs("domain_apply_switch")
+	if err != nil {
+		kycSwitch = 0
+	}
+	// 将开关值转换为int
+	kycSwitch = util.StoI(kycSwitchConfig.Value)
+
+	// 检查是否需要实名认证（上线后注册的用户）
+	if kycSwitch == 1 {
+		kycStatus := models.CheckUserKycStatus(uid)
+		if kycStatus != 1 { // 未实名认证
+			needKyc = true
+		}
+	}
+
+	JsonReturn(c, 0, "__T_SUCCESS", needKyc)
+}
