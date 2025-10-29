@@ -20,8 +20,10 @@ import (
 // 创建全局数据库连接对象
 var db *gorm.DB
 var dbRead *gorm.DB
-var dnsDb *gorm.DB
+
+// var dnsDb *gorm.DB
 var MasterWriteDb *gormV2.DB
+var dbArea *gormV2.DB
 
 // var logDb *gorm.DB
 var RedisPool *redis.Pool
@@ -90,7 +92,8 @@ func Setup() {
 		log.Fatalln(err)
 	}
 	InitReadDb()
-	InitDnsDb()
+	InitAreaDb()
+	//InitDnsDb()
 	InitConfig()
 	InitLang()
 	InitPackage()
@@ -187,41 +190,90 @@ func InitReadDb() {
 	}
 }
 
-// 加载 DNS库
-func InitDnsDb() {
+// 初始化 架构资源地区配置
+func InitAreaDb() {
 	var (
-		err                                               error
-		dbType, dbName, user, password, host, tablePrefix string
+		err                          error
+		dbName, user, password, host string
 	)
-	if err != nil {
-		log.Fatal(2, "Fail to get section 'read_database': %v", err)
-	}
 
-	dbType = setting.DatabaseDnsConfig.Type
-	dbName = setting.DatabaseDnsConfig.DbName
-	user = setting.DatabaseDnsConfig.User
-	password = setting.DatabaseDnsConfig.Password
-	host = setting.DatabaseDnsConfig.Host
-	tablePrefix = setting.DatabaseDnsConfig.TablePrefix
-
-	dnsDb, err = gorm.Open(dbType, fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local",
+	dbName = setting.DatabaseAreaConfig.DbName
+	user = setting.DatabaseAreaConfig.User
+	password = setting.DatabaseAreaConfig.Password
+	host = setting.DatabaseAreaConfig.Host
+	dbArea, err = gormV2.Open(mysql.Open(fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		user,
 		password,
 		host,
-		dbName))
+		dbName)), &gormV2.Config{
+		NamingStrategy: schema.NamingStrategy{
+			SingularTable: true,
+		},
+	})
+
+	if setting.RunMode == "debug" {
+		dbArea.Logger = logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             time.Second, // 慢查询阈值，超过这个阈值的查询将被认为是慢查询
+				Colorful:                  true,        // 彩色输出
+				IgnoreRecordNotFoundError: true,        // 忽略记录未找到的错误
+				LogLevel:                  logger.Info, // 日志级别
+			},
+		)
+		dbArea = dbArea.Debug() //debug
+	} else {
+		dbArea.Logger = logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             time.Second,  // 慢查询阈值，超过这个阈值的查询将被认为是慢查询
+				Colorful:                  true,         // 彩色输出
+				IgnoreRecordNotFoundError: true,         // 忽略记录未找到的错误
+				LogLevel:                  logger.Error, // 日志级别
+			},
+		)
+	}
 
 	if err != nil {
-		log.Println(err)
-	}
-
-	gorm.DefaultTableNameHandler = func(dnsDb *gorm.DB, defaultTableName string) string {
-		return tablePrefix + defaultTableName
-	}
-	dnsDb.SingularTable(true)
-	if setting.RunMode == "debug" {
-		dnsDb.LogMode(true)
+		log.Fatalln(err)
 	}
 }
+
+// 加载 DNS库
+//func InitDnsDb() {
+//	var (
+//		err                                               error
+//		dbType, dbName, user, password, host, tablePrefix string
+//	)
+//	if err != nil {
+//		log.Fatal(2, "Fail to get section 'read_database': %v", err)
+//	}
+//
+//	dbType = setting.DatabaseDnsConfig.Type
+//	dbName = setting.DatabaseDnsConfig.DbName
+//	user = setting.DatabaseDnsConfig.User
+//	password = setting.DatabaseDnsConfig.Password
+//	host = setting.DatabaseDnsConfig.Host
+//	tablePrefix = setting.DatabaseDnsConfig.TablePrefix
+//
+//	dnsDb, err = gorm.Open(dbType, fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local",
+//		user,
+//		password,
+//		host,
+//		dbName))
+//
+//	if err != nil {
+//		log.Println(err)
+//	}
+//
+//	gorm.DefaultTableNameHandler = func(dnsDb *gorm.DB, defaultTableName string) string {
+//		return tablePrefix + defaultTableName
+//	}
+//	dnsDb.SingularTable(true)
+//	if setting.RunMode == "debug" {
+//		dnsDb.LogMode(true)
+//	}
+//}
 
 // 加载 redis
 func initRedis() {

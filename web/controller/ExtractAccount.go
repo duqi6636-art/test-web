@@ -4,9 +4,7 @@ import (
 	"api-360proxy/web/e"
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
-	"encoding/json"
 	"fmt"
-	"github.com/garyburd/redigo/redis"
 	"github.com/gin-gonic/gin"
 	"strings"
 	"time"
@@ -81,10 +79,35 @@ func GetState(c *gin.Context) {
 		if country == "ALL" {
 			country = ""
 		}
-		stateLists := models.GetStateByCountry(country, "")
-		for _, v := range stateLists {
-			resLists = append(resLists, v)
+		//stateLists := models.GetStateByCountry(country, "")
+		//for _, v := range stateLists {
+		//	resLists = append(resLists, v)
+		//}
+		oldConfig := models.GetConfigVal("config_old_flow_ippool") //配置开关
+		if oldConfig == "1" {
+			stateLists := models.GetStateByCountry(country, "")
+			for _, v := range stateLists {
+				resLists = append(resLists, v)
+			}
+		} else {
+			stateLists := models.GetIspStateBy(country, "")
+			for _, v := range stateLists {
+				state := v.State
+				state = strings.TrimSpace(strings.ToLower(state))
+				state = strings.Trim(state, "\"")
+				state = strings.Trim(state, "'")
+				state = strings.ReplaceAll(state, " ", "")
+				if state != "" {
+					info := models.ExtractProvince{}
+					info.Id = 0
+					info.Name = v.State
+					info.Code = state
+					info.Status = 1
+					resLists = append(resLists, info)
+				}
+			}
 		}
+
 	}
 	JsonReturn(c, 0, "__T_SUCCESS", resLists)
 	return
@@ -109,24 +132,66 @@ func GetCity(c *gin.Context) {
 	state = strings.ToLower(state)
 	city = strings.ToLower(city)
 
-	cityRandom := models.ExtractCity{}
+	cityRandom := models.ResExtractCity{}
 	cityRandom.Id = 0
 	cityRandom.Name = "Random"
 	cityRandom.Code = ""
-	cityRandom.Status = 1
-	cityRandom.State = ""
-	cityRandom.Country = ""
+	//cityRandom.Status = 1
+	//cityRandom.State = ""
+	//cityRandom.Country = ""
 
-	resLists := []models.ExtractCity{}
+	resLists := []models.ResExtractCity{}
 	resLists = append(resLists, cityRandom)
 	// 获取城市数据
 	if country != "" || state != "" {
-		cityLists := models.GetCityByCountry(country, state, city)
-		for _, v := range cityLists {
-			if v.Num < 10 && v.Name != "Random" {
-				continue
+		//cityLists := models.GetCityByCountry(country, state, city)
+		//for _, v := range cityLists {
+		//	if v.Num < 10 && v.Name != "Random" {
+		//		continue
+		//	}
+		//	resLists = append(resLists, v)
+		//}
+		oldConfig := models.GetConfigVal("config_old_flow_ippool") //配置开关
+		if oldConfig == "1" {
+			cityLists := models.GetCityByCountry(country, state, city)
+			for _, v := range cityLists {
+				info := models.ResExtractCity{}
+				info.Name = v.Name
+				info.Code = v.Code
+				resLists = append(resLists, info)
 			}
-			resLists = append(resLists, v)
+		} else {
+			cityLists := models.GetIspCityBy(country, "", city)
+
+			for _, v := range cityLists {
+				stateCode := v.State
+				stateCode = strings.TrimSpace(strings.ToLower(stateCode))
+				stateCode = strings.Trim(stateCode, "\"")
+				stateCode = strings.Trim(stateCode, "'")
+				stateCode = strings.ReplaceAll(stateCode, " ", "")
+
+				cityCode := v.City
+				cityCode = strings.TrimSpace(strings.ToLower(cityCode))
+				cityCode = strings.Trim(cityCode, "\"")
+				cityCode = strings.Trim(cityCode, "'")
+				cityCode = strings.ReplaceAll(cityCode, " ", "")
+
+				if state != "" {
+					if stateCode == state {
+						info := models.ResExtractCity{}
+						info.Name = v.City
+						info.Code = cityCode
+						resLists = append(resLists, info)
+					}
+				} else {
+					if cityCode != "" {
+						info := models.ResExtractCity{}
+						info.Name = v.City
+						info.Code = cityCode
+						resLists = append(resLists, info)
+					}
+				}
+			}
 		}
 	}
 	JsonReturn(c, 0, "__T_SUCCESS", resLists)
@@ -146,16 +211,16 @@ func GetCity(c *gin.Context) {
 func GetCountryIsp(c *gin.Context) {
 	country := strings.TrimSpace(c.DefaultPostForm("country", "")) // 国家标识
 
-	redisConn := models.RedisCountryCityPort.Get()
-	defer redisConn.Close()
-	redisKey := fmt.Sprintf("country-isp-%s", country)
-	listStr, _ := redis.String(redisConn.Do("GET", redisKey))
-	var resData []map[string]interface{}
-	if len(listStr) > 0 {
-		json.Unmarshal([]byte(listStr), &resData)
-		JsonReturn(c, 0, "__T_SUCCESS", resData)
-		return
-	}
+	//redisConn := models.RedisCountryCityPort.Get()
+	//defer redisConn.Close()
+	//redisKey := fmt.Sprintf("country-isp-%s", country)
+	//listStr, _ := redis.String(redisConn.Do("GET", redisKey))
+	//var resData []map[string]interface{}
+	//if len(listStr) > 0 {
+	//	json.Unmarshal([]byte(listStr), &resData)
+	//	JsonReturn(c, 0, "__T_SUCCESS", resData)
+	//	return
+	//}
 	country = strings.ToUpper(country)
 	// 获取所有洲省数据
 	resLists := []models.ExtractIsp{}
@@ -163,12 +228,25 @@ func GetCountryIsp(c *gin.Context) {
 		if country == "ALL" {
 			country = ""
 		}
-		resLists = models.GetIspCountry(country)
+		//resLists = models.GetIspCountry(country)
+		oldConfig := models.GetConfigVal("config_old_flow_ippool") //配置开关
+		if oldConfig == "1" {
+			resLists = models.GetIspCountry(country)
+		} else {
+			asnLists := models.GetIspAsnBy(country, "", "")
+			for _, v := range asnLists {
+				info := models.ExtractIsp{}
+				info.Id = v.Id
+				info.IspName = v.Isp
+				info.Isp = v.Asn
+				resLists = append(resLists, info)
+			}
+		}
 	}
 	// 存储到redis
-	res, _ := json.Marshal(resLists)
-	listStr = string(res)
-	redisConn.Do("SETEX", redisKey, 1*60*10, listStr)
+	//res, _ := json.Marshal(resLists)
+	//listStr = string(res)
+	//redisConn.Do("SETEX", redisKey, 1*60*10, listStr)
 	JsonReturn(c, 0, "__T_SUCCESS", resLists)
 	return
 }
@@ -374,6 +452,14 @@ func GetCountryDomainList(c *gin.Context) {
 
 	// 获取所有国家列表
 	allCountryList := models.GetAllCountryV2("")
+	countryArr := []string{}
+	oldConfig := models.GetConfigVal("config_old_flow_ippool") //配置开关
+	if oldConfig != "1" {
+		ispCountry := models.GetIspCountryList()
+		for _, vc := range ispCountry {
+			countryArr = append(countryArr, vc.Country)
+		}
+	}
 	// 获取所有国家端口列表
 	countryPortList := models.GetPortsByCountry()
 	// 获取默认国家端口
@@ -382,7 +468,7 @@ func GetCountryDomainList(c *gin.Context) {
 	var countryCityPortList []models.ResExtractCountryCity
 
 	for _, v := range allCountryList {
-		if v.Num < 10 && v.Name != "Global" {
+		if v.Name != "Global" {
 			continue
 		}
 		info := models.ResExtractCountryCity{}
@@ -419,7 +505,18 @@ func GetCountryDomainList(c *gin.Context) {
 		info.Ports = ports
 
 		// 将数据添加到数组
-		countryCityPortList = append(countryCityPortList, info)
+
+		if oldConfig != "1" {
+			has := false
+			if util.InArrayString(v.Country, countryArr) {
+				has = true
+			}
+			if has == true {
+				countryCityPortList = append(countryCityPortList, info)
+			}
+		} else {
+			countryCityPortList = append(countryCityPortList, info)
+		}
 	}
 
 	//// 存储到redis
