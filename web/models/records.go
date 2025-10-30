@@ -13,12 +13,12 @@ type Records struct {
 }
 
 // 查询DNS解析数据
-func GetDnsInfo(name string) (info Records) {
-	dnsDb.Table("records").Where("name = ?", name).First(&info)
-	return
-}
-
-// 写入dns解析数据
-func AddDnsInfo(info Records) error {
-	return dnsDb.Table("records").Create(&info).Error
-}
+//func GetDnsInfo(name string) (info Records) {
+//	dnsDb.Table("records").Where("name = ?", name).First(&info)
+//	return
+//}
+//
+//// 写入dns解析数据
+//func AddDnsInfo(info Records) error {
+//	return dnsDb.Table("records").Create(&info).Error
+//}
