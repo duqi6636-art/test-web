@@ -95,6 +95,7 @@ func SubmitEnterpriseKyc(c *gin.Context) {
 	go func() {
 		err := submitEnterpriseToThirdParty(kycId, kyc, orderTypes)
 		if err != nil {
+			AddLogs("submitEnterpriseToThirdParty", fmt.Sprintf("KYC ID: %d, 第三方提交失败: %s", kycId, err.Error()))
 			// 更新状态为提交失败
 			updateData := map[string]interface{}{
 				"third_party_req_id": int(0),
@@ -104,10 +105,10 @@ func SubmitEnterpriseKyc(c *gin.Context) {
 				"update_time":        util.GetNowInt(),
 				"submit_time":        util.GetNowInt(),
 			}
-			log.Println("updateData:", updateData)
-			log.Println("submitEnterpriseToThirdParty err:", err)
 			err = models.UpdateEnterpriseKycThirdPartyInfo(kycId, updateData)
-			log.Println("UpdateEnterpriseKycThirdPartyInfo err:", err)
+			if err != nil {
+				AddLogs("UpdateEnterpriseKycThirdPartyInfo err:%s", err.Error())
+			}
 		}
 	}()
 
@@ -193,8 +194,6 @@ func submitEnterpriseToThirdParty(kycId int, kyc models.EnterpriseKyc, orderType
 		return fmt.Errorf("解析响应失败: %w", err)
 	}
 
-	log.Println("KYC third party response:", response)
-
 	if response.Code != 0 {
 		return fmt.Errorf("第三方API错误: code=%d, msg=%s", response.Code, response.Msg)
 	}
@@ -211,10 +210,7 @@ func submitEnterpriseToThirdParty(kycId int, kyc models.EnterpriseKyc, orderType
 		log.Println("updateData:", updateData)
 		err := models.UpdateEnterpriseKycThirdPartyInfo(kycId, updateData)
 		if err != nil {
-			log.Printf("Failed to update enterprise KYC third party info: kycId=%d, error=%v", kycId, err)
-			return err
-		} else {
-			log.Printf("Successfully updated enterprise KYC third party info for kyc: %d with ID: %d", kycId, int(response.Data.Id))
+			return fmt.Errorf("UpdateEnterpriseKycThirdPartyInfo Failed: kycId=%d, error=%s", kycId, err.Error())
 		}
 
 	} else {
