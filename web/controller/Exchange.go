@@ -179,10 +179,10 @@ func ExchangeCdk(c *gin.Context) {
 		"flow_day":     day,
 	}
 	if models.GetConfigVal("dns_domain") != "" {
-		b := CreateUserDomain(user)
-		if !b {
-			fmt.Println("域名生成失败")
-		}
+		//b := CreateUserDomain(user)
+		//if !b {
+		//	fmt.Println("域名生成失败")
+		//}
 	}
 	JsonReturn(c, 0, "__T_EX_SUCCESS", data)
 	return
@@ -484,10 +484,10 @@ func DirectConversion(c *gin.Context) {
 	resInfo["cdk"] = ""
 	resInfo["balance"] = balance
 	if models.GetConfigVal("dns_domain") != "" {
-		b := CreateUserDomain(user)
-		if !b {
-			fmt.Println("域名生成失败")
-		}
+		//b := CreateUserDomain(user)
+		//if !b {
+		//	fmt.Println("域名生成失败")
+		//}
 	}
 	JsonReturn(c, e.SUCCESS, "__T_EX_SUCCESS", resInfo)
 	return
@@ -756,10 +756,10 @@ func GenerateFlowCdk(c *gin.Context) {
 	resInfo["flow"] = userFlowStr
 	resInfo["flow_redeem"] = flowStr
 	if models.GetConfigVal("dns_domain") != "" {
-		b := CreateUserDomain(user)
-		if !b {
-			fmt.Println("域名生成失败")
-		}
+		//b := CreateUserDomain(user)
+		//if !b {
+		//	fmt.Println("域名生成失败")
+		//}
 	}
 	JsonReturn(c, e.SUCCESS, "__T_EX_GENERATE_OK", resInfo)
 	return
@@ -871,10 +871,10 @@ func BatchGenerateFlowCdk(c *gin.Context) {
 	resInfo["flow"] = userFlowStr
 	resInfo["flow_redeem"] = flowStr
 	if models.GetConfigVal("dns_domain") != "" {
-		b := CreateUserDomain(user)
-		if !b {
-			fmt.Println("域名生成失败")
-		}
+		//b := CreateUserDomain(user)
+		//if !b {
+		//	fmt.Println("域名生成失败")
+		//}
 	}
 	JsonReturn(c, e.SUCCESS, "__T_EX_GENERATE_OK", resInfo)
 	return
@@ -1002,10 +1002,10 @@ func FlowRechargeUser(c *gin.Context) {
 	resInfo["flow"] = userFlowStr
 	resInfo["flow_redeem"] = flowStr
 	if models.GetConfigVal("dns_domain") != "" {
-		b := CreateUserDomain(user)
-		if !b {
-			fmt.Println("域名生成失败")
-		}
+		//b := CreateUserDomain(user)
+		//if !b {
+		//	fmt.Println("域名生成失败")
+		//}
 	}
 	JsonReturn(c, e.SUCCESS, "__T_EX_RECHARGE_OK", resInfo)
 	return

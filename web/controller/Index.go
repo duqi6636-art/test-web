@@ -13,7 +13,6 @@ import (
 	"image/png"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func Index(c *gin.Context) {
@@ -117,69 +116,69 @@ func IpSource(c *gin.Context) {
 }
 
 // 生成用户域名
-func CreateUserDomain(userInfo models.Users) bool {
-	nowTime := int(time.Now().Unix())
-	// 查询用户是否存在记录
-	domainInfo, err := models.GetUserDomain(userInfo.Id)
-	if err == nil && len(domainInfo) > 0 {
-		return false
-	}
-	// 查询负载均衡机器列表
-	serverList := models.GetServerList()
-	if len(serverList) == 0 {
-		return false
-	}
-	serverIpList := map[string][]string{}
-	for _, v := range serverList {
-		serverIpList[v.Area] = append(serverIpList[v.Area], v.Ip)
-	}
-
-	// 查询Dns解析数据
-	dnsInfo := models.GetDnsInfo(models.GetConfigVal("dns_domain"))
-	if dnsInfo.Id == 0 {
-		return false
-	}
-
-	// 创建用户专属域名
-	str_md5 := util.Md5(userInfo.Username + userInfo.RegIp)
-	domain := str_md5[0:12]
-	//sg.360proxy.com
-	//us.360proxy.com
-	//de.360proxy.com
-	domainList := map[string]string{"sg": "Singapore", "us": "United States", "de": "Europe"}
-	for k, v := range domainList {
-		area := k
-		userDomain := domain + k + "." + models.GetConfigVal("dns_domain")
-		err = models.CreateDomain(models.AddCmUserDomain{
-			Uid:        userInfo.Id,
-			Username:   userInfo.Username,
-			Domain:     userDomain,
-			Title:      v,
-			CreateTime: nowTime,
-			Status:     1,
-		})
-		if err != nil {
-			return false
-		}
-
-		random := userInfo.Id % 3
-		ip := serverIpList[area][random]
-
-		// 写入dns解析
-		dnsErr := models.AddDnsInfo(models.Records{
-			DomainId: dnsInfo.DomainId,
-			Name:     userDomain,
-			Type:     "A",
-			Content:  ip,
-			Ttl:      60,
-		})
-		if dnsErr != nil {
-			return false
-		}
-	}
-
-	return true
-}
+//func CreateUserDomain(userInfo models.Users) bool {
+//	nowTime := int(time.Now().Unix())
+//	// 查询用户是否存在记录
+//	domainInfo, err := models.GetUserDomain(userInfo.Id)
+//	if err == nil && len(domainInfo) > 0 {
+//		return false
+//	}
+//	// 查询负载均衡机器列表
+//	serverList := models.GetServerList()
+//	if len(serverList) == 0 {
+//		return false
+//	}
+//	serverIpList := map[string][]string{}
+//	for _, v := range serverList {
+//		serverIpList[v.Area] = append(serverIpList[v.Area], v.Ip)
+//	}
+//
+//	// 查询Dns解析数据
+//	//dnsInfo := models.GetDnsInfo(models.GetConfigVal("dns_domain"))
+//	//if dnsInfo.Id == 0 {
+//	//	return false
+//	//}
+//
+//	// 创建用户专属域名
+//	str_md5 := util.Md5(userInfo.Username + userInfo.RegIp)
+//	domain := str_md5[0:12]
+//	//sg.360proxy.com
+//	//us.360proxy.com
+//	//de.360proxy.com
+//	domainList := map[string]string{"sg": "Singapore", "us": "United States", "de": "Europe"}
+//	for k, v := range domainList {
+//		area := k
+//		userDomain := domain + k + "." + models.GetConfigVal("dns_domain")
+//		err = models.CreateDomain(models.AddCmUserDomain{
+//			Uid:        userInfo.Id,
+//			Username:   userInfo.Username,
+//			Domain:     userDomain,
+//			Title:      v,
+//			CreateTime: nowTime,
+//			Status:     1,
+//		})
+//		if err != nil {
+//			return false
+//		}
+//
+//		random := userInfo.Id % 3
+//		ip := serverIpList[area][random]
+//
+//		// 写入dns解析
+//		dnsErr := models.AddDnsInfo(models.Records{
+//			DomainId: dnsInfo.DomainId,
+//			Name:     userDomain,
+//			Type:     "A",
+//			Content:  ip,
+//			Ttl:      60,
+//		})
+//		if dnsErr != nil {
+//			return false
+//		}
+//	}
+//
+//	return true
+//}
 
 //// 获取用户域名列表
 //func GetUserDomain(c *gin.Context) {
