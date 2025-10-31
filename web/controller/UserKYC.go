@@ -436,6 +436,7 @@ func IdVerifyNotify(c *gin.Context) {
 			AddLogs("RealNameAuth_step14", "error8"+"json unmarshal failed4.") //写日志
 			return
 		}
+		AddLogs("WebhookReqRunParam", fmt.Sprintf("%+v", reqData)) //写日志
 
 		applicantId := reqData.Payload.Resource.ApplicantId
 		userKycInfo := models.GetUserKycBy(map[string]interface{}{"applicant_id": applicantId})

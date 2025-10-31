@@ -69,6 +69,41 @@ func CheckUserHasPendingDomain(uid int) bool {
 	return count > 0
 }
 
+// CheckUserSubmitCountIn24Hours 检查用户在24小时内的提交次数
+func CheckUserSubmitCountIn24Hours(uid int) int {
+	var count int64
+	// 计算24小时前的时间戳
+	twentyFourHoursAgo := util.GetNowInt() - 24*60*60
+
+	db.Table(userApplyDomainTable).
+		Where("uid = ? AND submit_time >= ?", uid, twentyFourHoursAgo).
+		Count(&count)
+
+	return int(count)
+}
+
+const (
+	StatusPending  = 0 // 待审核
+	StatusReview   = 1 // 审核中
+	StatusApproved = 2 // 审核通过
+)
+
+// CheckDomainsAlreadyApproved 批量检查域名是否已申请或审核通过（不可重复提交）
+func CheckDomainsAlreadyApproved(uid int, domains []string) ([]string, error) {
+	var existing []string
+	if len(domains) == 0 {
+		return existing, nil
+	}
+	statusList := []int{StatusPending, StatusReview, StatusApproved}
+
+	err := db.Table(userApplyDomainTable).
+		Select("DISTINCT domain").
+		Where("uid = ? AND domain IN (?) AND status IN (?)", uid, domains, statusList).
+		Find(&existing).Error
+
+	return existing, err
+}
+
 // AddUserDomainWhite 添加数据
 func AddUserDomainWhite(info MdUserApplyDomain) (applyId int, err error) {
 	info.CreateTime = util.GetNowInt()
