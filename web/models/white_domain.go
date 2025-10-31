@@ -124,6 +124,7 @@ func UpdateDomainApplyByDomains(applyId int, domains []string, updateData map[st
 // GetDomainApplyByDomainAndThirdPartyId 根据域名和第三方ID查询域名申请记录
 func GetDomainApplyByDomainAndThirdPartyId(domain string, thirdPartyId int) (MdUserApplyDomain, error) {
 	var applyRecord MdUserApplyDomain
+	domain = strings.ToLower(domain)
 	err := db.Table(userApplyDomainTable).
 		Where("domain = ? AND third_party_req_id = ?", domain, thirdPartyId).
 		First(&applyRecord).Error

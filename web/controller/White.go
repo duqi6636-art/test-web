@@ -88,6 +88,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 	for _, pair := range domainRemarkPairs {
 		domain := strings.TrimSpace(pair.Domain)
 		if domain != "" {
+			domain = strings.ToLower(domain)
 			// 域名合法性校验
 			isValid, errMsg := util.ValidateDomainAdvanced(domain)
 			if !isValid {
@@ -101,7 +102,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 			hasExisting := false
 			var existingDomain *models.MdUserApplyDomain
 			for _, d := range userDomains {
-				if d.Domain == domain {
+				if strings.ToLower(d.Domain) == domain {
 					existingDomain = &d
 					hasExisting = true
 					break
