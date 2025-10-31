@@ -151,8 +151,8 @@ func GetAverage20MinLoginCountForLast30Days() (float64, error) {
 // 返回值：needCaptcha bool, reason string, error
 func CheckGlobalLoginCaptchaTrigger() (bool, string, error) {
 	// 获取20分钟内的登录次数
-	timeWindowStr := GetConfigV(constants.ConfigKeyLoginResetTimeWindow)
-	timeWindow := constants.DefaultGlobalMLimit // 使用常量默认值
+	timeWindowStr := GetConfigV(constants.ConfigKeyGlobalTimeWindow)
+	timeWindow := constants.DefaultGlobalTimeWindow // 使用常量默认值
 	if timeWindowStr != "" {
 		if val, err := strconv.Atoi(timeWindowStr); err == nil && val > 0 {
 			timeWindow = val
@@ -163,7 +163,7 @@ func CheckGlobalLoginCaptchaTrigger() (bool, string, error) {
 		return false, "", fmt.Errorf("获取20分钟内登录次数失败: %v", err)
 	}
 
-	// 获取近30天同一20分钟时间段的平均登录次数
+	// 获取近30天同一20分钟时间段的总登录次数
 	avgCount, err := GetAverage20MinLoginCountForLast30Days()
 	if err != nil {
 		return false, "", fmt.Errorf("获取近30天平均登录次数失败: %v", err)
@@ -171,7 +171,8 @@ func CheckGlobalLoginCaptchaTrigger() (bool, string, error) {
 
 	// 如果近30天没有数据，使用默认阈值
 	if avgCount == 0 {
-		return false, "", nil
+		avgCount = 1
+		//return false, "", nil
 	}
 
 	// 触发条件：20分钟内全局登录次数大于近30天同一20分钟段的三倍
@@ -185,6 +186,7 @@ func CheckGlobalLoginCaptchaTrigger() (bool, string, error) {
 			// 记录错误但不影响主要逻辑
 			fmt.Printf("记录全局人机验证触发状态失败: %v\n", err)
 		}
+		log.Println("needCaptcha 为 ture")
 	}
 
 	reason := fmt.Sprintf("当前20分钟登录次数: %d, 近30天平均: %.2f, 触发阈值: %.2f",
@@ -220,6 +222,59 @@ func GetLoginCountFromTime(startTime int64, timeWindow int64) (int64, error) {
 	return count, err
 }
 
+// GetAvgLoginCountForSame20MinSlot 获取过去 N 天同一 20 分钟时间段的平均登录次数
+func GetAvgLoginCountForSame20MinSlot(lastDays int) (float64, error) {
+	now := time.Now()
+
+	// 当前时间在一天中的第几个 20 分钟段（共 72 段）
+	currentMinute := now.Hour()*60 + now.Minute()
+	currentSlot := currentMinute / 20 // 第几个 20 分钟段
+
+	var totalCount int64
+	var validDays int // 实际成功查询的天数
+
+	for i := 1; i <= lastDays; i++ {
+		targetDate := now.AddDate(0, 0, -i)
+		tableName := "log_login" + targetDate.Format("200601")
+
+		// 判断表是否存在
+		if !db.HasTable(tableName) {
+			continue
+		}
+
+		// 计算当天该时间段的开始和结束时间
+		startMinute := currentSlot * 20
+		endMinute := startMinute + 20
+
+		startTime := time.Date(targetDate.Year(), targetDate.Month(), targetDate.Day(),
+			startMinute/60, startMinute%60, 0, 0, targetDate.Location())
+		endTime := time.Date(targetDate.Year(), targetDate.Month(), targetDate.Day(),
+			endMinute/60, endMinute%60, 0, 0, targetDate.Location())
+
+		var count int64
+		err := db.Table(tableName).
+			Where("login_time >= ? AND login_time < ?", startTime.Unix(), endTime.Unix()).
+			Where("cate = ?", "login").
+			Count(&count).Error
+
+		if err != nil {
+			continue
+		}
+
+		totalCount += count
+		validDays++
+	}
+
+	// 避免除零错误
+	if validDays == 0 {
+		return 0, fmt.Errorf("no valid data found in last %d days", lastDays)
+	}
+
+	// 平均值
+	avg := float64(totalCount) / float64(validDays)
+	return avg, nil
+}
+
 // CheckGlobalLoginCaptchaRelease 检查全局登录人机验证解除条件
 // 返回值：shouldRelease bool, reason string, error
 func CheckGlobalLoginCaptchaRelease() (bool, string, error) {
@@ -235,7 +290,13 @@ func CheckGlobalLoginCaptchaRelease() (bool, string, error) {
 	triggerTime := activeState.TriggerTime
 
 	// 计算从触发时间开始的20分钟时间窗口
+	timeWindowStr := GetConfigV(constants.ConfigKeyGlobalTimeWindow)
 	timeWindow := int64(constants.DefaultResetTimeWindow) // 20分钟 = 1200秒
+	if timeWindowStr != "" {
+		if val, err := strconv.Atoi(timeWindowStr); err == nil && val > 0 {
+			timeWindow = int64(val)
+		}
+	}
 
 	// 获取从触发时间开始的20分钟内的登录次数
 	currentCount, err := GetLoginCountFromTime(triggerTime, timeWindow)
@@ -244,18 +305,18 @@ func CheckGlobalLoginCaptchaRelease() (bool, string, error) {
 	}
 
 	// 获取近30天同一20分钟时间段的平均登录次数
-	avgCount, err := GetAverage20MinLoginCountForLast30Days()
+	avgCount, err := GetAvgLoginCountForSame20MinSlot(30)
 	if err != nil {
 		return false, "", fmt.Errorf("获取近30天平均登录次数失败: %v", err)
 	}
 
 	// 如果近30天没有数据，使用默认阈值
 	if avgCount == 0 {
-		return false, "", nil
+		avgCount = 1
 	}
 
 	// 解除条件：触发时间后20分钟内全局登录次数小于近30天同时段平均登录次数
-	shouldRelease := float64(currentCount) < avgCount/30
+	shouldRelease := float64(currentCount) < avgCount
 
 	// 如果满足解除条件，更新状态
 	if shouldRelease {
