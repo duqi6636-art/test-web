@@ -371,6 +371,17 @@ func Login(c *gin.Context) {
 		JsonReturn(c, -1, sessionRes, map[string]string{"error_position": "0"})
 		return
 	}
+	// 登录成功时检查全局人机验证解除条件
+	go func() {
+		shouldRelease, reason, err := models.CheckGlobalLoginCaptchaRelease()
+		if err != nil {
+			fmt.Printf("检查全局人机验证解除条件失败: %v\n", err)
+			return
+		}
+		if shouldRelease {
+			fmt.Printf("全局人机验证已解除: %s\n", reason)
+		}
+	}()
 
 	if codeId > 0 {
 		// 验证码验证完成后销毁

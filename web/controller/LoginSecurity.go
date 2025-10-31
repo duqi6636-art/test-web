@@ -98,27 +98,38 @@ func RecordLoginFailure(c *gin.Context, email, failReason string) {
 	models.AddLoginFailure(failure)
 }
 
-// CheckLoginSecurity 检查登录安全限制（基于连续失败次数）
+// CheckLoginSecurity 检查登录安全限制
 // 返回值：needCaptcha bool, reasons []string, error
 func CheckLoginSecurity(email, ip string) (bool, []string, error) {
 	config := GetLoginSecurityConfig()
 	var result = []string{}
 	needCaptcha := false
 
-	// 1. 检查全局登录人机验证触发条件（基于20分钟登录次数与近30天同时段平均值比较）
-	//globalNeedCaptcha, globalReason, err := models.CheckGlobalLoginCaptchaTrigger()
-	//if err != nil {
-	//	return false, nil, fmt.Errorf("检查全局登录人机验证触发条件失败: %v", err)
-	//}
-	//
-	//if globalNeedCaptcha {
-	//	needCaptcha = true
-	//	result = append(result, "global")
-	//	// 可选：记录触发原因到日志
-	//	AddLogs("CheckLoginSecurity", globalReason)
-	//}
+	// 1. 首先检查是否已有活跃的全局人机验证状态
+	isActive, err := models.IsGlobalCaptchaActive()
+	if err != nil {
+		return false, nil, fmt.Errorf("检查全局人机验证活跃状态失败: %v", err)
+	}
 
-	// 2. 检查用户级连续失败次数（基于status字段）
+	if isActive {
+		needCaptcha = true
+		result = append(result, "global")
+		AddLogs("GlobalCaptchaActive", "全局人机验证处于活跃状态")
+	} else {
+		// 2. 如果没有活跃状态，检查是否需要触发新的全局人机验证
+		globalNeedCaptcha, globalReason, err := models.CheckGlobalLoginCaptchaTrigger()
+		if err != nil {
+			return false, nil, fmt.Errorf("检查全局登录人机验证触发条件失败: %v", err)
+		}
+
+		if globalNeedCaptcha {
+			needCaptcha = true
+			result = append(result, "global")
+			AddLogs("GlobalCaptchaTrigger", globalReason)
+		}
+	}
+
+	// 3. 检查用户级连续失败次数（基于status字段）
 	emailFailures, err := models.GetConsecutiveFailuresByEmail(email)
 	if err != nil {
 		return false, nil, fmt.Errorf("检查用户连续失败次数失败: %v", err)
@@ -129,7 +140,7 @@ func CheckLoginSecurity(email, ip string) (bool, []string, error) {
 		result = append(result, "user")
 	}
 
-	// 3. 检查IP级连续失败次数（基于status字段）
+	// 4. 检查IP级连续失败次数（基于status字段）
 	ipFailures, err := models.GetConsecutiveFailuresByIP(ip)
 	if err != nil {
 		return false, nil, fmt.Errorf("检查IP连续失败次数失败: %v", err)

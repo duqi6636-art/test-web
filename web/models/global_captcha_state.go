@@ -1,86 +1,93 @@
 package models
 
-import "time"
+import (
+	"errors"
+	"github.com/jinzhu/gorm"
+	"time"
+)
 
-// GlobalCaptchaState 全局人机验证状态模型
+// 表名常量
+var globalCaptchaStateTable = "global_captcha_states"
+
+// GlobalCaptchaState 全局验证码触发状态表
+// 表中仅维护一条全局记录
 type GlobalCaptchaState struct {
-	ID           int     `json:"id" gorm:"primary_key;auto_increment"`
-	TriggerTime  int64   `json:"trigger_time" gorm:"not null;index"` // 触发时间戳
-	ReleaseTime  int64   `json:"release_time" gorm:"index"`          // 解除时间戳，0表示未解除
-	Status       int     `json:"status" gorm:"not null;index"`       // 状态：1=已触发，0=已解除
-	TriggerCount int64   `json:"trigger_count" gorm:"not null"`      // 触发时的登录次数
-	AvgCount     float64 `json:"avg_count" gorm:"not null"`          // 触发时的30天平均次数
-	Threshold    float64 `json:"threshold" gorm:"not null"`          // 触发阈值
-	CreateTime   int64   `json:"create_time" gorm:"not null;index"`
-	UpdateTime   int64   `json:"update_time" gorm:"not null"`
+	ID           int64   `gorm:"primaryKey;autoIncrement"`
+	TriggerTime  int64   `gorm:"not null;index"`           // 触发时间
+	ReleaseTime  int64   `gorm:"index;default:0"`          // 解除时间
+	Status       int     `gorm:"not null;index;default:0"` // 1=触发中, 0=已解除
+	TriggerCount int64   `gorm:"not null;default:0"`       // 当前触发时的登录数
+	AvgCount     float64 `gorm:"not null;default:0"`       // 平均值
+	Threshold    float64 `gorm:"not null;default:0"`       // 阈值
+	CreateTime   int64   `gorm:"autoCreateTime"`           // 创建时间
+	UpdateTime   int64   `gorm:"autoUpdateTime"`           // 更新时间
 }
 
-// createGlobalCaptchaStateTable 创建全局人机验证状态表
-func createGlobalCaptchaStateTable() {
-	if !db.HasTable("global_captcha_state") {
-		db.CreateTable(&GlobalCaptchaState{})
-	}
+// InitTables 初始化数据库表结构
+func InitTables() {
+	db.AutoMigrate(&GlobalCaptchaState{})
 }
 
-// SetGlobalCaptchaTrigger 设置全局人机验证触发状态
+// SetGlobalCaptchaTrigger 设置（或更新）全局验证码触发状态
+// 若不存在记录则创建，存在则更新为最新触发状态
 func SetGlobalCaptchaTrigger(triggerCount int64, avgCount, threshold float64) error {
-	// 确保表存在
-	createGlobalCaptchaStateTable()
-
 	now := time.Now().Unix()
+	var state GlobalCaptchaState
 
-	// 检查是否已经有活跃的触发状态
-	var existingState GlobalCaptchaState
-	err := db.Where("status = ? AND release_time = 0", 1).First(&existingState).Error
+	// 尝试获取唯一记录
+	err := db.Table(globalCaptchaStateTable).First(&state).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// 若不存在则新建一条唯一记录
+			state = GlobalCaptchaState{
+				ID:           1,
+				TriggerTime:  now,
+				Status:       1,
+				TriggerCount: triggerCount,
+				AvgCount:     avgCount,
+				Threshold:    threshold,
+			}
+			return db.Table(globalCaptchaStateTable).Create(&state).Error
+		}
+		return err
+	}
 
-	if err == nil {
-		// 已存在活跃状态，更新触发时间
-		return db.Model(&existingState).Updates(map[string]interface{}{
+	// 若存在则直接更新该记录
+	return db.Table(globalCaptchaStateTable).
+		Where("id = ?", state.ID).
+		Updates(map[string]interface{}{
 			"trigger_time":  now,
+			"status":        1,
+			"release_time":  0,
 			"trigger_count": triggerCount,
 			"avg_count":     avgCount,
 			"threshold":     threshold,
 			"update_time":   now,
 		}).Error
-	} else {
-		// 创建新的触发状态
-		state := GlobalCaptchaState{
-			TriggerTime:  now,
-			ReleaseTime:  0,
-			Status:       1,
-			TriggerCount: triggerCount,
-			AvgCount:     avgCount,
-			Threshold:    threshold,
-			CreateTime:   now,
-			UpdateTime:   now,
-		}
-		return db.Create(&state).Error
-	}
 }
 
-// GetActiveCaptchaTrigger 获取当前活跃的人机验证触发状态
+// GetActiveCaptchaTrigger 获取当前活跃的全局验证码状态
+// 若未触发则返回 nil
 func GetActiveCaptchaTrigger() (*GlobalCaptchaState, error) {
-	// 确保表存在
-	createGlobalCaptchaStateTable()
-
 	var state GlobalCaptchaState
-	err := db.Where("status = ? AND release_time = 0", 1).First(&state).Error
+	err := db.Table(globalCaptchaStateTable).Where("id = 1").First(&state).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
-	return &state, nil
+	if state.Status == 1 && state.ReleaseTime == 0 {
+		return &state, nil
+	}
+	return nil, nil
 }
 
-// ReleaseCaptchaTrigger 解除全局人机验证状态
+// ReleaseCaptchaTrigger 解除全局验证码触发状态
 func ReleaseCaptchaTrigger() error {
-	// 确保表存在
-	createGlobalCaptchaStateTable()
-
 	now := time.Now().Unix()
-
-	// 更新所有活跃状态为已解除
-	return db.Model(&GlobalCaptchaState{}).
-		Where("status = ? AND release_time = 0", 1).
+	return db.Table(globalCaptchaStateTable).
+		Where("id = 1").
 		Updates(map[string]interface{}{
 			"status":       0,
 			"release_time": now,
@@ -88,11 +95,15 @@ func ReleaseCaptchaTrigger() error {
 		}).Error
 }
 
-// IsGlobalCaptchaActive 检查全局人机验证是否处于活跃状态
+// IsGlobalCaptchaActive 判断是否存在活跃的全局验证码触发状态
 func IsGlobalCaptchaActive() (bool, error) {
-	state, err := GetActiveCaptchaTrigger()
+	var state GlobalCaptchaState
+	err := db.Table(globalCaptchaStateTable).Where("id = 1").First(&state).Error
 	if err != nil {
-		return false, nil // 没有活跃状态视为未触发
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, err
 	}
-	return state != nil, nil
+	return state.Status == 1 && state.ReleaseTime == 0, nil
 }
