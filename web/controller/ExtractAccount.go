@@ -468,9 +468,6 @@ func GetCountryDomainList(c *gin.Context) {
 	var countryCityPortList []models.ResExtractCountryCity
 
 	for _, v := range allCountryList {
-		if v.Name != "Global" {
-			continue
-		}
 		info := models.ResExtractCountryCity{}
 		info.Name = v.Name
 		info.Country = v.Country
