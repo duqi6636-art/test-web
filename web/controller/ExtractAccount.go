@@ -507,11 +507,12 @@ func GetCountryDomainList(c *gin.Context) {
 		// 将数据添加到数组
 
 		if oldConfig != "1" {
+			fmt.Println("-------", v)
 			has := false
 			if util.InArrayString(v.Country, countryArr) {
 				has = true
 			}
-			if has == true {
+			if has == true || v.Country == "" { //global 的时候也需要展示
 				countryCityPortList = append(countryCityPortList, info)
 			}
 		} else {
