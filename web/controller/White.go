@@ -44,9 +44,10 @@ func AddDomainWhiteApply(c *gin.Context) {
 	uid := userInfo.Id
 	username := userInfo.Username
 
-	// 检查用户是否有审核中的域名申请
-	if models.CheckUserHasPendingDomain(uid) {
-		JsonReturn(c, e.ERROR, "有域名正在审核中，请等待审核完成后再提交", nil)
+	// 检查24小时内提交次数限制
+	submitCount := models.CheckUserSubmitCountIn24Hours(uid)
+	if submitCount >= 3 {
+		JsonReturn(c, e.ERROR, "24小时内最多可提交3次域名申请，请稍后再试", nil)
 		return
 	}
 
@@ -65,6 +66,47 @@ func AddDomainWhiteApply(c *gin.Context) {
 
 	if len(domainRemarkPairs) == 0 {
 		JsonReturn(c, e.ERROR, "__T_DOMAIN_TIP", nil)
+		return
+	}
+
+	// 检查提交的域名列表中是否有重复域名
+	domainMap := make(map[string]bool)
+	duplicateDomains := []string{}
+	for _, pair := range domainRemarkPairs {
+		domain := strings.ToLower(strings.TrimSpace(pair.Domain))
+		if domain == "" {
+			continue
+		}
+		if domain != "" {
+			if domainMap[domain] {
+				// 发现重复域名
+				duplicateDomains = append(duplicateDomains, domain)
+			} else {
+				domainMap[domain] = true
+			}
+		}
+	}
+
+	// 发现重复域名，返回错误信息
+	if len(duplicateDomains) > 0 {
+		duplicateList := strings.Join(duplicateDomains, ", ")
+		JsonReturn(c, e.ERROR, fmt.Sprintf("提交的域名列表中存在重复域名: %s", duplicateList), nil)
+		return
+	}
+
+	uniqueDomains := make([]string, 0, len(domainMap))
+	for d := range domainMap {
+		uniqueDomains = append(uniqueDomains, d)
+	}
+	existingDomains, err := models.CheckDomainsAlreadyApproved(uid, uniqueDomains)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "数据库查询失败", nil)
+		return
+	}
+
+	if len(existingDomains) > 0 {
+		existList := strings.Join(existingDomains, ", ")
+		JsonReturn(c, e.ERROR, fmt.Sprintf("以下域名已申请或审核通过，请勿重复提交：%s", existList), nil)
 		return
 	}
 
@@ -88,6 +130,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 	for _, pair := range domainRemarkPairs {
 		domain := strings.TrimSpace(pair.Domain)
 		if domain != "" {
+			domain = strings.ToLower(domain)
 			// 域名合法性校验
 			isValid, errMsg := util.ValidateDomainAdvanced(domain)
 			if !isValid {
@@ -101,7 +144,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 			hasExisting := false
 			var existingDomain *models.MdUserApplyDomain
 			for _, d := range userDomains {
-				if d.Domain == domain {
+				if strings.ToLower(d.Domain) == domain {
 					existingDomain = &d
 					hasExisting = true
 					break
@@ -210,6 +253,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 		log.Printf("准备批量提交 %d 个黑名单域名到第三方审核", len(validBlacklistDomains))
 		// 异步提交到第三方审核
 		go func() {
+			AddLogs("validBlacklistDomains", fmt.Sprintf("准备批量提交 %d 个黑名单域名到第三方审核", len(validBlacklistDomains)))
 			err := submitDomainsToThirdPartyBatch(uid, username, validBlacklistDomains, blacklistDomainIDs)
 			if err != nil {
 				for _, id := range blacklistDomainIDs {
@@ -224,7 +268,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 					}
 					models.UpdateDomainApplyID(id, updateData)
 				}
-				log.Printf("批量提交域名到第三方失败: %v", err)
+				AddLogs("submitDomainsToThirdPartyBatch", fmt.Sprintf("提交到第三方失败:%s", err.Error()))
 			}
 		}()
 	}
@@ -369,6 +413,7 @@ func DomainWhiteList(c *gin.Context) {
 			Status:     domaoin.Status,
 			SubmitTime: domaoin.SubmitTime,
 			ReviewTime: domaoin.ReviewTime,
+			Result:     domaoin.ThirdPartyResult,
 			Remark:     domaoin.Remark,
 		}
 		//if domaoin.SubmitTime > 0 {
@@ -382,6 +427,20 @@ func DomainWhiteList(c *gin.Context) {
 }
 
 func DomainWhiteReviewNotify(c *gin.Context) {
+	var (
+		callbackData models.DomainReviewCallbackData
+		reqBody      []byte
+		err          error
+	)
+
+	reqBody, err = io.ReadAll(c.Request.Body)
+	if err != nil {
+		AddLogs("DomainWhiteReviewNotify read body error", err.Error())
+		JsonReturn(c, e.ERROR, "read body error", nil)
+		return
+	}
+
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(reqBody))
 	defer func() {
 		if r := recover(); r != nil {
 			// 获取堆栈信息
@@ -391,6 +450,16 @@ func DomainWhiteReviewNotify(c *gin.Context) {
 			// 记录详细的panic信息
 			panicMsg := fmt.Sprintf("[PANIC] DomainWhiteReviewNotify: %v\nStack trace:\n%s", r, stackTrace)
 			AddLogs("DomainWhiteReviewNotify", panicMsg)
+			if callbackData.Id == 0 && len(reqBody) > 0 {
+				err = json.Unmarshal(reqBody, &callbackData)
+			}
+			// 若回调数据已解析成功则尝试更新状态为失败
+			if callbackData.Id != 0 {
+				err = processDomainsByStatus(callbackData)
+				if err != nil {
+					AddLogs("DomainWhiteReviewNotify panic batch update error in recover", err.Error())
+				}
+			}
 			// 确保响应已经发送
 			if !c.Writer.Written() {
 				JsonReturn(c, e.ERROR, "Internal server error", nil)
@@ -427,14 +496,13 @@ func DomainWhiteReviewNotify(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "Empty request body", nil)
 		return
 	}
-	reqBody, err := io.ReadAll(c.Request.Body)
+	reqBody, err = io.ReadAll(c.Request.Body)
 	if err != nil {
 		AddLogs("DomainWhiteReviewNotify", "ReadAll request body fail")
 		JsonReturn(c, e.ERROR, "Read body error", nil)
 		return
 	}
 
-	var callbackData models.DomainReviewCallbackData
 	if err := json.Unmarshal(reqBody, &callbackData); err != nil {
 		AddLogs("DomainWhiteReviewNotify", "Unmarshal request body fail=="+err.Error())
 		JsonReturn(c, e.ERROR, "Parse error", nil)
@@ -462,7 +530,7 @@ func processDomainsByStatus(data models.DomainReviewCallbackData) error {
 		if len(domains) > 0 {
 			updateData := map[string]interface{}{
 				"status":             2,
-				"review_time":        util.GetNowInt(),
+				"review_time":        data.AuditTime,
 				"update_time":        util.GetNowInt(),
 				"audit_user_name":    data.AuditUserName,
 				"third_party_result": "",
@@ -484,7 +552,7 @@ func processDomainsByStatus(data models.DomainReviewCallbackData) error {
 		if len(domains) > 0 {
 			updateData := map[string]interface{}{
 				"status":             4,
-				"review_time":        util.GetNowInt(),
+				"review_time":        data.AuditTime,
 				"update_time":        util.GetNowInt(),
 				"audit_user_name":    data.AuditUserName,
 				"third_party_result": data.AuditRemark,
@@ -589,6 +657,13 @@ func buildDomainReviewEmailParams(callbackData models.DomainReviewCallbackData, 
 		params["rejectedDomains"] = callbackData.NoPassDomains
 	} else {
 		params["rejectedDomains"] = ""
+	}
+
+	// 审核失败原因
+	if callbackData.AuditRemark != "" {
+		params["rejectionReason"] = callbackData.AuditRemark
+	} else {
+		params["rejectionReason"] = ""
 	}
 
 	// 联系信息
@@ -716,4 +791,33 @@ func sendDomainReviewNotificationMsg(callbackData models.DomainReviewCallbackDat
 	} else {
 		log.Printf("Domain review message added successfully for uid: %d\n", uid)
 	}
+}
+
+func CheckDomainKyc(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	needKyc := false
+	kycSwitch := 0
+
+	// 获取总开关配置
+	err, kycSwitchConfig := models.GetConfigs("domain_apply_switch")
+	if err != nil {
+		kycSwitch = 0
+	}
+	// 将开关值转换为int
+	kycSwitch = util.StoI(kycSwitchConfig.Value)
+
+	// 检查是否需要实名认证（上线后注册的用户）
+	if kycSwitch == 1 {
+		kycStatus := models.CheckUserKycStatus(uid)
+		if kycStatus != 1 { // 未实名认证
+			needKyc = true
+		}
+	}
+
+	JsonReturn(c, 0, "__T_SUCCESS", needKyc)
 }
