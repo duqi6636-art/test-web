@@ -97,10 +97,8 @@ func CheckDomainsAlreadyApproved(uid int, domains []string) ([]string, error) {
 	statusList := []int{StatusPending, StatusReview, StatusApproved}
 
 	err := db.Table(userApplyDomainTable).
-		Select("DISTINCT domain").
-		Where("uid = ? AND domain IN (?) AND status IN (?)", uid, domains, statusList).
-		Find(&existing).Error
-
+		Where("uid = ? AND status IN (?)", uid, statusList).
+		Where("domain IN (?)", domains).Pluck("domain", &existing).Error
 	return existing, err
 }
 
@@ -223,4 +221,27 @@ func getMainDomain(domain string) string {
 
 	// 返回主域名（最后两部分）
 	return hostParts[n-2] + "." + hostParts[n-1]
+}
+
+// CheckDomainInWhitelist 检查域名是否在白名单表 cm_domain_white 中
+// 规则：完全匹配或主域名匹配均视为在白名单中
+func CheckDomainInWhitelist(domain string) bool {
+	var count int64
+
+	// 直接匹配完整域名
+	db.Table("cm_domain_white").Where("domain = ?", domain).Count(&count)
+	if count > 0 {
+		return true
+	}
+
+	// 主域名匹配，例如 sub.example.com -> example.com
+	hostname := getMainDomain(domain)
+	if hostname != "" && hostname != domain {
+		db.Table("cm_domain_white").Where("domain = ?", hostname).Count(&count)
+		if count > 0 {
+			return true
+		}
+	}
+
+	return false
 }
