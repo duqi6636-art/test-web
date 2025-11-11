@@ -195,6 +195,72 @@ func GetKycReviewStatus(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "success", status)
 }
 
+// handleTencentKyc 处理腾讯 KYC：获取照片并返回 photoURL（或返回 error）
+func handleTencentKyc(userKycInfo models.UserKyc) (string, error) {
+	nonce, orderNo, err := parseTencentKycUrl(userKycInfo.LinkUrl)
+	if err != nil {
+		return "", fmt.Errorf("解析腾讯KYC链接失败: %w", err)
+	}
+
+	kycAppId := models.GetConfigVal("tencent_kyc_app_id")
+	accessToken, err := getKycAccessToken()
+	if err != nil {
+		return "", fmt.Errorf("get access token failed: %w", err)
+	}
+	ticketList, err := getApiTicket(accessToken, "SIGN", "")
+	if err != nil || len(ticketList) == 0 {
+		return "", fmt.Errorf("get api ticket failed: %w", err)
+	}
+	ticket := ticketList[0].Value
+	param := []string{nonce, orderNo, "1.0.0", kycAppId}
+	sign, err := getKycSign(param, ticket)
+	if err != nil {
+		return "", fmt.Errorf("get kyc sign failed: %w", err)
+	}
+	VerifyReq := VerifyRequest{
+		AppId:   kycAppId,
+		OrderNo: orderNo,
+		Version: "1.0.0",
+		Nonce:   nonce,
+		Sign:    sign,
+		GetFile: "2",
+	}
+	err, response := sendRequest(VerifyReq)
+	if err != nil {
+		return "", fmt.Errorf("send verify request failed: %w", err)
+	}
+	photoURL, err := SaveTencentKycPhoto(response.Result.Photo, orderNo)
+	if err != nil {
+		return "", fmt.Errorf("SaveTencentKycPhoto failed: %w", err)
+	}
+	return photoURL, nil
+}
+
+// handleOnfidoKyc 处理 Onfido 相关：返回 certImages 与 certVideo（逗号分隔）
+func handleOnfidoKyc(userKycInfo models.UserKyc) (string, string, error) {
+	var certImages string
+	var certVideo string
+	if userKycInfo.CertImages != "" {
+		var imageUrls []string
+		if err := json.Unmarshal([]byte(userKycInfo.CertImages), &imageUrls); err == nil {
+			certImages = strings.Join(imageUrls, ",")
+		} else {
+			certImages = userKycInfo.CertImages
+			AddLogs("Unmarshal CertImages", fmt.Sprintf("解析证件图片JSON失败: %v", err))
+		}
+	}
+	if userKycInfo.CertVideo != "" {
+		var videoUrls []string
+		if err := json.Unmarshal([]byte(userKycInfo.CertVideo), &videoUrls); err == nil {
+			certVideo = strings.Join(videoUrls, ",")
+		} else {
+			certVideo = userKycInfo.CertVideo
+			AddLogs("Unmarshal CertVideo", fmt.Sprintf("解析人脸视频JSON失败: %v", err))
+		}
+	}
+	return certImages, certVideo, nil
+}
+
 // SubmitKycManualReview 提交KYC人工审核
 func SubmitKycManualReview(c *gin.Context) {
 	// 用户认证检查
@@ -222,6 +288,43 @@ func SubmitKycManualReview(c *gin.Context) {
 	canSubmit, reason := models.CheckUserCanSubmitKyc(uid)
 	if !canSubmit {
 		JsonReturn(c, e.ERROR, reason, nil)
+		return
+	}
+
+	// 获取用户KYC信息以获取link_url
+	userKycInfo := models.GetUserKycByUid(uid)
+	if userKycInfo.Uid == 0 {
+		JsonReturn(c, e.ERROR, "未找到用户KYC信息", nil)
+		return
+	}
+
+	// 判断认证类型（国内/海外）
+	isDomestic := isDomesticKyc(userKycInfo.LinkUrl)
+
+	// 检查人脸信息是否存在并保存认证信息
+	var hasFaceInfo bool
+	var photoURL, certImages, certVideo string
+	if isDomestic {
+		// 腾讯认证：检查Identity字段或通过handleTencentKyc获取的photoURL
+		if req.Identity != "" {
+			hasFaceInfo = true
+			photoURL = req.Identity // 保存前端传递的Identity作为photoURL
+		} else {
+			// 尝试获取腾讯KYC的人脸照片
+			var err error
+			photoURL, err = handleTencentKyc(userKycInfo)
+			hasFaceInfo = (err == nil && photoURL != "")
+		}
+	} else {
+		// Onfido认证：检查是否有人脸视频
+		var err error
+		certImages, certVideo, err = handleOnfidoKyc(userKycInfo)
+		hasFaceInfo = (err == nil && certVideo != "" && certImages != "")
+	}
+
+	// 如果没有人脸信息，提示重新机器认证
+	if !hasFaceInfo {
+		JsonReturn(c, e.ERROR, "请重新机器认证", nil)
 		return
 	}
 
@@ -1108,10 +1211,12 @@ func sendPersonalKycReviewMsg(uid int, reviewStatus int, reviewReason string) {
 		code = "personal"
 		title = "Personal Authentication Rejected"
 		brief = "Your personal authentication has been rejected."
-		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate.</p><p>If you have any questions, please feel free to contact us through our official email address!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Telegram: @Olivia_257856</p><p>Cherry Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate.</p><p>Reason for review:%s</p><p>If you have any questions, please feel free to contact us through our official email address!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Telegram: @Olivia_257856</p><p>Cherry Proxy Team</p>"
+		content = fmt.Sprintf(content, reviewReason)
 		titleZh = "個人認證未通過"
 		briefZh = "您的個人認證未通過審核。"
-		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>審核結果:%s</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
+		contentZh = fmt.Sprintf(contentZh, reviewReason)
 	default:
 		fmt.Printf("Invalid review status for personal KYC message: %d\n", reviewStatus)
 		return
@@ -1173,10 +1278,12 @@ func sendEnterpriseKycReviewMsg(uid int, reviewStatus int, reviewReason string) 
 		code = "enterprise"
 		title = "Enterprise Authentication Rejected"
 		brief = "Your enterprise authentication has been rejected."
-		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate.</p><p>If you have any questions, please feel free to contact us through our official email address!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Telegram: @Olivia_257856</p><p>Cherry Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello, your real-name authentication submission failed. Please review your uploaded information and re-authenticate.</p><p>Reason for review:%s</p><p>If you have any questions, please feel free to contact us through our official email address!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Telegram: @Olivia_257856</p><p>Cherry Proxy Team</p>"
+		content = fmt.Sprintf(content, reviewReason)
 		titleZh = "企業認證未通過"
 		briefZh = "您的企業認證未通過審核。"
-		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
+		contentZh = "<p>尊敬的CherryProxy用戶：</p><p>您好，您提交的實名認證審核未通過，請檢查上傳的信息並重新認證。</p><p>审核原因:%s</p><p>如果您有任何問題，請隨時通過我們的官方郵箱聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>Whatsapp：+85267497336</p><p>Cherry Proxy團隊</p>"
+		contentZh = fmt.Sprintf(contentZh, reviewReason)
 	default:
 		fmt.Printf("Invalid review status for enterprise KYC message: %d\n", reviewStatus)
 		return

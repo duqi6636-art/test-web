@@ -89,7 +89,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 
 	// 发现重复域名，返回错误信息
 	if len(duplicateDomains) > 0 {
-		duplicateList := strings.Join(duplicateDomains, ", ")
+		duplicateList := strings.Join(duplicateDomains, ",")
 		JsonReturn(c, e.ERROR, fmt.Sprintf("提交的域名列表中存在重复域名: %s", duplicateList), nil)
 		return
 	}
@@ -98,6 +98,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 	for d := range domainMap {
 		uniqueDomains = append(uniqueDomains, d)
 	}
+
 	existingDomains, err := models.CheckDomainsAlreadyApproved(uid, uniqueDomains)
 	if err != nil {
 		JsonReturn(c, e.ERROR, "数据库查询失败", nil)
@@ -105,7 +106,7 @@ func AddDomainWhiteApply(c *gin.Context) {
 	}
 
 	if len(existingDomains) > 0 {
-		existList := strings.Join(existingDomains, ", ")
+		existList := strings.Join(existingDomains, ",")
 		JsonReturn(c, e.ERROR, fmt.Sprintf("以下域名已申请或审核通过，请勿重复提交：%s", existList), nil)
 		return
 	}
@@ -168,9 +169,10 @@ func AddDomainWhiteApply(c *gin.Context) {
 					continue
 				} else if existingDomain.Status == 3 || existingDomain.Status == -1 || existingDomain.Status == 4 { // 审核拒绝或提交失败
 					// 审核不通过，可以再次提交到第三方
-					// 检查域名是否在黑名单中
-					isInBlacklist := models.CheckDomainInBlacklist(domain)
-					if isInBlacklist {
+					// 白名单优先，其次黑名单，最后默认通过
+					if models.CheckDomainInWhitelist(domain) {
+						validWhitelistDomains = append(validWhitelistDomains, DomainRemarkPair{domain, pair.Remark})
+					} else if models.CheckDomainInBlacklist(domain) {
 						validBlacklistDomains = append(validBlacklistDomains, DomainRemarkPair{domain, pair.Remark})
 					} else {
 						validWhitelistDomains = append(validWhitelistDomains, DomainRemarkPair{domain, pair.Remark})
@@ -189,9 +191,10 @@ func AddDomainWhiteApply(c *gin.Context) {
 				}
 			}
 
-			// 检查域名是否在黑名单中
-			isInBlacklist := models.CheckDomainInBlacklist(domain)
-			if isInBlacklist {
+			// 白名单优先，其次黑名单，最后默认通过
+			if models.CheckDomainInWhitelist(domain) {
+				validWhitelistDomains = append(validWhitelistDomains, DomainRemarkPair{domain, pair.Remark})
+			} else if models.CheckDomainInBlacklist(domain) {
 				validBlacklistDomains = append(validBlacklistDomains, DomainRemarkPair{domain, pair.Remark})
 			} else {
 				validWhitelistDomains = append(validWhitelistDomains, DomainRemarkPair{domain, pair.Remark})
@@ -753,13 +756,16 @@ func sendDomainReviewNotificationMsg(callbackData models.DomainReviewCallbackDat
 	} else if len(noPassDomains) > 0 { // 只有未通过的域名
 		title = "Domain Whitelist Rejected"
 		brief = "Your domain whitelist application has been rejected."
-		content = "<p>Dear CherryProxy user:</p><p>Hello! The domain name application you submitted at %s has been reviewed. The results are as follows:</p><p>Rejected domains: %s</p><p>If you have any questions about the review results, please contact us immediately!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Cherry Proxy Team</p>"
+		content = "<p>Dear CherryProxy user:</p><p>Hello! The domain name application you submitted at %s has been reviewed. The results are as follows:</p><p>Rejected domains: %s</p><p>Reason for rejection: %s</p><p>If you have any questions about the review results, please contact us immediately!</p><p>Email: support@cherryproxy.com</p><p>WhatsApp: +85267497336</p><p>Cherry Proxy Team</p>"
 		titleZh = "域名白名單未通過"
 		briefZh = "您的域名白名單申請未通過審核。"
-		contentZh = "<p>尊敬的CherryProxy用戶:</p><p>您好！您於 %s 提交的域名申請已經審核，審核結果如下：</p><p>未通過域名：%s</p><p>如對審核結果有疑問，請及時聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
-
-		content = fmt.Sprintf(content, applyTime, callbackData.NoPassDomains)
-		contentZh = fmt.Sprintf(contentZh, applyTime, callbackData.NoPassDomains)
+		contentZh = "<p>尊敬的CherryProxy用戶:</p><p>您好！您於 %s 提交的域名申請已經審核，審核結果如下：</p><p>未通過域名：%s</p><p>拒絕原因：%s</p><p>如對審核結果有疑問，請及時聯繫我們！</p><p>郵箱：support@cherryproxy.com</p><p>WhatsApp：+85267497336</p><p>Cherry Proxy團隊</p>"
+		reason := callbackData.AuditRemark
+		if reason == "" {
+			reason = ""
+		}
+		content = fmt.Sprintf(content, applyTime, callbackData.NoPassDomains, reason)
+		contentZh = fmt.Sprintf(contentZh, applyTime, callbackData.NoPassDomains, reason)
 
 	} else {
 		log.Printf("No domains found in callback data")
