@@ -115,7 +115,7 @@ func GetAverage20MinLoginCountForLast30Days() (float64, error) {
 	var totalCount int64
 
 	// 遍历过去30天
-	for i := 0; i < 30; i++ {
+	for i := 1; i < 30; i++ {
 		targetDate := now.AddDate(0, 0, -i)
 		tableName := "log_login" + targetDate.Format("200601")
 
