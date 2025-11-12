@@ -1128,13 +1128,13 @@ func NewGenerateList(c *gin.Context) {
 			if v.Balance > 0 {
 				balanceStr = fmt.Sprintf("%d %s", v.Balance, "IPs")
 			} else {
-				balanceStr = "0 IP"
+				balanceStr = ""
 			}
 		} else if v.Cate == 3 || v.Cate == 4 {
 			if v.Balance > 0 {
 				balanceStr = fmt.Sprintf("%d %s", v.Balance/1024/1024/1024, "GB")
 			} else {
-				balanceStr = "0 GB"
+				balanceStr = ""
 			}
 		} else if v.Cate == 5 {
 			if v.Balance > int64(nowTime) {
@@ -1157,13 +1157,13 @@ func NewGenerateList(c *gin.Context) {
 				}
 				balanceStr = fmt.Sprintf("%d %s", int(dayInfo), dayUnit)
 			} else {
-				balanceStr = "0 Day"
+				balanceStr = ""
 			}
 		} else if v.Cate == 6 {
 			if v.Balance > 0 {
 				balanceStr = fmt.Sprintf("%d %s", v.Balance, "IP")
 			} else {
-				balanceStr = "0 IP"
+				balanceStr = ""
 			}
 		}
 		confInfo, ok := configMap[cateStr]

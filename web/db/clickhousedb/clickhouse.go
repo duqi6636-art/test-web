@@ -14,6 +14,7 @@ import (
 
 var ClickhouseDb *gorm.DB
 
+// 初始化 CK 库
 func InitClickhouseDb() {
 	var err error
 
@@ -43,6 +44,7 @@ func InitClickhouseDb() {
 				LogLevel:                  logger.Info, // 日志级别
 			},
 		)
+		ClickhouseDb = ClickhouseDb.Debug()
 	} else {
 		ClickhouseDb.Logger = logger.New(
 			log.New(os.Stdout, "\r\n", log.LstdFlags),
@@ -54,6 +56,5 @@ func InitClickhouseDb() {
 			},
 		)
 	}
-	ClickhouseDb = ClickhouseDb.Debug()
 	fmt.Println("Connect to Clickhouse success!")
 }
