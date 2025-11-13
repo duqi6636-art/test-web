@@ -23,6 +23,8 @@ func webRouter(router *gin.Engine) {
 	web := router.Group("/web")
 	web.POST("/auth/sign", controller.GetAuthSign)           // 滑块验证
 	web.POST("/user/login", controller.Login)                // 邮箱登录
+	web.POST("/auth/login", controller.GetAuthLogin)         // 登录验证				//center
+	web.POST("/user/login_verify", controller.LoginVerify)   // 人机验证				//center
 	web.POST("/user/google_login", controller.GoogleLogin)   // 谷歌登录
 	web.POST("/user/github_login", controller.GithubLogin)   // GitHub登录
 	web.POST("/user/email_reg", controller.WebReg)           // 邮箱注册

@@ -24,6 +24,88 @@ import (
 	"time"
 )
 
+func LoginVerify(c *gin.Context) {
+	email := strings.TrimSpace(c.DefaultPostForm("email", ""))
+	ip := c.ClientIP()
+	if email == "" {
+		JsonReturn(c, e.ERROR, "__T_EMAIL_IS_MUST", nil)
+		return
+	}
+
+	// 检查是否需要人机验证
+	needCaptcha, reasons, err := CheckLoginSecurity(email, ip)
+	if err != nil {
+		JsonReturn(c, e.ERROR, err.Error(), nil)
+		return
+	}
+
+	// 构建返回数据
+	result := gin.H{
+		"needCaptcha": needCaptcha,
+		"result":      strings.Join(reasons, ","),
+		"reasonCount": len(reasons),
+	}
+
+	// 如果有触发条件，添加合并的原因描述
+	if needCaptcha && len(reasons) > 0 {
+		result["reasonText"] = "已触发人机验证：" + strings.Join(reasons, ",")
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", result)
+}
+
+func GetAuthLogin(c *gin.Context) {
+	email := strings.TrimSpace(c.DefaultPostForm("email", ""))
+	if email == "" {
+		JsonReturn(c, -1, "__T_EMAIL_IS_MUST", nil)
+		return
+	}
+
+	if !util.CheckEmail(email) {
+		JsonReturn(c, -1, "__T_EMAIL_FORMAT_ERROR", nil)
+		return
+	}
+
+	// 验证 -- start
+	captchaSwitch := strings.TrimSpace(models.GetConfigVal("CaptchaRegisterSwitch")) // 滑块验证注册开关 由原来的开关变成 类型配置  1 滑块验证  2 google人机验证
+	if captchaSwitch == "1" {                                                        // 滑块验证
+		ticket := c.DefaultPostForm("ticket", "")
+		randStr := c.DefaultPostForm("randstr", "")
+		if ticket == "" || randStr == "" {
+			JsonReturn(c, -1, "__T_CAPTCHA_FAIL", nil)
+			return
+		}
+
+		res, Msg := CaptchaHandle(c, ticket, randStr)
+		if !res {
+			JsonReturn(c, -1, Msg, nil)
+			return
+		}
+	}
+
+	if captchaSwitch == "2" { //google 人机验证
+		googleResponse := c.DefaultPostForm("google_robot_response", "")
+		if googleResponse == "" {
+			JsonReturn(c, -1, "__T_CAPTCHA_FAIL", nil)
+			return
+		}
+		authRes, authMsg := CheckGoogleRecaptcha(c, googleResponse)
+		if authRes == false {
+			JsonReturn(c, -1, authMsg, nil)
+			return
+		}
+	}
+	// 验证 -- end
+
+	// 登录成功，根据参数决定是否重置失败状态
+	verifyType := c.DefaultPostForm("verify_type", "") // 默认重置所有类型
+	if verifyType != "" {
+		// 获取重置类型参数
+		ResetLoginFailureStateByType(c, email, verifyType)
+	}
+
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
+}
+
 // @BasePath /api/v1
 // @Summary 邮箱注册
 // @Description 邮箱注册
@@ -254,6 +336,7 @@ func Login(c *gin.Context) {
 		// 验证 验证码
 		codeId, _ = models.CheckVerifyCode(code, email, "login")
 		if codeId == 0 {
+			RecordLoginFailure(c, email, "验证码登录错误")
 			JsonReturn(c, -1, "__T_VERIFY_ERROR", map[string]string{"class_id": "code"})
 			return
 		}
@@ -276,6 +359,7 @@ func Login(c *gin.Context) {
 		return
 	}
 	if !CheckPwd(info.Password, password, info.Username) {
+		RecordLoginFailure(c, email, "用户密码错误")
 		JsonReturn(c, e.ERROR, "__T_USER_PASS_WRONG", map[string]string{"class_id": "password"})
 		return
 	}
@@ -283,9 +367,22 @@ func Login(c *gin.Context) {
 	ip := c.ClientIP()
 	res, sessionRes := DoLogin(info, "", ip, params, false, c)
 	if !res {
+		RecordLoginFailure(c, email, "执行登录错误")
 		JsonReturn(c, -1, sessionRes, map[string]string{"error_position": "0"})
 		return
 	}
+	// 登录成功时检查全局人机验证解除条件
+	go func() {
+		shouldRelease, reason, err := models.CheckGlobalLoginCaptchaRelease()
+		if err != nil {
+			fmt.Printf("检查全局人机验证解除条件失败: %v\n", err)
+			return
+		}
+		if shouldRelease {
+			fmt.Printf("全局人机验证已解除: %s\n", reason)
+		}
+	}()
+
 	if codeId > 0 {
 		// 验证码验证完成后销毁
 		cRes := models.UpdateCodeStatus(map[string]interface{}{"id": codeId})
