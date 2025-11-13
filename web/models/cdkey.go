@@ -47,7 +47,7 @@ type MdCdkeyJoinUser struct {
 	RedemptionRemark string `json:"redemption_remark"` //兑换备注
 }
 
-/// 生成cdk返回
+// / 生成cdk返回
 type ResGenerateList struct {
 	Id             string `json:"id"`
 	ExchangeType   string `json:"exchange_type"` // 兑换类型
@@ -63,7 +63,7 @@ type ResGenerateList struct {
 
 }
 
-/// 兑换cdk返回
+// / 兑换cdk返回
 type ResRedemptionList struct {
 	Id             int    `json:"id"`
 	ExchangeType   string `json:"exchange_type"`   // 兑换类型
@@ -75,7 +75,8 @@ type ResRedemptionList struct {
 }
 
 // 获取cdk生成列表 根据类型
-func GetGenerateListByCate(uid, start, end, cate int, mode, timeType, cdkEmail, status,cateStr string) (data []MdCdkeyJoinUser) {
+
+func GetGenerateListByCate(uid, start, end, cate int, mode, timeType, cdkEmail, status, cateStr string) (data []MdCdkeyJoinUser) {
 	fields := "a.*,us.balance,us.email"
 	joinTable := CmUserTable
 	if cate == 3 {
@@ -100,7 +101,7 @@ func GetGenerateListByCate(uid, start, end, cate int, mode, timeType, cdkEmail, 
 		}
 		exArr := strings.Split(cateStr, "-")
 		exDay = util.StoI(exArr[1])
-		if  exDay == 0 {
+		if exDay == 0 {
 			exDay = 7
 		}
 		//var ok bool
@@ -235,7 +236,7 @@ type StCdkeyStatsJoinUser struct {
 	Email        string `json:"email"`
 }
 
-/// 用户使用日志返回
+// / 用户使用日志返回
 type ResUserUsageList struct {
 	Id                 string `json:"id"`
 	Email              string `json:"email"`
@@ -293,7 +294,7 @@ func GetCdkUseStatsJoin(uid int, mode, cate, email string, is_collect, start, en
 	fields := "a.*,us.balance,us.email"
 	joinTable := CmUserTable
 	if cate == "flow" {
-		fields = "a.*,us.flows as flows"
+		fields = "a.*,us.flows as flows,us.email as email"
 		joinTable = userFlowTable
 	}
 	if cate == "dynamic_isp" {
