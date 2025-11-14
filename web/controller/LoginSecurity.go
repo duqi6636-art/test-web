@@ -180,16 +180,18 @@ func ResetLoginFailureStateByType(c *gin.Context, email string, verifyTypes stri
 			if err != nil {
 				AddLogs("ResetConsecutiveFailuresByIP", fmt.Sprintf("重置IP级登录失败状态失败: %s", err.Error()))
 			}
-		case "check_release":
-			// 检查全局人机验证解除条件
-			shouldRelease, reason, err := models.CheckGlobalLoginCaptchaRelease()
-			if err != nil {
-				AddLogs("CheckGlobalLoginCaptchaRelease", fmt.Sprintf("检查全局人机验证解除条件失败: %s", err.Error()))
-			} else if shouldRelease {
-				AddLogs("GlobalCaptchaReleased", fmt.Sprintf("全局人机验证已解除: %s", reason))
-			} else {
-				AddLogs("GlobalCaptchaNotReleased", fmt.Sprintf("全局人机验证解除条件未满足: %s", reason))
-			}
+		case "global":
+			// 异步智能全局重置（基于登录活跃度判断）
+			go func() {
+				shouldRelease, reason, err := models.CheckGlobalLoginCaptchaRelease()
+				if err != nil {
+					AddLogs("CheckGlobalLoginCaptchaRelease", fmt.Sprintf("检查全局人机验证解除条件失败: %s", err.Error()))
+				} else if shouldRelease {
+					AddLogs("GlobalCaptchaReleased", fmt.Sprintf("全局人机验证已解除: %s", reason))
+				} else {
+					AddLogs("GlobalCaptchaNotReleased", fmt.Sprintf("全局人机验证解除条件未满足: %s", reason))
+				}
+			}()
 		case "debug":
 			// 显示当前登录统计信息（用于调试）
 			// 从配置中获取时间窗口（秒），默认1200秒（20分钟）
