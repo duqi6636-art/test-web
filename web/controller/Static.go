@@ -203,18 +203,11 @@ func GetRegion(c *gin.Context) {
 	buyNum := 0
 
 	countryLists := []models.StaticIpCountryModel{}
-	allInfo := models.StaticIpCountryModel{}
-	allInfo.Name = "All"
-	allInfo.Code = "All"
-	allInfo.Country = "All"
-	allInfo.IpNumber = 0
-	countryList := models.GetStaticIpCountry()   //地区列表
-	countryLists = append(countryLists, allInfo) //地区列表- 加个默认
+	countryList := models.GetStaticIpCountry() //地区列表
 	for _, v := range countryList {
 		countryLists = append(countryLists, v)
 	}
 
-	countryList = append(countryList, allInfo)
 	regionList := models.GetStaticRegion() //地区列表
 	stateMapString := map[string]int{}
 	cityArr := map[string][]models.StaticCityModel{}
@@ -304,10 +297,6 @@ func GetRegion(c *gin.Context) {
 				userCountry = append(userCountry, v)
 			}
 		} else {
-			one := resMap["ALL"]
-			one.Name = fmt.Sprintf("%s  %s (%d)", one.Code, "Remaining IPs", ipNum)
-			one.Balance = ipNum
-			userCountry = append(userCountry, one)
 			userHas := userStatic[vp.Id]
 			for _, v := range userHas {
 				v.Name = fmt.Sprintf("%s  %s (%d)", v.Code, "Remaining IPs", v.Balance)
