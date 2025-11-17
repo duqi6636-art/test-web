@@ -1077,9 +1077,11 @@ func BeforeRecharge(c *gin.Context) {
 	}
 
 	_, ipInfo := models.GetStaticIpByIp(ipLog.Ip)
-	if ipInfo.Id == 0 || ipInfo.Status != 1 {
-		JsonReturn(c, -1, "__T_IP_OFFLINE", nil)
-		return
+	if ipLog.IsNew != 1 {
+		if ipInfo.Id == 0 || ipInfo.Status != 1 {
+			JsonReturn(c, -1, "__T_IP_OFFLINE", nil)
+			return
+		}
 	}
 	//if ipInfo.Uid > 0 && ipInfo.Uid != uid {
 	//	JsonReturn(c, -1, "__T_IP_HAS_USED", nil)
@@ -1162,8 +1164,10 @@ func BatchBeforeRecharge(c *gin.Context) {
 			continue
 		}
 		_, ipInfo := models.GetStaticIpByIp(ipLog.Ip)
-		if ipInfo.Id == 0 || ipInfo.Status != 1 {
-			continue
+		if ipLog.IsNew != 1 {
+			if ipInfo.Id == 0 || ipInfo.Status != 1 {
+				continue
+			}
 		}
 		_, balanceList := models.GetUserStaticIpByRegion(uid, strings.ToLower(ipLog.Country))
 		nowTime := util.GetNowInt()
@@ -1426,8 +1430,10 @@ func BatchIpRecharge(c *gin.Context) {
 			continue
 		}
 		_, ipInfo := models.GetStaticIpByIp(ipLog.Ip)
-		if ipInfo.Id == 0 || ipInfo.Status != 1 {
-			continue
+		if ipLog.IsNew != 1 {
+			if ipInfo.Id == 0 || ipInfo.Status != 1 {
+				continue
+			}
 		}
 		// 处理IP异常的情况，续费的IP不判断是否已被使用过的IP   20250122
 		//if ipInfo.Uid > 0 && ipInfo.Uid != uid {
