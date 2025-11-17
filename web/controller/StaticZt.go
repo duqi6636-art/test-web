@@ -47,6 +47,10 @@ func StaticZtList(regionSn string) (bool, string, []StaticZtListModel) {
 
 	// IP属性
 	attribute := "isp,double_isp,native_ct_isp"
+	openIPType := models.GetConfigVal("zt_static_ip_open_type")
+	if openIPType == "" {
+		openIPType = "1"
+	}
 
 	// 查询静态可用IP列表
 	apiUrl := models.GetConfigVal("zt_static_ip_list") //资源中台静态IP池列表url
@@ -65,9 +69,9 @@ func StaticZtList(regionSn string) (bool, string, []StaticZtListModel) {
 		"token": token,
 	}
 	data_info := map[string]string{
-		"oem":     oemName, //被授权可使用的项目
-		"cate":    "1",     //IP分类，0=独享、1=共享
-		"ip_type": "2",     //IP类型，1=数据中心，2=静态住宅
+		"oem":     oemName,    //被授权可使用的项目
+		"cate":    openIPType, //IP分类，0=独享、1=共享
+		"ip_type": "2",        //IP类型，1=数据中心，2=静态住宅
 		//"region":    "",        //地区代码 如 fr-paris
 		"attribute": attribute, //IP属性，isp=单ISP、double_isp=双ISP、native_isp=原生、native_hq_isp=优质原生、native_ct_isp=原生电信  多个用,逗号隔开
 		"page":      "1",       //页码：不传默认1
@@ -111,6 +115,10 @@ type ResponseStaticZtModel struct {
 func StaticZtOpen(uid, durationTime int, ipStr, orderId, regionSn string) (bool, string) {
 	// IP属性
 	attribute := "isp,double_isp,native_ct_isp"
+	openIPType := models.GetConfigVal("zt_static_ip_open_type")
+	if openIPType == "" {
+		openIPType = "1"
+	}
 
 	apiUrl := models.GetConfigVal("zt_static_ip_open") //资源中台开通
 	if apiUrl == "" {
@@ -140,7 +148,7 @@ func StaticZtOpen(uid, durationTime int, ipStr, orderId, regionSn string) (bool,
 		"num":          "1",                 //开通的数量
 		"duration":     util.ItoS(duration), //开通的时长（秒）
 		"region":       regionSn,            //开通的地区代码 如 fr-paris
-		"own_type":     "1",                 //开通的IP分类，0=独享、1=共享、2=定制
+		"own_type":     openIPType,          //开通的IP分类，0=独享、1=共享、2=定制
 		"type":         "2",                 //IP类型，1=数据中心，2=静态住宅
 		"zj_open_type": "2",                 //选择开通方式，1=随机、2=自选
 		"ips":          ipStr,               //自选IP，多个用,号隔开
