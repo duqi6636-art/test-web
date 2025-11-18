@@ -761,15 +761,7 @@ func BatchUseStatic(c *gin.Context) {
 	var count = 0
 	for _, val := range snList {
 		idStr := util.MdDecode(val, MdKey)
-		id := util.StoI(idStr)
-		_, ipInfo := models.GetStaticIpById(id)
-		useIP := ipInfo.Ip
-		err_l, ipLog := models.GetIpStaticIp(uid, useIP)
-		if err_l == nil && ipLog.Id > 0 {
-			continue
-		}
-		code := strings.ToLower(ipInfo.Country)
-		err, balanceInfo := models.GetUserStaticByPakRegion(uid, staticId, code)
+		err, balanceInfo := models.GetUserStaticByPakRegion(uid, staticId, strings.ToLower(country))
 		if err != nil || balanceInfo.Id == 0 {
 			continue
 		} else {
@@ -821,6 +813,8 @@ func BatchUseStatic(c *gin.Context) {
 				resInfo[info.Id] = info
 			}
 			count++
+		} else {
+			AddLogs("BatchUseStatic StaticKfNewZt", fmt.Sprintf("err:%+v", err1.Error()))
 		}
 	}
 	var resList = make([]models.ResUserStaticIp, 0)

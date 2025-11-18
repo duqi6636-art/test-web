@@ -111,6 +111,13 @@ type ResponseStaticZtModel struct {
 	Msg  string            `json:"msg"`
 }
 
+// 请求资源中台释放信息返回值
+type ResponseStaticReleaseZtModel struct {
+	Code int    `json:"code"`
+	Data string `json:"data"`
+	Msg  string `json:"msg"`
+}
+
 // StaticZtOpen 资源开通
 func StaticZtOpen(uid, durationTime int, ipStr, orderId, regionSn string) (bool, string) {
 	// IP属性
@@ -308,7 +315,7 @@ func StaticZtRelease(uid int, ipStr string) (bool, string) {
 	fmt.Println(err1)
 	fmt.Println(requestStr)
 	AddLogs("IpRelease", requestStr) //写日志
-	responseInfo := ResponseStaticOpenZtModel{}
+	responseInfo := ResponseStaticReleaseZtModel{}
 	err1 = json.Unmarshal([]byte(requestStr), &responseInfo)
 	if err1 != nil {
 		return false, "__T_IP_RELEASE_ERROR"

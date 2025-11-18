@@ -387,6 +387,113 @@ func ChangeStaticIp(c *gin.Context) {
 	sn := c.DefaultPostForm("sn", "")
 	typeStr := c.DefaultPostForm("type", "offline") //类型 // offline : 下线更换，online : 在线更换
 
+	resCode, msg, userInfo := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+
+	if idStr == "" {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	used_id := util.StoI(idStr)
+	err_l, ipLog := models.GetIpStaticIpById(used_id)
+	if err_l != nil || ipLog.Id == 0 {
+		JsonReturn(c, -1, "__T_STATIC_IP_USED_ERROR", nil)
+		return
+	}
+
+	nowTime := util.GetNowInt()
+	if ipLog.ExpireTime < nowTime {
+		JsonReturn(c, -1, "__T_STATIC_IP_USED_ERROR", nil)
+		return
+	}
+	if typeStr == "online" {
+		if nowTime-ipLog.CreateTime > 600 || ipLog.Replaced == 1 {
+			JsonReturn(c, -1, "__T_STATIC_IP_USED_ERROR", nil)
+			return
+		}
+	}
+
+	if sn == "" {
+		JsonReturn(c, -1, "__T_PARAM_ERROR--IP", nil)
+		return
+	}
+
+	ipStr := util.MdDecode(sn, MdKey)
+	if ipStr == "" {
+		JsonReturn(c, -1, "__T_PARAM_ERROR--IP", gin.H{"err": 01})
+		return
+	}
+	err_check, existingLog := models.GetIpStaticIp(used_id, ipStr)
+	if err_check == nil && existingLog.Id > 0 {
+		JsonReturn(c, e.ERROR, "__T_IP_ALREADY_IN_USE", nil)
+		return
+	}
+	regionSn := ""
+	orderId := ""
+	if ipLog.IsNew == 1 { //新资源中台
+		// 释放资源
+		relRes, relMsg := StaticZtRelease(userInfo.Id, ipLog.Ip)
+		if relRes == false {
+			JsonReturn(c, e.ERROR, relMsg, nil)
+			return
+		}
+		regionSn = ipLog.Code
+		orderId = ipLog.OrderId
+	} else {
+		// region ip地区
+		regionInfo := models.GetStaticRegionBy(ipLog.Country, ipLog.State, ipLog.City)
+		regionSn = regionInfo.RegionSn
+		orderId = "9222" + util.GetOrderIds() //更换开通
+	}
+
+	//开通新资源
+	durationTime := ipLog.ExpireTime - util.GetNowInt()
+	if durationTime < 0 {
+		durationTime = 0
+	}
+	durationTime = durationTime + 2*24*3600
+	openRes, openMsg := StaticZtOpen(userInfo.Id, durationTime, ipStr, orderId, regionSn)
+	if openRes == false {
+		JsonReturn(c, e.ERROR, openMsg, gin.H{"err": 01})
+		return
+	}
+
+	models.AddDelStaticLog(c.ClientIP(), ipLog) //记录日志
+
+	data := map[string]interface{}{}
+	data["ip"] = ipStr
+	data["port"] = ipLog.Port
+	data["state"] = ipLog.State
+	data["city"] = ipLog.City
+	data["country"] = ipLog.Country
+	data["code"] = ipLog.Code
+	data["status"] = 1
+	if typeStr == "offline" {
+		data["expire_time"] = ipLog.ExpireTime + 2*24*3600 // 下线更换，续费两天
+	} else {
+		//十分钟内 没有替换过 IP 可以替换
+		if nowTime-ipLog.CreateTime <= 600 && ipLog.Replaced == 0 {
+			data["expire_time"] = ipLog.ExpireTime
+			data["replaced"] = 1 // 在线更换，标记为已更换
+		}
+	}
+	err := models.SetIpStaticIp(ipLog.Id, data)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_IP_CHANGE_FAILED", nil)
+		return
+	}
+	JsonReturn(c, e.SUCCESS, "__T_IP_CHANGE_SUCCESS", gin.H{})
+	return
+}
+
+func ChangeStaticIpBak(c *gin.Context) {
+	idStr := c.DefaultPostForm("used_id", "") //待操作的ID
+	sn := c.DefaultPostForm("sn", "")
+	typeStr := c.DefaultPostForm("type", "offline") //类型 // offline : 下线更换，online : 在线更换
+
 	resCode, msg, _ := DealUser(c) //处理用户信息
 	if resCode != e.SUCCESS {
 		JsonReturn(c, resCode, msg, nil)
