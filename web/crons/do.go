@@ -21,6 +21,10 @@ func GoCron() {
 		_ = c.AddFunc("* */2 * * * *", func() { // 每2分钟执行一次
 			UnlimitedEarlyWarning() // 不限量邮件预警
 		})
+
+		_ = c.AddFunc("* */5 * * * *", func() { // 每1分钟执行一次
+			StaticRegionStatusWarning()
+		})
 	}
 	c.Start()
 	// 阻塞主线程，以等待定时任务的执行
