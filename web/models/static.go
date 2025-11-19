@@ -204,9 +204,25 @@ func GetStaticIpByIp(ip string) (err error, info StaticIpPoolModel) {
 
 // 删除提取记录
 type IpStaticLogDelModel struct {
-	IpStaticLogModel
-	DelTime int    `json:"del_time"`
-	DelIp   string `json:"del_ip"`
+	Id         int    `json:"id"`
+	Uid        int    `json:"uid"`
+	Username   string `json:"username"`
+	Code       string `json:"code"`
+	Ip         string `json:"ip"`
+	Port       int    `json:"port"`
+	Country    string `json:"country"`
+	State      string `json:"state"`
+	City       string `json:"city"`
+	ExpireDay  int    `json:"expire_day"`
+	ExpireTime int    `json:"expire_time"`
+	UpdateTime int    `json:"update_time"`
+	CreateTime int    `json:"create_time"`
+	UserIp     string `json:"user_ip"`
+	Account    string `json:"account"`
+	Password   string `json:"password"`
+	Remark     string `json:"remark"`
+	DelTime    int    `json:"del_time"`
+	DelIp      string `json:"del_ip"`
 }
 
 // 静态长效续费记录记录
