@@ -22,7 +22,7 @@ func GoCron() {
 			UnlimitedEarlyWarning() // 不限量邮件预警
 		})
 
-		_ = c.AddFunc("* */5 * * * *", func() { // 每1分钟执行一次
+		_ = c.AddFunc("0 */5 * * * *", func() { // 每1分钟执行一次
 			StaticRegionStatusWarning()
 		})
 	}

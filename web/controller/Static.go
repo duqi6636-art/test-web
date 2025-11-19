@@ -177,6 +177,16 @@ func GetStaticRegionNum(c *gin.Context) {
 	return
 }
 
+func GetCountryIpNumber(c *gin.Context) {
+	data, err := models.GetCountryIPCounts()
+	if err != nil {
+		JsonReturn(c, 0, "__T_SUCCESS", data)
+		return
+	}
+	JsonReturn(c, 0, "__T_SUCCESS", data)
+	return
+}
+
 // 静态直连相关
 var MdKey = "a8b1c1J9Q2K2"
 

@@ -12,6 +12,7 @@ func StaticRegionStatusWarning() {
 		for sn := range stock {
 			snList = append(snList, sn)
 		}
-		_ = models.SetStaticRegionStatusBySnList(snList, 1)
+		models.UpStaticRegionStatusAndIpNumberByStock(stock)
+		models.SetStaticRegionStatusByNotInSnList(snList, 2)
 	}
 }
