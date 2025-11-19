@@ -111,6 +111,14 @@ type ResponseStaticZtModel struct {
 	Msg  string            `json:"msg"`
 }
 
+type ResponseZtRegionStockModel struct {
+	Code int `json:"code"`
+	Data struct {
+		RegionStock map[string]int `json:"region_stock"`
+	} `json:"data"`
+	Msg string `json:"msg"`
+}
+
 // 请求资源中台释放信息返回值
 type ResponseStaticReleaseZtModel struct {
 	Code int    `json:"code"`
@@ -326,4 +334,52 @@ func StaticZtRelease(uid int, ipStr string) (bool, string) {
 	}
 
 	return true, ""
+}
+
+func StaticZtRegionStockList() (bool, string, map[string]int) {
+	lists := map[string]int{}
+	attribute := "isp,double_isp,native_ct_isp"
+	openIPType := models.GetConfigVal("zt_static_ip_open_type")
+	if openIPType == "" {
+		openIPType = "1"
+	}
+	apiUrl := models.GetConfigVal("zt_static_region_stock_list")
+	if apiUrl == "" {
+		apiUrl = "http://xc-static-mid-api.worldrift.com/api/get_region_stock_list"
+	}
+	oemName := models.GetConfigVal("zt_static_oem_name")
+	if oemName == "" {
+		oemName = "cherry"
+	}
+	token := models.GetConfigVal("zt_static_ip_token")
+	if token == "" {
+		token = StaticZToken
+	}
+	headerInfo := map[string]interface{}{
+		"token": token,
+	}
+	data_info := map[string]string{
+		"oem":       oemName, //被授权可使用的项目
+		"ip_type":   "2",     //IP类型，1=数据中心，2=静态住宅
+		"cate":      openIPType,
+		"attribute": attribute, //IP属性，isp=单ISP、double_isp=双ISP、native_isp=原生、native_hq_isp=优质原生、native_ct_isp=原生电信  多个用,逗号隔开
+	}
+
+	err, requestStr := util.HttpPostFormHeader(apiUrl, data_info, headerInfo)
+	if err != nil {
+		AddLogs("RegionStock HttpPostFormHeader", err.Error())
+		return false, "__T_IP_RELEASE_ERROR", lists
+	}
+	responseInfo := ResponseZtRegionStockModel{}
+	err1 := json.Unmarshal([]byte(requestStr), &responseInfo)
+	if err1 != nil {
+		AddLogs("RegionStock Unmarshal", err1.Error())
+		return false, "__T_IP_RESOURCE_ERROR", lists
+	}
+	if responseInfo.Code != 200 {
+		AddLogs("RegionStock code", responseInfo.Msg)
+		return false, "__T_IP_RESOURCE_ERROR--1", lists
+	}
+	lists = responseInfo.Data.RegionStock
+	return true, "", lists
 }

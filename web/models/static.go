@@ -85,6 +85,13 @@ func GetStaticRegionBy(country, state, city string) (area StaticRegionModel) {
 	return
 }
 
+func SetStaticRegionStatusBySnList(snList []string, status int) error {
+	if len(snList) == 0 {
+		return nil
+	}
+	return db.Table("cm_static_region").Where("region_sn in (?)", snList).Update("status", status).Error
+}
+
 // 获取列表
 func GetStaticIpPool() (area []StaticIpPoolModel) {
 	dbs := db.Table("cm_static_ip_pool").Where("uid =?", 0)
