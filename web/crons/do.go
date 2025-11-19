@@ -25,6 +25,10 @@ func GoCron() {
 		_ = c.AddFunc("0 * * * * *", func() { //每分钟的第0秒执行
 			DoAutoRenew() // 用户自动续费
 		})
+
+		_ = c.AddFunc("* */5 * * * *", func() { // 每1分钟执行一次
+			StaticRegionStatusWarning()
+		})
 	}
 	c.Start()
 	// 阻塞主线程，以等待定时任务的执行
