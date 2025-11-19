@@ -54,6 +54,27 @@ func GetStaticIpCountry() (area []StaticIpCountryModel) {
 	return
 }
 
+type CountryIPCount struct {
+	Country string `json:"country"`
+	IPCount int64  `json:"ip_count"`
+}
+
+func GetCountryIPCounts() ([]CountryIPCount, error) {
+	var result []CountryIPCount
+
+	err := db.Table("cm_static_ip_country AS c").
+		Select(`
+            c.country,
+            IFNULL(SUM(r.ip_number), 0) AS ip_count
+        `).
+		Joins("LEFT JOIN cm_static_region AS r ON c.country = r.country").
+		Group("c.country").
+		Order("ip_count DESC").
+		Scan(&result).Error
+
+	return result, err
+}
+
 type StaticRegionModel struct {
 	Country  string `json:"country"`
 	State    string `json:"state"`
@@ -85,11 +106,33 @@ func GetStaticRegionBy(country, state, city string) (area StaticRegionModel) {
 	return
 }
 
-func SetStaticRegionStatusBySnList(snList []string, status int) error {
+func SetStaticRegionStatusByNotInSnList(snList []string, status int) error {
 	if len(snList) == 0 {
 		return nil
 	}
-	return db.Table("cm_static_region").Where("region_sn in (?)", snList).Update("status", status).Error
+	err := db.Table("cm_static_region").
+		Where("region_sn NOT IN (?)", snList).
+		Update("status", status).Error
+
+	return err
+}
+
+func UpStaticRegionStatusAndIpNumberByStock(stock map[string]int) {
+	updateCases := ""
+	updateIds := []string{}
+	for sn, cnt := range stock {
+		updateCases += fmt.Sprintf("WHEN '%s' THEN %d ", sn, cnt)
+		updateIds = append(updateIds, sn)
+	}
+
+	sql := fmt.Sprintf(`
+    UPDATE cm_static_region 
+    SET status = 1,
+        ip_number = CASE region_sn %s END
+    WHERE region_sn IN (?)
+`, updateCases)
+
+	db.Exec(sql, updateIds)
 }
 
 // 获取列表
