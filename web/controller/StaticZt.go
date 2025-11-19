@@ -80,18 +80,20 @@ func StaticZtList(regionSn string) (bool, string, []StaticZtListModel) {
 	if regionSn != "" {
 		data_info["region"] = regionSn
 	}
-	fmt.Println(data_info)
+	AddLogs("StaticZtList requestStr", fmt.Sprintf("%+v", data_info))
 	err, requestStr := util.HttpPostFormHeader(apiUrl, data_info, headerInfo)
-	fmt.Println(err)
-	fmt.Println(requestStr)
+	if err != nil {
+		AddLogs("StaticZtList request error", err.Error())
+	}
 
 	responseInfo := ResponseStaticZtListModel{}
 	err1 := json.Unmarshal([]byte(requestStr), &responseInfo)
 	if err1 != nil {
+		AddLogs("StaticZtList", err1.Error())
 		return false, "__T_IP_RESOURCE_ERROR", lists
 	}
 	if responseInfo.Code != 200 {
-		AddLogs("GetStaticZt", requestStr) //写日志
+		AddLogs("StaticZtList", responseInfo.Msg) //写日志
 		return false, "__T_IP_RESOURCE_ERROR--1", lists
 	}
 	lists = responseInfo.Data.List
