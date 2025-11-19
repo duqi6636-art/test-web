@@ -24,21 +24,23 @@ type ResponseStaticZtListModel struct {
 
 // StaticZtListModel 请求资源中台列表信息返回值
 type StaticZtListModel struct {
-	Id          int    `json:"id"`
-	IpType      int    `json:"ip_type"`
-	IpAttribute string `json:"ip_attribute"`
-	Cate        int    `json:"cate"`
-	Region      string `json:"region"`
-	RegionCode  string `json:"region_code"`
-	Ip          string `json:"ip"`
-	Status      int    `json:"status"`
-	Oem         string `json:"oem"`
-	Isp         string `json:"isp"`
-	Operator    string `json:"operator"`
-	Asn         string `json:"asn"`
-	Price       int    `json:"price"`
-	CreateTime  int    `json:"create_time"`
-	UsedNum     int    `json:"used_num"`
+	Id             int     `json:"id"`
+	IpType         int     `json:"ip_type"`
+	IpAttribute    string  `json:"ip_attribute"`
+	Cate           int     `json:"cate"`
+	Region         string  `json:"region"`
+	RegionCode     string  `json:"region_code"`
+	Ip             string  `json:"ip"`
+	Status         int     `json:"status"`
+	Oem            string  `json:"oem"`
+	Isp            string  `json:"isp"`
+	Operator       string  `json:"operator"`
+	Asn            string  `json:"asn"`
+	Price          float64 `json:"price"`
+	CreateTime     int     `json:"create_time"`
+	UsedNum        int     `json:"used_num"`
+	CalmStatus     int     `json:"calm_status"`
+	CalmExpireTime int     `json:"calm_expire_time"`
 }
 
 // StaticZtList 资源列表
