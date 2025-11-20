@@ -213,6 +213,35 @@ func AddDomainWhiteApply(c *gin.Context) {
 			AddLogs("validBlacklistDomains", fmt.Sprintf("准备批量提交 %d 个黑名单域名到第三方审核", len(validBlacklistDomains)))
 			err := submitDomainsToThirdPartyBatch(uid, username, validBlacklistDomains, blacklistDomainIDs)
 			if err != nil {
+				// 失败预警
+				rule, ruleErr := models.GetAlertRule("add_domain_failed")
+				// 构建域名列表
+				domainNames := make([]string, 0, len(validBlacklistDomains))
+				for _, p := range validBlacklistDomains {
+					domainNames = append(domainNames, p.Domain)
+				}
+				domainList := strings.Join(domainNames, "、")
+
+				if ruleErr == nil && rule.ID > 0 && strings.TrimSpace(rule.WebhookURL) != "" && strings.TrimSpace(rule.Context) != "" {
+					runtime := map[string]any{
+						"username": username,
+						"domains":  domainList,
+						"error":    err.Error(),
+					}
+					msg, renderErr := RenderMessage(strings.TrimSpace(rule.Context), runtime)
+					if renderErr != nil || strings.TrimSpace(msg) == "" {
+						// 模板渲染失败或为空时，回退到固定文案
+						msg = fmt.Sprintf("预警：【cherry】用户【%s】事件【白名单IP添加】状态【失败】 信息：提交第三方失败，域名：%s，错误：%s", username, domainList, err.Error())
+						if renderErr != nil {
+							AddLogs("AddDomainWhiteApply", renderErr.Error())
+						}
+					}
+
+					if sendErr := SendDingTalkURL(strings.TrimSpace(rule.WebhookURL), msg); sendErr != nil {
+						AddLogs("AddDomainWhiteApply", sendErr.Error())
+					}
+				}
+
 				for _, id := range blacklistDomainIDs {
 					updateData := map[string]interface{}{
 						"third_party_req_id": int(0),
@@ -468,7 +497,13 @@ func DomainWhiteReviewNotify(c *gin.Context) {
 	// 处理审核结果
 	err = processDomainsByStatus(callbackData)
 	if err != nil {
-		AddLogs("DomainWhiteReviewNotify", "processDomainsByStatus fail")
+		AddLogs("DomainWhiteReviewNotify", err.Error())
+		runtimeVars := map[string]any{
+			"username": callbackData.Account,
+			"domains":  callbackData.PassDomains + callbackData.NoPassDomains,
+		}
+		fallback := fmt.Sprintf("预警：【cherry】用户【%s】，域名审核情况：%s 审核成功,状态未同步,请及时查看", callbackData.Account, callbackData.PassDomains+callbackData.NoPassDomains)
+		SendProductAlertWithRule("domain_review_unsync", runtimeVars, fallback)
 		JsonReturn(c, e.ERROR, "process processDomainsByStatus failed", nil)
 		return
 	}
@@ -494,10 +529,7 @@ func processDomainsByStatus(data models.DomainReviewCallbackData) error {
 
 			err := models.UpdateDomainApplyByDomains(applyId, domains, updateData)
 			if err != nil {
-				log.Printf("Failed to batch update approved domains: %v", err)
 				return err
-			} else {
-				log.Printf("Successfully batch updated %d approved domains", len(domains))
 			}
 		}
 	}
@@ -516,10 +548,7 @@ func processDomainsByStatus(data models.DomainReviewCallbackData) error {
 
 			err := models.UpdateDomainApplyByDomains(applyId, domains, updateData)
 			if err != nil {
-				log.Printf("Failed to batch update rejected domains: %v", err)
 				return err
-			} else {
-				log.Printf("Successfully batch updated %d rejected domains", len(domains))
 			}
 		}
 	}

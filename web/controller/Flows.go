@@ -507,6 +507,18 @@ func AddUserFlowAccount(c *gin.Context) {
 		data.ExpireTime = flowInfo.ExpireTime
 
 		err, accId := models.AddProxyAccount(data)
+		if err != nil {
+			// 账户添加失败：发送产品侧预警（规则驱动模板+回退），并返回失败
+			runtime := map[string]any{
+				"username":  userInfo.Username,
+				"childUser": username,
+				"error":     err.Error(),
+			}
+			fallbackTpl := fmt.Sprintf("预警：【cherry】用户【%s】事件【认证账户添加】状态【失败】 信息：添加子账户失败，子账号：%s，错误：%s", userInfo.Username, username, err.Error())
+			SendProductAlertWithRule("child_add_failed", runtime, fallbackTpl)
+			JsonReturn(c, e.ERROR, "__T_ACCOUNT_USERNAME_ERROR", nil)
+			return
+		}
 		fmt.Println(err, accId)
 		dealInfo.AccountId = accId
 

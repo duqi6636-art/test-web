@@ -5,8 +5,10 @@ import (
 	"api-360proxy/web/e"
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"strconv"
+	"strings"
 )
 
 // @BasePath /api/v1
@@ -314,6 +316,37 @@ func UnlimitedFeedback(c *gin.Context) {
 		JsonReturn(c, -1, "__T_FAIL", nil)
 		return
 	}
+	// 预警：接口被请求时即触发（不限量定制：支持规则模板），包含【产品】、用户、并发、带宽
+	userStr := email
+	if uid > 0 {
+		if err, u := models.GetUserById(uid); err == nil && u.Id > 0 && strings.TrimSpace(u.Username) != "" {
+			userStr = u.Username
+		}
+	}
+
+	// 规则驱动模板优先，失败回退固定文案
+	if rule, ruleErr := models.GetAlertRule("feedback_flow"); ruleErr == nil && rule.ID > 0 && strings.TrimSpace(rule.WebhookURL) != "" {
+		runtime := map[string]any{
+			"username":    userStr,
+			"concurrency": config,
+			"bandwidth":   bandwidth,
+		}
+		msg, renderErr := RenderMessage(strings.TrimSpace(rule.Context), runtime)
+		if renderErr != nil || strings.TrimSpace(msg) == "" {
+			// 模板渲染失败或为空，回退到固定文案
+			fallback := fmt.Sprintf("预警：【cherry】用户【%s】并发【%s】带宽【%s】", userStr, config, bandwidth)
+			AddLogs("FeedbackFlow", fmt.Sprintf("render fail: %v", renderErr))
+			// 在当前调用链中同步尝试发送；失败回退到默认 DingMsg
+			if sendErr := SendDingTalkURL(strings.TrimSpace(rule.WebhookURL), fallback); sendErr != nil {
+				AddLogs("FeedbackFlow", sendErr.Error())
+			}
+		} else {
+			if sendErr := SendDingTalkURL(strings.TrimSpace(rule.WebhookURL), msg); sendErr != nil {
+				AddLogs("FeedbackFlow", sendErr.Error())
+			}
+		}
+	}
+
 	JsonReturn(c, 0, "__T_SUCCESS", nil)
 	return
 
