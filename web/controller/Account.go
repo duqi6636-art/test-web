@@ -503,6 +503,7 @@ func GoogleLogin(c *gin.Context) {
 			}
 			// 生成返回数据
 			data := ResUserInfo(sessionRes, ip, user)
+			data.IsNewUser = 1
 			JsonReturn(c, 0, "__T_REG_SUCCESS", data)
 
 			// 发送邮箱
@@ -707,6 +708,7 @@ func GithubLogin(c *gin.Context) {
 			}
 			// 生成返回数据
 			data := ResUserInfo(sessionRes, ip, user)
+			data.IsNewUser = 1
 			JsonReturn(c, 0, "__T_REG_SUCCESS", data)
 			return
 		}
@@ -862,6 +864,7 @@ func MPGithubLogin(c *gin.Context) {
 			}
 			// 生成返回数据
 			data := ResUserInfo(sessionRes, ip, user)
+			data.IsNewUser = 1
 			JsonReturn(c, 0, "__T_REG_SUCCESS", data)
 			return
 		}
@@ -1528,6 +1531,7 @@ func ResUserInfo(session, ip string, info models.Users) models.ResUser {
 			FlowExpire:   flowExpire, //流量是否过期
 			IsAct:        isMsg,      //是否活动弹窗
 		},
+		IsNewUser: 0,
 	}
 	return data
 }
