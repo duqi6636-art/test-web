@@ -48,6 +48,9 @@ type IpStaticLogModel struct {
 	Password   string `json:"password"`
 	Remark     string `json:"remark"`
 	Replaced   int    `json:"replaced"` //1:已替换 0:未替换
+	Status     int    `json:"status"`   //IP状态 1正常
+	OrderId    string `json:"order_id"` //开通时传值给资源中台的信息
+	IsNew      int    `json:"is_new"`   //是否新资源中台 1是
 }
 
 type ResStaticRecordModel struct {

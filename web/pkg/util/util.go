@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/unknwon/com"
 	"io"
 	"io/ioutil"
 	"log"
@@ -124,6 +125,14 @@ func VerifyPhone(phone string) bool {
 	regular := "^1[3-9]\\d{9}$"
 	reg := regexp.MustCompile(regular)
 	return reg.MatchString(phone)
+}
+
+// 获取全局唯一order_id
+func GetOrderIds() string {
+	formatLayout := "060102150405"
+	orderNo := time.Now().Format(formatLayout)
+	r := RandInt(100000, 999999)
+	return orderNo + com.ToStr(r)
 }
 
 func GetRandomInt(min int, max int) int {
