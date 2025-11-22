@@ -177,6 +177,10 @@ func GetUsername() string {
 	return username
 }
 
+func ToGB(x int64) int64 {
+	return x / 1024 / 1024 / 1024
+}
+
 // 获取默认密码
 func GenUserPwd() string {
 	userPwd := ""
@@ -361,8 +365,7 @@ func dealSendEmail(email_type int, email string, params map[string]string, ip st
 	}
 }
 
-
-//日志记录
+// 日志记录
 func AddLogs(code, data string) {
 	models.AddLog(models.LogModel{
 		Code:       code,

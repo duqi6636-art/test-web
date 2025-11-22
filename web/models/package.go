@@ -171,6 +171,12 @@ func GetPackageListFlowByCodes(pakType string, codes []string) (err error, data 
 	return
 }
 
+func GetPackageListByType(pakType string) (data []CmPackage, err error) {
+	dbs := db.Table(packageTable).Where("pak_type =?", pakType)
+	err = dbs.Where("status=?", 1).Order("sort desc").Find(&data).Error
+	return
+}
+
 // GetPackageListFlowByCode 根据单个 code 查询套餐数据
 func GetPackageListFlowByCode(pakType string, code string) (err error, data CmPackage) {
 	dbs := db.Table(packageTable).Where("pak_type = ?", pakType).Where("code = ?", code)

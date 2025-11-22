@@ -20,6 +20,7 @@ func centerRouter(router *gin.Engine) {
 	pack.POST("/dynamic_isp", controller.GetDynamicISPPackageList) // 获取动态isp套餐列表
 	pack.POST("/flow_day", controller.GetFlowDayPackageList)       // 获取不限量套餐列表
 	pack.POST("/socks5", controller.GetSocks5PackageList)          // 获取ip套餐列表
+	pack.POST("/residential", controller.GetResidentialPackages)   // 获取新住宅套餐（个人/企业）
 	pack.POST("/static", controller.GetStaticPackage)              // 获取静态长效套餐列表
 	pack.POST("/low_price", controller.GetLowPrice)                // 获取各套餐最低价格
 
