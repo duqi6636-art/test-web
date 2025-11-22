@@ -21,29 +21,30 @@ func webRouter(router *gin.Engine) {
 	router.POST("/web/check_cn", controller.CheckIsCn) //检查是否 中国大陆
 
 	web := router.Group("/web")
-	web.POST("/auth/sign", controller.GetAuthSign)           // 滑块验证
-	web.POST("/user/login", controller.Login)                // 邮箱登录
-	web.POST("/auth/login", controller.GetAuthLogin)         // 登录验证				//center
-	web.POST("/user/login_verify", controller.LoginVerify)   // 人机验证				//center
-	web.POST("/user/google_login", controller.GoogleLogin)   // 谷歌登录
-	web.POST("/user/github_login", controller.GithubLogin)   // GitHub登录
-	web.POST("/user/email_reg", controller.WebReg)           // 邮箱注册
-	web.POST("/user/sending", controller.SendEmailCode)      // 发送邮件验证码
-	web.POST("/user/user_info", controller.GetInfo)          // 用户信息
-	web.POST("/user/auto_login", controller.LoginAuto)       // 自动登录
-	web.POST("/user/forget", controller.ForgetPwd)           // 忘记密码
-	web.POST("/user/logout", controller.Logout)              // 退出登录
-	web.POST("/user/bind_email", controller.BindEmail)       // 绑定邮箱
-	web.POST("/user/reset_pwd", controller.ResetPass)        // 修改 /重置密码
-	web.POST("/user/pay_list", controller.UserOrderList)     // 用户购买记录
-	web.POST("/user/used_ip_list", controller.UsedIp)        // 用户IP消耗记录
-	web.POST("/user/used_ip_data", controller.GetUserUseIp)  // 用户IP消耗日期和数量
-	web.POST("/user/used_data", controller.GetUserUseIpNew)  // 用户IP消耗日期和数量
-	web.POST("/user/email_info", controller.GetInfoByEmail)  // 根据邮箱获取是否购买过信息
-	web.POST("/user/bind_wallet", controller.BindWallet)     // 绑定钱包
-	web.POST("/user/unbind_wallet", controller.UnBindWallet) // 解绑钱包
-	web.POST("/user/up_case", controller.UserCase)           // 用户案例
-	web.POST("/user/pack_status", controller.PackStatus)     // 用户套餐状态
+	web.POST("/auth/sign", controller.GetAuthSign)               // 滑块验证
+	web.POST("/user/login", controller.Login)                    // 邮箱登录
+	web.POST("/auth/login", controller.GetAuthLogin)             // 登录验证				//center
+	web.POST("/user/login_verify", controller.LoginVerify)       // 人机验证				//center
+	web.POST("/login/global_debug", controller.LoginDebugVerify) // 人机验证				//center
+	web.POST("/user/google_login", controller.GoogleLogin)       // 谷歌登录
+	web.POST("/user/github_login", controller.GithubLogin)       // GitHub登录
+	web.POST("/user/email_reg", controller.WebReg)               // 邮箱注册
+	web.POST("/user/sending", controller.SendEmailCode)          // 发送邮件验证码
+	web.POST("/user/user_info", controller.GetInfo)              // 用户信息
+	web.POST("/user/auto_login", controller.LoginAuto)           // 自动登录
+	web.POST("/user/forget", controller.ForgetPwd)               // 忘记密码
+	web.POST("/user/logout", controller.Logout)                  // 退出登录
+	web.POST("/user/bind_email", controller.BindEmail)           // 绑定邮箱
+	web.POST("/user/reset_pwd", controller.ResetPass)            // 修改 /重置密码
+	web.POST("/user/pay_list", controller.UserOrderList)         // 用户购买记录
+	web.POST("/user/used_ip_list", controller.UsedIp)            // 用户IP消耗记录
+	web.POST("/user/used_ip_data", controller.GetUserUseIp)      // 用户IP消耗日期和数量
+	web.POST("/user/used_data", controller.GetUserUseIpNew)      // 用户IP消耗日期和数量
+	web.POST("/user/email_info", controller.GetInfoByEmail)      // 根据邮箱获取是否购买过信息
+	web.POST("/user/bind_wallet", controller.BindWallet)         // 绑定钱包
+	web.POST("/user/unbind_wallet", controller.UnBindWallet)     // 解绑钱包
+	web.POST("/user/up_case", controller.UserCase)               // 用户案例
+	web.POST("/user/pack_status", controller.PackStatus)         // 用户套餐状态
 
 	web.POST("/msg/feedback", controller.FeedbackWeb)                   // 提交反馈
 	web.POST("/msg/feedback_assistance", controller.FeedbackAssistance) //申请协助反馈
