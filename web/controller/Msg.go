@@ -324,30 +324,15 @@ func UnlimitedFeedback(c *gin.Context) {
 		}
 	}
 
-	// 规则驱动模板优先，失败回退固定文案
-	if rule, ruleErr := models.GetAlertRule("feedback_flow"); ruleErr == nil && rule.ID > 0 && strings.TrimSpace(rule.WebhookURL) != "" {
-		runtime := map[string]any{
-			"username":    userStr,
-			"concurrency": config,
-			"bandwidth":   bandwidth,
-		}
-		msg, renderErr := RenderMessage(strings.TrimSpace(rule.Context), runtime)
-		if renderErr != nil || strings.TrimSpace(msg) == "" {
-			// 模板渲染失败或为空，回退到固定文案
-			fallback := fmt.Sprintf("预警：【cherry】用户【%s】并发【%s】带宽【%s】", userStr, config, bandwidth)
-			AddLogs("FeedbackFlow", fmt.Sprintf("render fail: %v", renderErr))
-			// 在当前调用链中同步尝试发送；失败回退到默认 DingMsg
-			if sendErr := SendDingTalkURL(strings.TrimSpace(rule.WebhookURL), fallback); sendErr != nil {
-				AddLogs("FeedbackFlow", sendErr.Error())
-			}
-		} else {
-			if sendErr := SendDingTalkURL(strings.TrimSpace(rule.WebhookURL), msg); sendErr != nil {
-				AddLogs("FeedbackFlow", sendErr.Error())
-			}
-		}
+	runtime := map[string]any{
+		"username":    userStr,
+		"concurrency": config,
+		"bandwidth":   bandwidth,
 	}
+
+	fallback := fmt.Sprintf("预警：【cherry】用户【%s】并发【%s】带宽【%s】", userStr, config, bandwidth)
+	models.SendProductAlertWithRule("feedback_flow", runtime, fallback)
 
 	JsonReturn(c, 0, "__T_SUCCESS", nil)
 	return
-
 }

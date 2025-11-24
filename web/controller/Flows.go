@@ -515,7 +515,7 @@ func AddUserFlowAccount(c *gin.Context) {
 				"error":     err.Error(),
 			}
 			fallbackTpl := fmt.Sprintf("预警：【cherry】用户【%s】事件【认证账户添加】状态【失败】 信息：添加子账户失败，子账号：%s，错误：%s", userInfo.Username, username, err.Error())
-			SendProductAlertWithRule("child_add_failed", runtime, fallbackTpl)
+			models.SendProductAlertWithRule("child_add_failed", runtime, fallbackTpl)
 			JsonReturn(c, e.ERROR, "__T_ACCOUNT_USERNAME_ERROR", nil)
 			return
 		}

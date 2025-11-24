@@ -2,14 +2,9 @@ package models
 
 import (
 	"api-360proxy/web/constants"
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"html/template"
 	"log"
-	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -341,74 +336,4 @@ func CheckGlobalLoginCaptchaRelease() (bool, string, error) {
 		triggerTime, now, currentCount, avgCount)
 
 	return shouldRelease, reason, nil
-}
-
-type dingMsgV struct {
-	MsgType string                 `json:"msgtype"`
-	Text    map[string]string      `json:"text"`
-	At      map[string]interface{} `json:"at"`
-}
-
-// 统一的产品侧规则驱动预警，支持模板与回退
-
-func SendProductAlertWithRule(ruleKey string, runtime map[string]any, fallbackTpl string) {
-	rule, ruleErr := GetAlertRule(ruleKey)
-	if ruleErr == nil && rule.ID > 0 && strings.TrimSpace(rule.WebhookURL) != "" {
-		msg, renderErr := RenderMessage(strings.TrimSpace(rule.Context), runtime)
-		if renderErr != nil || strings.TrimSpace(msg) == "" {
-			msg = fallbackTpl
-		}
-		if sendErr := SendDingTalkURL(strings.TrimSpace(rule.WebhookURL), msg); sendErr != nil {
-			fmt.Println(sendErr)
-		}
-	}
-}
-
-// 直接使用完整 webhook URL 发送；若提供 secret 则自动加签
-
-func SendDingTalkURL(webhookURL, content string) error {
-	url := webhookURL
-	isAtAll := false
-	phoneArr := []string{}
-
-	atArr := map[string]interface{}{
-		"atMobiles": phoneArr,
-		"isAtAll":   isAtAll,
-	}
-	body := dingMsgV{
-		MsgType: "text",
-		Text:    map[string]string{"content": content},
-		At:      atArr,
-	}
-	b, _ := json.Marshal(body)
-	req, _ := http.NewRequest("POST", url, bytes.NewReader(b))
-	req.Header.Set("Content-Type", "application/json;charset=utf-8")
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	return nil
-}
-
-// 将 rule.Context 作为模板
-
-func RenderMessage(contextTpl string, runtimeVars map[string]interface{}) (string, error) {
-	data := map[string]interface{}{}
-	if runtimeVars != nil {
-		for k, v := range runtimeVars {
-			data[k] = v
-		}
-	}
-	tplText := strings.TrimSpace(contextTpl)
-	tpl, err := template.New("alert").Option("missingkey=zero").Parse(tplText)
-	if err != nil {
-		return "", err
-	}
-	var buf bytes.Buffer
-	if err := tpl.Execute(&buf, data); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
 }

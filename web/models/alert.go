@@ -16,7 +16,8 @@ type AlertRule struct {
 	SyncChannel   string    `json:"sync_channel"`
 	WebhookURL    string    `gorm:"column:webhook_url" json:"webhook_url"`
 	DingTalkGroup string    `json:"dingtalk_group"`
-	Params        string    `json:"params"`  // JSON string for rule specific params
+	Params        string    `json:"params"` // JSON string for rule specific params
+	DParams       string    `gorm:"column:ding_params" json:"ding_params"`
 	ApiUrl        string    `json:"api_url"` // 接口地址
 	Context       string    `json:"context"` // 内容模板
 	Enabled       bool      `json:"enabled"`
