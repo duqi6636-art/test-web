@@ -53,6 +53,18 @@ func LoginVerify(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", result)
 }
 
+func LoginDebugVerify(c *gin.Context) {
+	// 检查是否需要人机验证
+	globalNeedCaptcha, globalReason, _ := models.CheckGlobalLoginCaptchaTrigger()
+
+	// 构建返回数据
+	result := gin.H{
+		"globalNeedCaptcha": globalNeedCaptcha,
+		"globalReason":      globalReason,
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", result)
+}
+
 func GetAuthLogin(c *gin.Context) {
 	email := strings.TrimSpace(c.DefaultPostForm("email", ""))
 	if email == "" {
