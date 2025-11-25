@@ -220,6 +220,7 @@ func GetHalloweenEnabled(c *gin.Context) {
 // @Success 0 {array} map[string]interface{} "person：个人套餐列表 business：企业套餐列表"
 // @Router /web/package/residential [post]
 func GetResidentialPackages(c *gin.Context) {
+	lang := DealLanguageUrl(c)
 	// 查询并构建返回
 	personalPaks, _ := models.GetPackageListByType("flow")
 	businessPaks, _ := models.GetPackageListByType("flow_agent")
@@ -228,9 +229,23 @@ func GetResidentialPackages(c *gin.Context) {
 		res := make([]models.ResIpPackageFlow, 0, len(paks))
 		for _, v := range paks {
 			info := models.ResIpPackageFlow{}
+			// 文案配置
+			infoDetail := models.PackageTextMap[lang+"_"+util.ItoS(v.Id)]
 			corner := v.Corner
 			corner2 := v.ActTitle
 			actDesc := v.ActDesc
+			if infoDetail.Id > 0 {
+				if infoDetail.Corner != "" {
+					corner = infoDetail.Corner
+				}
+				if infoDetail.ActTitle != "" {
+					corner2 = infoDetail.ActTitle
+				}
+				if infoDetail.ActDesc != "" {
+					actDesc = infoDetail.ActDesc
+				}
+			}
+
 			valueGB := ToGB(v.Value)
 			giveGB := ToGB(v.Give)
 
