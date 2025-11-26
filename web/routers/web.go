@@ -65,6 +65,11 @@ func webRouter(router *gin.Engine) {
 	web.POST("/auth/bing_auth", controller.VerifyCodeBind)     // 绑定信息
 	web.POST("/auth/unbind_auth", controller.VerifyCodeUnBind) // 解绑信息
 
+	web.POST("/auth/set_open", controller.SetOpen)     // 设置开关
+	web.POST("/auth/qrcode", controller.GetDownQrCode) //获取下载地址二维码
+	web.GET("/auth/download", controller.GetDownload)  //跳转下载地址
+	web.POST("/auth/download", controller.GetDownload) //跳转下载地址
+
 	//web.POST("/invite/stats_click", controller.StatsClick) // 活动点击统计
 
 	// invite 邀请返佣接口

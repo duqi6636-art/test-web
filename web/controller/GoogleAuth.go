@@ -173,3 +173,83 @@ func VerifyCodeUnBind(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "__T_UNBIND_SUCCESS", nil)
 	return
 }
+
+func SetOpen(c *gin.Context) {
+	open := c.DefaultPostForm("is_open", "on")
+	cate := c.DefaultPostForm("cate", "email")
+
+	if open == "" {
+		JsonReturn(c, e.ERROR, "__T_PARAM_ERROR", map[string]string{})
+		return
+	}
+	if cate == "" {
+		cate = "email"
+	}
+	resCode, msg, user := DealUser(c) //处理用户信息
+
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+	err, authList := models.GetAuthByUid(uid)
+	if err == nil && len(authList) == 0 {
+		JsonReturn(c, e.ERROR, "__T_AUTH_UNBIND", nil)
+		return
+	}
+	//hasOpen := 0
+	openInfo := models.UserGoogleAuth{}
+	closeInfo := models.UserGoogleAuth{}
+	for _, val := range authList {
+		if val.Cate == cate {
+			openInfo = val
+		} else {
+			closeInfo = val
+		}
+	}
+
+	if err == nil && openInfo.ID == 0 {
+		JsonReturn(c, e.ERROR, "__T_AUTH_UNBIND", nil)
+		return
+	}
+
+	upInfo := map[string]interface{}{}
+	shutInfo := map[string]interface{}{}
+	msgs := "__T_SUCCESS"
+	if open == "on" || open == "1" {
+		upInfo["is_open"] = 1
+		shutInfo["is_open"] = 0
+		if closeInfo.ID != 0 {
+			models.EditAuthById(closeInfo.ID, shutInfo)
+		}
+		msgs = "__T_SUCCESS_OPEN"
+	} else {
+		upInfo["is_open"] = 0
+		msgs = "__T_SUCCESS_CLOSE"
+	}
+	models.EditAuthById(openInfo.ID, upInfo)
+
+	result := map[string]models.UserLoginAuth{}
+
+	emailAuth := models.UserLoginAuth{}
+	googleInfoAuth := models.UserLoginAuth{}
+	err, resList := models.GetAuthByUid(user.Id)
+	if err == nil && len(authList) > 0 {
+		for _, val := range resList {
+			if val.Cate == "email" {
+				emailAuth.IsOpen = val.IsOpen
+				emailAuth.Cate = val.Cate
+				emailAuth.Info = val.Username
+			} else {
+				googleInfoAuth.IsOpen = val.IsOpen
+				googleInfoAuth.Cate = val.Cate
+				googleInfoAuth.Info = val.Username
+			}
+		}
+	}
+	result["email_auth"] = emailAuth
+	result["google_auth"] = googleInfoAuth
+
+	JsonReturn(c, e.SUCCESS, msgs, result)
+	return
+}

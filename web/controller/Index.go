@@ -398,3 +398,50 @@ func GetUserDomain(c *gin.Context) {
 	})
 	return
 }
+
+func GetDownQrCode(c *gin.Context) {
+
+	url := models.GetConfigVal("API_DOMAIN_URL") + "/web/auth/download"
+	info := map[string]interface{}{
+		"url": models.GetConfigVal("API_DOMAIN_URL") + "/qrcode?data=" + url,
+	}
+	JsonReturn(c, 0, "ok", info)
+	return
+}
+
+func GetDownload(c *gin.Context) {
+	userAgent := c.GetHeader("User-Agent")
+	device := ""
+	if strings.Contains(userAgent, "Android") {
+		device = "android"
+	} else if strings.Contains(userAgent, "iPhone") || strings.Contains(userAgent, "iPad") || strings.Contains(userAgent, "iPod") {
+		device = "iphone"
+	} else {
+		device = ""
+	}
+	fmt.Println(device)
+	ip := c.ClientIP()
+	ipInfo := GetIpInfo(ip)
+
+	is_cn := 0
+	if ipInfo.CountryCode == "CN" || ipInfo.CountryCode == "内网" || ipInfo.CountryCode == "保留" || ipInfo.CountryCode == "" {
+		is_cn = 1
+	}
+	downloadUrl := "https://play.google.com/store/search?q=google+authenticator&c=apps"
+	if device == "iphone" {
+		if is_cn == 1 {
+			downloadUrl = "https://apps.apple.com/cn/app/microsoft-authenticator/id983156458"
+		} else {
+			downloadUrl = "https://apps.apple.com/us/app/google-authenticator/id388497605"
+		}
+	} else if device == "android" {
+		if is_cn == 1 {
+			downloadUrl = "https://dl.922proxy.com/version/authenticator2_6.0_6006000.apk"
+		} else {
+			downloadUrl = "https://play.google.com/store/search?q=google+authenticator&c=apps"
+		}
+	}
+
+	c.Redirect(302, downloadUrl)
+	return
+}
