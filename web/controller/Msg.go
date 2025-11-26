@@ -5,8 +5,10 @@ import (
 	"api-360proxy/web/e"
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"strconv"
+	"strings"
 )
 
 // @BasePath /api/v1
@@ -314,7 +316,23 @@ func UnlimitedFeedback(c *gin.Context) {
 		JsonReturn(c, -1, "__T_FAIL", nil)
 		return
 	}
+	// 预警：接口被请求时即触发（不限量定制：支持规则模板），包含【产品】、用户、并发、带宽
+	userStr := email
+	if uid > 0 {
+		if err, u := models.GetUserById(uid); err == nil && u.Id > 0 && strings.TrimSpace(u.Username) != "" {
+			userStr = u.Username
+		}
+	}
+
+	runtime := map[string]any{
+		"username":    userStr,
+		"concurrency": config,
+		"bandwidth":   bandwidth,
+	}
+
+	fallback := fmt.Sprintf("预警：【cherry】用户【%s】并发【%s】带宽【%s】", userStr, config, bandwidth)
+	models.SendProductAlertWithRule("feedback_flow", runtime, fallback)
+
 	JsonReturn(c, 0, "__T_SUCCESS", nil)
 	return
-
 }

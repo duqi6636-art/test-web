@@ -361,8 +361,7 @@ func dealSendEmail(email_type int, email string, params map[string]string, ip st
 	}
 }
 
-
-//日志记录
+// 日志记录
 func AddLogs(code, data string) {
 	models.AddLog(models.LogModel{
 		Code:       code,

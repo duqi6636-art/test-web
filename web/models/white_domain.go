@@ -189,3 +189,15 @@ func getMainDomain(domain string) string {
 	// 返回主域名（最后两部分）
 	return hostParts[n-2] + "." + hostParts[n-1]
 }
+func GetUnsyncedDomains(applyId int, domains []string, expectStatus int) ([]string, error) {
+	if len(domains) == 0 {
+		return []string{}, nil
+	}
+	var unsynced []string
+	err := db.Table(userApplyDomainTable).
+		Where("third_party_req_id = ?", applyId).
+		Where("domain IN (?)", domains).
+		Where("status <> ?", expectStatus).
+		Pluck("domain", &unsynced).Error
+	return unsynced, err
+}

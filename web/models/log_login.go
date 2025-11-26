@@ -186,6 +186,12 @@ func CheckGlobalLoginCaptchaTrigger() (bool, string, error) {
 			// 记录错误但不影响主要逻辑
 			fmt.Printf("记录全局人机验证触发状态失败: %v\n", err)
 		}
+		minutes := timeWindow / 60
+		runtime := map[string]any{
+			"minutes": minutes,
+		}
+		fallbackTpl := fmt.Sprintf("紧急：【cherry】当前【%d】分钟内登录接口次数异常，请立即查看！", minutes)
+		SendProductAlertWithRule("global_login_trigger", runtime, fallbackTpl)
 		log.Println("needCaptcha 为 ture")
 	}
 
