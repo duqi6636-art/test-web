@@ -61,9 +61,14 @@ func webRouter(router *gin.Engine) {
 
 	// google 验证器接口
 	web.POST("/auth/auth_info", controller.GetGoogleAuth)      // 创建信息
-	web.POST("/auth/verify_code", controller.VerifyCode)       // 验证
+	web.POST("/auth/verify_code", controller.VerifyCode)       // 验证google
 	web.POST("/auth/bing_auth", controller.VerifyCodeBind)     // 绑定信息
 	web.POST("/auth/unbind_auth", controller.VerifyCodeUnBind) // 解绑信息
+
+	web.POST("/auth/get_info", controller.GetUserAuthInfo)     // 用户是否需要验证
+	web.POST("/auth/verify_email", controller.VerifyEmailCode) //  验证邮箱
+	web.POST("/auth/bind_email", controller.BindEmailAuth)     // 绑定邮箱
+	web.POST("/auth/unbind_email", controller.UnBindEmailAuth) // 解绑邮箱
 
 	web.POST("/auth/set_open", controller.SetOpen)     // 设置开关
 	web.POST("/auth/qrcode", controller.GetDownQrCode) //获取下载地址二维码

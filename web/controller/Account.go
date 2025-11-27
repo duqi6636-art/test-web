@@ -895,6 +895,7 @@ func MPGithubLogin(c *gin.Context) {
 }
 
 // 忘记密码，登录发送验证码
+
 func SendEmailCode(c *gin.Context) {
 	signParam := GetParams(c)
 	email := strings.TrimSpace(c.DefaultPostForm("email", ""))
@@ -907,10 +908,11 @@ func SendEmailCode(c *gin.Context) {
 		JsonReturn(c, -1, "__T_EMAIL_FORMAT_ERROR", map[string]string{"class_id": "email"})
 		return
 	}
-	if code_type == "login" || code_type == "find" {
+	if code_type == "login" || code_type == "find" || code_type == "bind_email" || code_type == "unbind_email" || code_type == "check_login" {
 
 	} else {
 		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
 	}
 	if code_type == "login" {
 		config := strings.TrimSpace(models.GetConfigVal("EmailVerifyLoginSwitch"))

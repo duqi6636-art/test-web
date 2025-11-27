@@ -27,7 +27,7 @@ func DeleteUserGoogleAuth(uid int) (err error) {
 	return err
 }
 
-func GetAuthByUid(uid int) (err error, data []UserGoogleAuth) {
+func GetAuthByUid(uid int) (data []UserGoogleAuth, err error) {
 	err = db.Table(googleAuthTable).Where("uid = ?", uid).Find(&data).Error
 	return
 }
@@ -38,4 +38,14 @@ func EditAuthById(id int, info interface{}) bool {
 		return true
 	}
 	return false
+}
+
+func GetUserAuthByUid(uid int, cate string) (err error, data UserGoogleAuth) {
+	err = db.Table(googleAuthTable).Where("uid = ?", uid).Where("cate = ?", cate).Find(&data).Error
+	return
+}
+
+func DeleteUserGoogleAuthByCate(uid int, cate string) (err error) {
+	err = db.Table(googleAuthTable).Where("uid=?", uid).Where("cate=?", cate).Delete(&UserGoogleAuth{}).Error
+	return err
 }

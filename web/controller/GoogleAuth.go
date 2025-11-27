@@ -6,8 +6,9 @@ import (
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 var googleKey = "360Proxy"
@@ -174,30 +175,42 @@ func VerifyCodeUnBind(c *gin.Context) {
 	return
 }
 
-func SetOpen(c *gin.Context) {
-	open := c.DefaultPostForm("is_open", "on")
-	cate := c.DefaultPostForm("cate", "email")
+// 切换登录认证方式开关（email 或 google），并保持两者互斥：开启一种则关闭另一种
 
-	if open == "" {
-		JsonReturn(c, e.ERROR, "__T_PARAM_ERROR", map[string]string{})
+func SetOpen(c *gin.Context) {
+	// 参数绑定和验证
+	var params struct {
+		IsOpen string `form:"is_open" binding:"required,oneof=on off 1 0"`
+		Cate   string `form:"cate" binding:"required,oneof=email google"`
+	}
+
+	if err := c.ShouldBind(&params); err != nil {
+		JsonReturn(c, e.ERROR, "__T_PARAM_ERROR", nil)
 		return
 	}
-	if cate == "" {
-		cate = "email"
-	}
-	resCode, msg, user := DealUser(c) //处理用户信息
 
+	cate := params.Cate
+	open := params.IsOpen
+
+	// 用户身份校验
+	resCode, msg, user := DealUser(c)
 	if resCode != e.SUCCESS {
 		JsonReturn(c, resCode, msg, nil)
 		return
 	}
-	uid := user.Id
-	err, authList := models.GetAuthByUid(uid)
-	if err == nil && len(authList) == 0 {
+
+	// 获取用户认证记录
+	authList, err := models.GetAuthByUid(user.Id)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_FAIL", nil)
+		return
+	}
+
+	if len(authList) == 0 {
 		JsonReturn(c, e.ERROR, "__T_AUTH_UNBIND", nil)
 		return
 	}
-	//hasOpen := 0
+
 	openInfo := models.UserGoogleAuth{}
 	closeInfo := models.UserGoogleAuth{}
 	for _, val := range authList {
@@ -208,7 +221,7 @@ func SetOpen(c *gin.Context) {
 		}
 	}
 
-	if err == nil && openInfo.ID == 0 {
+	if openInfo.ID == 0 {
 		JsonReturn(c, e.ERROR, "__T_AUTH_UNBIND", nil)
 		return
 	}
@@ -229,27 +242,273 @@ func SetOpen(c *gin.Context) {
 	}
 	models.EditAuthById(openInfo.ID, upInfo)
 
-	result := map[string]models.UserLoginAuth{}
-
 	emailAuth := models.UserLoginAuth{}
 	googleInfoAuth := models.UserLoginAuth{}
-	err, resList := models.GetAuthByUid(user.Id)
-	if err == nil && len(authList) > 0 {
-		for _, val := range resList {
-			if val.Cate == "email" {
-				emailAuth.IsOpen = val.IsOpen
-				emailAuth.Cate = val.Cate
-				emailAuth.Info = val.Username
-			} else {
-				googleInfoAuth.IsOpen = val.IsOpen
-				googleInfoAuth.Cate = val.Cate
-				googleInfoAuth.Info = val.Username
+	resList, _ := models.GetAuthByUid(user.Id)
+	for _, val := range resList {
+		lc := strings.ToLower(val.Cate)
+		if lc == "email" {
+			emailAuth = models.UserLoginAuth{IsOpen: val.IsOpen, Cate: lc, Info: val.Username}
+		} else {
+			googleInfoAuth = models.UserLoginAuth{IsOpen: val.IsOpen, Cate: "google_auth", Info: val.Username}
+		}
+	}
+	result := map[string]models.UserLoginAuth{
+		"email_auth":  emailAuth,
+		"google_auth": googleInfoAuth,
+	}
+
+	JsonReturn(c, e.SUCCESS, msgs, result)
+	return
+}
+
+func BindEmailAuth(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+
+	code := c.DefaultPostForm("code", "")
+	email := c.DefaultPostForm("email", "")
+	if code == "" {
+		JsonReturn(c, -1, "__T_CODE_ERROR", gin.H{})
+		return
+	}
+	if email == "" {
+		JsonReturn(c, e.ERROR, "__T_EMAIL_IS_MUST", map[string]string{})
+		return
+	}
+	if !util.CheckEmail(email) {
+		JsonReturn(c, e.ERROR, "__T_EMAIL_FORMAT_ERROR", map[string]string{})
+		return
+	}
+
+	vtype := "bind_email"
+	errC, codeInfo := models.CheckVerifyByCode(code, email, vtype)
+	codeId := codeInfo.ID
+	if errC != nil || codeId == 0 {
+		JsonReturn(c, -1, "__T_VERIFY_ERROR", map[string]string{"class_id": "code"})
+		return
+	}
+	if codeInfo.Ip != c.ClientIP() {
+		JsonReturn(c, -1, "__T_VERIFY_ERROR", map[string]string{"class_id": "code"})
+		return
+	}
+
+	err, authInfo := models.GetUserAuthByUid(uid, "email")
+	if err == nil && authInfo.ID != 0 {
+		JsonReturn(c, e.ERROR, "__T_EMAIL_AUTH_BIND", nil)
+		return
+	}
+
+	isOpen := 1
+	err, authInfo2 := models.GetUserAuthByUid(uid, "google_auth")
+	if err == nil && authInfo2.ID != 0 && authInfo2.IsOpen == 1 {
+		isOpen = 0
+	}
+
+	authMap := models.UserGoogleAuth{}
+	authMap.Username = email
+	authMap.GoogleKey = email
+	authMap.Uid = user.Id
+	authMap.Cate = "email"
+	authMap.IsOpen = isOpen
+	authMap.Create_time = util.GetNowInt()
+	err = models.CreateUserGoogleAuth(authMap)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_EMAIL_AUTH_FAIL", nil)
+		return
+	}
+
+	if codeId > 0 {
+		// 验证码验证完成后销毁
+		cRes := models.UpdateCodeStatus(map[string]interface{}{"id": codeId})
+		fmt.Println(cRes)
+	}
+	JsonReturn(c, e.SUCCESS, "__T_EMAIL_AUTH_SUCCESS", nil)
+	return
+}
+
+func UnBindEmailAuth(c *gin.Context) {
+	code := c.DefaultPostForm("code", "")
+	email := c.DefaultPostForm("email", "")
+
+	if code == "" {
+		JsonReturn(c, -1, "__T_CODE_ERROR", gin.H{})
+		return
+	}
+	if email == "" {
+		JsonReturn(c, e.ERROR, "__T_EMAIL_IS_MUST", map[string]string{})
+		return
+	}
+	if !util.CheckEmail(email) {
+		JsonReturn(c, e.ERROR, "__T_EMAIL_FORMAT_ERROR", map[string]string{})
+		return
+	}
+	vtype := "unbind_email"
+	errC, codeInfo := models.CheckVerifyByCode(code, email, vtype)
+	codeId := codeInfo.ID
+	if errC != nil || codeId == 0 {
+		JsonReturn(c, -1, "__T_VERIFY_ERROR", map[string]string{"class_id": "code"})
+		return
+	}
+	if codeInfo.Ip != c.ClientIP() {
+		JsonReturn(c, -1, "__T_VERIFY_ERROR", map[string]string{"class_id": "code"})
+		return
+	}
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	uid := user.Id
+
+	err := models.DeleteUserGoogleAuthByCate(uid, "email")
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_UNBIND_FAIL", nil)
+		return
+	}
+	if codeId > 0 {
+		// 验证码验证完成后销毁
+		cRes := models.UpdateCodeStatus(map[string]interface{}{"id": codeId})
+		fmt.Println(cRes)
+	}
+	JsonReturn(c, e.SUCCESS, "__T_UNBIND_SUCCESS", nil)
+	return
+}
+
+func VerifyEmailCode(c *gin.Context) {
+	username := c.DefaultPostForm("username", "")
+	code := c.DefaultPostForm("code", "")
+
+	platform := c.DefaultPostForm("platform", "web") // 终端
+	if platform == "" {
+		platform = "web"
+	}
+
+	err, user := models.GetUserByUsername(username)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_SESSION_ERROR", nil)
+		return
+	}
+	if user.Status == 2 {
+		JsonReturn(c, e.ERROR, "__T_ACCOUNT_DISABLED", nil)
+		return
+	}
+	if user.Status == 3 {
+		JsonReturn(c, e.ERROR, "__T_ACCOUNT_DISABLED", nil)
+		return
+	}
+
+	email := strings.TrimSpace(c.DefaultPostForm("email", ""))
+
+	if email == "" {
+		JsonReturn(c, e.ERROR, "__T_EMAIL_IS_MUST", map[string]string{"class_id": "username"})
+		return
+	}
+	if code == "" {
+		JsonReturn(c, -1, "__T_VERIFY_EMPTY", map[string]string{"class_id": "code"})
+		return
+	}
+
+	err, authInfo := models.GetUserAuthByUid(user.Id, "email")
+	if err != nil && authInfo.ID == 0 {
+		JsonReturn(c, e.ERROR, "__T_GOOGLE_AUTH_NO", nil)
+		return
+	}
+
+	vtype := "check_login"
+	// 验证 验证码
+	errC, codeInfo := models.CheckVerifyByCode(code, email, vtype)
+	codeId := codeInfo.ID
+	if errC != nil || codeId == 0 {
+		JsonReturn(c, -1, "__T_VERIFY_ERROR", map[string]string{"class_id": "code"})
+		return
+	}
+	if codeInfo.Ip != c.ClientIP() {
+		JsonReturn(c, -1, "__T_VERIFY_ERROR", map[string]string{"class_id": "code"})
+		return
+	}
+
+	ip := c.ClientIP()
+	sessionInfo, err := models.GetSessionByUsername(username, ip, platform)
+	if err != nil || sessionInfo.ID == 0 {
+		JsonReturn(c, e.ERROR, "__T_SESSION_ERROR", nil)
+		return
+	}
+	session := sessionInfo.SessionId
+	nowTime := util.GetNowInt()
+	ipInfo := GetIpInfo(ip)
+	if codeId > 0 {
+		//操作登录设备记录
+		errD, hasD := models.GetLoginDeviceBy(user.Id, ip)
+		if errD != nil || hasD.ID == 0 {
+			addDevice := models.LoginDevices{}
+			addDevice.Cate = "email"
+			addDevice.Uid = user.Id
+			addDevice.Username = user.Username
+			addDevice.Email = user.Email
+			addDevice.Device = "922-" + util.RandStr("r", 16)
+			addDevice.DeviceNo = ip
+			addDevice.Platform = "web"
+			addDevice.Ip = ip
+			addDevice.Trust = nowTime //
+			addDevice.Country = ipInfo.Country
+			addDevice.State = ipInfo.Province
+			addDevice.City = ipInfo.City
+			addDevice.Session = session
+			addDevice.UpdateTime = nowTime
+			addDevice.CreateTime = nowTime
+			models.AddLoginDevice(addDevice)
+		} else {
+			up := map[string]interface{}{
+				"update_time": nowTime,
+				"trust":       nowTime,
+			}
+			models.EditLoginDeviceInfo(hasD.ID, up)
+		}
+		// 验证码验证完成后销毁
+		cRes := models.UpdateCodeStatus(map[string]interface{}{"id": codeId})
+		fmt.Println(cRes)
+
+		data := ResUserInfo(session, ip, user)
+		JsonReturn(c, e.SUCCESS, "__T_VERIFY_SUCCESS", data)
+		return
+	}
+	JsonReturn(c, e.ERROR, "__T_FAIL", nil)
+	return
+}
+
+func GetUserAuthInfo(c *gin.Context) {
+	resCode, msg, user := DealUser(c)
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	result := map[string]models.UserLoginAuth{
+		"email_auth":  {},
+		"google_auth": {},
+	}
+	authList, err := models.GetAuthByUid(user.Id)
+	if err == nil {
+		if len(authList) == 0 {
+			JsonReturn(c, e.SUCCESS, "__T_SUCCESS", result)
+			return
+		}
+		for _, val := range authList {
+			cate := strings.ToLower(val.Cate)
+			switch cate {
+			case "email":
+				result["email_auth"] = models.UserLoginAuth{IsOpen: val.IsOpen, Cate: cate, Info: val.Username}
+			case "google":
+				result["google_auth"] = models.UserLoginAuth{IsOpen: val.IsOpen, Cate: cate, Info: val.Username}
+			default:
+				models.AddLog(models.LogModel{Code: "user_auth_unknown_cate", Text: fmt.Sprintf("uid=%d cate=%s", user.Id, val.Cate), CreateTime: util.GetTimeStr(util.GetNowInt(), "Y-m-d H:i:s")})
 			}
 		}
 	}
-	result["email_auth"] = emailAuth
-	result["google_auth"] = googleInfoAuth
-
-	JsonReturn(c, e.SUCCESS, msgs, result)
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", result)
 	return
 }
