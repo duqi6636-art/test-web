@@ -75,6 +75,9 @@ func webRouter(router *gin.Engine) {
 	web.GET("/auth/download", controller.GetDownload)  //跳转下载地址
 	web.POST("/auth/download", controller.GetDownload) //跳转下载地址
 
+	save := router.Group("/web/save")
+	save.POST("/device_list", controller.SafeDevice) // 安全设备列表		//center
+
 	//web.POST("/invite/stats_click", controller.StatsClick) // 活动点击统计
 
 	// invite 邀请返佣接口
