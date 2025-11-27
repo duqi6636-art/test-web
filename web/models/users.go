@@ -45,6 +45,12 @@ type Users struct {
 	DeviceToken       string  `json:"device_token"`
 }
 
+type UserLoginAuth struct {
+	IsOpen int    `json:"is_open"`
+	Cate   string `json:"cate"`
+	Info   string `json:"info"`
+}
+
 // 用户信息返回信息
 type ResUser struct {
 	Session   string      `json:"session"`

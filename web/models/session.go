@@ -40,3 +40,15 @@ func GetSessionInfo(where map[string]interface{}) (err error, ses Session) {
 	err = db.Table("cm_session").Where(where).First(&ses).Error
 	return
 }
+
+func GetSessionByUsername(username, ip, platform string) (log Session, err error) {
+	db1 := db.Table("cm_session").
+		Where("username =?", username).
+		Where("login_ip =?", ip)
+	if platform != "" {
+		db1 = db1.Where("platform =?", platform)
+	}
+	db1 = db1.Where("expire_time >= ?", util.GetNowInt()).
+		First(&log)
+	return
+}
