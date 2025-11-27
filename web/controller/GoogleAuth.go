@@ -512,3 +512,49 @@ func GetUserAuthInfo(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", result)
 	return
 }
+
+func SafeDevice(c *gin.Context) {
+	lang := strings.ToLower(c.DefaultPostForm("lang", "en")) //语言
+	resCode, msg, user := DealUser(c)                        //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	session := c.DefaultPostForm("session", "")
+	listsInfo := models.ListLoginDevices(user.Id)
+	resList := []models.ResLoginDevices{}
+	for _, v := range listsInfo {
+		device := v.DeviceNo
+		if device == "" {
+			device = v.Ip
+		}
+		online := 0
+		if v.Session == session {
+			online = 1
+		}
+		trust := 0
+		if v.Trust > 0 {
+			trust = 1
+		}
+		loginTime := v.CreateTime
+		if v.UpdateTime > loginTime {
+			loginTime = v.UpdateTime
+		}
+		info := models.ResLoginDevices{}
+		info.Id = v.ID
+		info.Uid = v.Uid
+		info.Cate = v.Cate
+		info.Device = v.Device
+		info.Platform = v.Platform
+		info.Ip = v.Ip
+		info.Country = v.Country
+		info.State = v.State
+		info.City = v.City
+		info.Online = online
+		info.Trust = trust
+		info.CreateTime = util.GetTimeHISByLang(loginTime, lang)
+		resList = append(resList, info)
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resList)
+	return
+}

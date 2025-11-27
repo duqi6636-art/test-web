@@ -2,6 +2,21 @@ package models
 
 var loginDeviceTable = "login_devices"
 
+type ResLoginDevices struct {
+	Id         int    `json:"id"`
+	Uid        int    `json:"uid"`
+	Cate       string `json:"cate"`
+	Device     string `json:"device"`
+	Platform   string `json:"platform"`
+	Ip         string `json:"ip"`
+	Country    string `json:"country"`
+	State      string `json:"state"`
+	City       string `json:"city"`
+	Online     int    `json:"online"`
+	Trust      int    `json:"trust"` //是否信任
+	CreateTime string `json:"create_time"`
+}
+
 type LoginDevices struct {
 	ID         int    `json:"id"`
 	Uid        int    `json:"uid"`
@@ -33,5 +48,10 @@ func GetLoginDeviceBy(uid int, device_no string) (err error, data LoginDevices) 
 
 func EditLoginDeviceInfo(id int, data map[string]interface{}) (err error) {
 	err = db.Table(loginDeviceTable).Where("id = ?", id).Update(data).Error
+	return
+}
+
+func ListLoginDevices(uid int) (data []LoginDevices) {
+	db.Table(loginDeviceTable).Where("uid = ?", uid).Where("status = ?", 1).Order("id desc").Find(&data)
 	return
 }
