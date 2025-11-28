@@ -12,6 +12,11 @@ type UserGoogleAuth struct {
 
 var googleAuthTable = "cm_user_google_auth"
 
+func GetUserAuthByUsername(username, cate string) (err error, data UserGoogleAuth) {
+	err = db.Table(googleAuthTable).Where("username = ?", username).Where("cate = ?", cate).Find(&data).Error
+	return
+}
+
 func GetUserGoogleAuthBy(username string) (err error, data UserGoogleAuth) {
 	err = db.Table(googleAuthTable).Where("username = ?", username).Find(&data).Error
 	return
