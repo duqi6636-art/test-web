@@ -388,8 +388,17 @@ func Login(c *gin.Context) {
 		cRes := models.UpdateCodeStatus(map[string]interface{}{"id": codeId})
 		fmt.Println(cRes)
 	}
+	authTwoInfo := models.GetAuthInfoByUid(info.Id)
+	if authTwoInfo.IsOpen == 1 {
+		sessionRes = info.Username
+	}
 	// 生成返回数据
 	data := ResUserInfo(sessionRes, ip, info)
+	data.AuthInfo = models.UserLoginAuth{
+		IsOpen: authTwoInfo.IsOpen,
+		Cate:   authTwoInfo.Cate,
+		Info:   authTwoInfo.Username,
+	}
 	JsonReturn(c, 0, "__T_LOGIN_SUCCESS", data)
 	return
 }
