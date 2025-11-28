@@ -511,7 +511,7 @@ func GetUserAuthInfo(c *gin.Context) {
 			switch cate {
 			case "email":
 				result["email_auth"] = models.UserLoginAuth{IsOpen: val.IsOpen, Cate: cate, Info: val.Username}
-			case "google":
+			case "google_auth":
 				result["google_auth"] = models.UserLoginAuth{IsOpen: val.IsOpen, Cate: cate, Info: val.Username}
 			default:
 				models.AddLog(models.LogModel{Code: "user_auth_unknown_cate", Text: fmt.Sprintf("uid=%d cate=%s", user.Id, val.Cate), CreateTime: util.GetTimeStr(util.GetNowInt(), "Y-m-d H:i:s")})
