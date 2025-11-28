@@ -81,12 +81,19 @@ func VerifyCodeBind(c *gin.Context) {
 	}
 	username := user.Username
 	gooKey := fmt.Sprintf(googleKey+"(%s)", username)
-	err, authInfo := models.GetUserGoogleAuthBy(gooKey)
+	err, authInfo := models.GetUserAuthByUsername(gooKey, "google_auth")
 
 	if err == nil && authInfo.ID != 0 {
 		JsonReturn(c, e.ERROR, "__T_GOOGLE_AUTH_BIND", nil)
 		return
 	}
+
+	isOpen := 1
+	err, authInfo2 := models.GetUserAuthByUid(user.Id, "email")
+	if err == nil && authInfo2.ID != 0 && authInfo2.IsOpen == 1 {
+		isOpen = 0
+	}
+
 	gAuth := google.NewGoogleAuth()
 	result, _err := gAuth.VerifyCode(secret, code)
 	if _err != nil || result == false {
@@ -97,6 +104,8 @@ func VerifyCodeBind(c *gin.Context) {
 	authMap.Username = gooKey
 	authMap.GoogleKey = secret
 	authMap.Uid = user.Id
+	authMap.Cate = "google_auth"
+	authMap.IsOpen = isOpen
 	authMap.Create_time = util.GetNowInt()
 	err = models.CreateUserGoogleAuth(authMap)
 	if err != nil {
