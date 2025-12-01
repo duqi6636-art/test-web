@@ -54,3 +54,8 @@ func DeleteUserGoogleAuthByCate(uid int, cate string) (err error) {
 	err = db.Table(googleAuthTable).Where("uid=?", uid).Where("cate=?", cate).Delete(&UserGoogleAuth{}).Error
 	return err
 }
+
+func GetAuthInfoByUid(uid int) (data UserGoogleAuth) {
+	db.Table(googleAuthTable).Where("uid = ? and is_open = ?", uid, 1).First(&data)
+	return
+}

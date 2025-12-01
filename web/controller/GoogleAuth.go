@@ -128,29 +128,78 @@ func VerifyCodeBind(c *gin.Context) {
 // @Success 0 {object} interface{} "success：验证成功"
 // @Router /web/auth/verify_code [post]
 func VerifyCode(c *gin.Context) {
+	username := c.DefaultPostForm("username", "")
 	code := c.DefaultPostForm("code", "")
 	if code == "" {
 		JsonReturn(c, -1, "__T_CODE_ERROR", gin.H{})
 		return
 	}
-	resCode, msg, user := DealUser(c) //处理用户信息
-	if resCode != e.SUCCESS {
-		JsonReturn(c, resCode, msg, nil)
+	platform := c.DefaultPostForm("platform", "web") // 终端
+	if platform == "" {
+		platform = "web"
+	}
+
+	err, user := models.GetUserByUsername(username)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_SESSION_ERROR", nil)
+		return
+	}
+	if user.Status == 2 {
+		JsonReturn(c, e.ERROR, "__T_ACCOUNT_DISABLED", nil)
+		return
+	}
+	if user.Status == 3 {
+		JsonReturn(c, e.ERROR, "__T_ACCOUNT_DISABLED", nil)
 		return
 	}
 
-	username := user.Username
 	gooKey := fmt.Sprintf(googleKey+"(%s)", username)
-	err, authInfo := models.GetUserGoogleAuthBy(gooKey)
+	err, authInfo := models.GetUserAuthByUsername(gooKey, "google_auth")
 	if err != nil && authInfo.ID == 0 {
 		JsonReturn(c, e.ERROR, "__T_GOOGLE_AUTH_NO", nil)
 		return
 	}
-
+	ip := c.ClientIP()
+	sessionInfo, err := models.GetSessionByUsername(username, ip, platform)
+	if err != nil || sessionInfo.ID == 0 {
+		JsonReturn(c, e.ERROR, "__T_SESSION_ERROR", nil)
+		return
+	}
+	session := sessionInfo.SessionId
+	nowTime := util.GetNowInt()
+	ipInfo := GetIpInfo(ip)
 	ga := google.NewGoogleAuth()
 	ret, err := ga.VerifyCode(authInfo.GoogleKey, code)
 	if ret == true && err == nil {
-		JsonReturn(c, e.SUCCESS, "__T_VERIFY_SUCCESS", nil)
+		//操作登录设备记录
+		errD, hasD := models.GetLoginDeviceBy(user.Id, ip)
+		if errD != nil || hasD.ID == 0 {
+			addDevice := models.LoginDevices{}
+			addDevice.Cate = "google"
+			addDevice.Uid = user.Id
+			addDevice.Username = user.Username
+			addDevice.Email = user.Email
+			addDevice.Device = "cherry-" + util.RandStr("r", 16)
+			addDevice.DeviceNo = ip
+			addDevice.Platform = "web"
+			addDevice.Ip = ip
+			addDevice.Trust = nowTime //
+			addDevice.Country = ipInfo.Country
+			addDevice.State = ipInfo.Province
+			addDevice.City = ipInfo.City
+			addDevice.Session = session
+			addDevice.UpdateTime = nowTime
+			addDevice.CreateTime = nowTime
+			models.AddLoginDevice(addDevice)
+		} else {
+			up := map[string]interface{}{
+				"update_time": nowTime,
+				"trust":       nowTime,
+			}
+			models.EditLoginDeviceInfo(hasD.ID, up)
+		}
+		data := ResUserInfo(session, ip, user)
+		JsonReturn(c, e.SUCCESS, "__T_VERIFY_SUCCESS", data)
 		return
 	}
 	JsonReturn(c, e.ERROR, "__T_GOOGLE_AUTH_FAIL", nil)
@@ -190,7 +239,7 @@ func SetOpen(c *gin.Context) {
 	// 参数绑定和验证
 	var params struct {
 		IsOpen string `form:"is_open" binding:"required,oneof=on off 1 0"`
-		Cate   string `form:"cate" binding:"required,oneof=email google"`
+		Cate   string `form:"cate" binding:"required,oneof=email google_auth"`
 	}
 
 	if err := c.ShouldBind(&params); err != nil {
@@ -391,7 +440,7 @@ func UnBindEmailAuth(c *gin.Context) {
 func VerifyEmailCode(c *gin.Context) {
 	username := c.DefaultPostForm("username", "")
 	code := c.DefaultPostForm("code", "")
-
+	email := strings.TrimSpace(c.DefaultPostForm("email", ""))
 	platform := c.DefaultPostForm("platform", "web") // 终端
 	if platform == "" {
 		platform = "web"
@@ -410,8 +459,6 @@ func VerifyEmailCode(c *gin.Context) {
 		JsonReturn(c, e.ERROR, "__T_ACCOUNT_DISABLED", nil)
 		return
 	}
-
-	email := strings.TrimSpace(c.DefaultPostForm("email", ""))
 
 	if email == "" {
 		JsonReturn(c, e.ERROR, "__T_EMAIL_IS_MUST", map[string]string{"class_id": "username"})
@@ -459,7 +506,7 @@ func VerifyEmailCode(c *gin.Context) {
 			addDevice.Uid = user.Id
 			addDevice.Username = user.Username
 			addDevice.Email = user.Email
-			addDevice.Device = "922-" + util.RandStr("r", 16)
+			addDevice.Device = "cherry-" + util.RandStr("r", 16)
 			addDevice.DeviceNo = ip
 			addDevice.Platform = "web"
 			addDevice.Ip = ip
