@@ -389,6 +389,15 @@ func Login(c *gin.Context) {
 		fmt.Println(cRes)
 	}
 	authTwoInfo := models.GetAuthInfoByUid(info.Id)
+	if authTwoInfo.IsOpen == 1 { // 开启了二次验证
+		_, listsInfo := models.GetLoginDeviceByIp(info.Id, ip) //如果在安全设备列表中 则不用二次验证
+		if listsInfo.ID > 0 {
+			authTwoInfo.IsOpen = 0
+			authTwoInfo.Cate = ""
+			authTwoInfo.Username = ""
+		}
+	}
+
 	if authTwoInfo.IsOpen == 1 {
 		sessionRes = info.Username
 	}
