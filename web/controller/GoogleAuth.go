@@ -614,3 +614,35 @@ func SafeDevice(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resList)
 	return
 }
+
+func DelDevice(c *gin.Context) {
+	resCode, msg, user := DealUser(c) //处理用户信息
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	idStr := strings.TrimSpace(c.DefaultPostForm("id", "")) // 用户名
+	if idStr == "" {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	id := util.StoI(idStr)
+	if id == 0 {
+		JsonReturn(c, -1, "__T_PARAM_ERROR", nil)
+		return
+	}
+	deviceInfo := models.GetLoginDeviceById(id)
+	if deviceInfo.ID == 0 || deviceInfo.Uid != user.Id {
+		JsonReturn(c, -1, "__T_NO_DATA", nil)
+		return
+	}
+	data := map[string]interface{}{
+		"status":      -1,
+		"update_time": util.GetNowInt(),
+	}
+	err := models.EditLoginDeviceInfo(id, data)
+	fmt.Println(err)
+
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", gin.H{})
+	return
+}

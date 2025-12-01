@@ -55,3 +55,13 @@ func ListLoginDevices(uid int) (data []LoginDevices) {
 	db.Table(loginDeviceTable).Where("uid = ?", uid).Where("status = ?", 1).Order("id desc").Find(&data)
 	return
 }
+
+func GetLoginDeviceById(id int) (data LoginDevices) {
+	db.Table(loginDeviceTable).Where("id = ?", id).Order("id desc").First(&data)
+	return
+}
+
+func GetLoginDeviceByIp(uid int, ip string) (err error, data LoginDevices) {
+	err = db.Table(loginDeviceTable).Where("uid = ?", uid).Where("ip = ?", ip).Where("status = ?", 1).First(&data).Error
+	return
+}
