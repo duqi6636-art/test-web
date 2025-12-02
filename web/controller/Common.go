@@ -177,6 +177,10 @@ func GetUsername() string {
 	return username
 }
 
+func ToGB(x int64) int64 {
+	return x / 1024 / 1024 / 1024
+}
+
 // 获取默认密码
 func GenUserPwd() string {
 	userPwd := ""

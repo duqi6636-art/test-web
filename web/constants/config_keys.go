@@ -16,6 +16,7 @@ const (
 
 	// 登录重置配置
 	ConfigKeyLoginResetTimeWindow = "login_reset_time_window" // 登录重置时间窗口
+	ConfigKeyLoginCaptchaEnable   = "login_captcha_enable"    // 登录人机开关：1开启 0关闭
 )
 
 // 登录安全默认值常量

@@ -208,6 +208,82 @@ func GetHalloweenEnabled(c *gin.Context) {
 
 }
 
+// GetResidentialPackages 获取住宅代理（个人/企业）套餐，按固定 code 列表输出
+// @BasePath /api/v1
+// @Summary 获取住宅代理（个人/企业）套餐
+// @Description 获取住宅代理（个人/企业）套餐
+// @Tags 套餐页
+// @Accept x-www-form-urlencoded
+// @Param session formData string false "用户登录信息"
+// @Param lang formData string false "语言"
+// @Produce json
+// @Success 0 {array} map[string]interface{} "person：个人套餐列表 business：企业套餐列表"
+// @Router /web/package/residential [post]
+func GetResidentialPackages(c *gin.Context) {
+	lang := DealLanguageUrl(c)
+	// 查询并构建返回
+	personalPaks, _ := models.GetPackageListByType("flow")
+	businessPaks, _ := models.GetPackageListByType("flow_agent")
+
+	buildList := func(paks []models.CmPackage) []models.ResIpPackageFlow {
+		res := make([]models.ResIpPackageFlow, 0, len(paks))
+		for _, v := range paks {
+			info := models.ResIpPackageFlow{}
+			// 文案配置
+			infoDetail := models.PackageTextMap[lang+"_"+util.ItoS(v.Id)]
+			corner := v.Corner
+			corner2 := v.ActTitle
+			actDesc := v.ActDesc
+			if infoDetail.Id > 0 {
+				if infoDetail.Corner != "" {
+					corner = infoDetail.Corner
+				}
+				if infoDetail.ActTitle != "" {
+					corner2 = infoDetail.ActTitle
+				}
+				if infoDetail.ActDesc != "" {
+					actDesc = infoDetail.ActDesc
+				}
+			}
+
+			valueGB := ToGB(v.Value)
+			giveGB := ToGB(v.Give)
+
+			info.Id = v.Id
+			info.Pid = v.Pid
+			info.Code = v.Code
+			info.Name = v.Name
+			info.SubName = v.SubName
+			info.Value = valueGB
+			info.Total = valueGB + giveGB
+			info.Gift = giveGB
+			info.Give = giveGB
+			info.Number = v.Day
+			info.Price = v.Price
+			info.Unit = v.Unit
+			info.AllUnit = v.AllUnit
+			info.Default = v.Default
+			info.Currency = v.Currency
+			info.Corner = corner
+			info.ActTitle = corner2
+			info.ActDesc = actDesc
+			info.IsHot = v.IsHot
+			info.Sort = v.Sort
+			info.UseType = v.UseType
+			info.Alias = v.Alias
+			info.GiftUnit = "GB"
+			res = append(res, info)
+		}
+		return res
+	}
+
+	data := map[string]interface{}{
+		"person":   buildList(personalPaks),
+		"business": buildList(businessPaks),
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", data)
+}
+
 // @BasePath /api/v1
 // @Summary 获取动态ISP套餐
 // @Description 获取动态ISP套餐
