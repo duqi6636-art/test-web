@@ -6,10 +6,11 @@ import (
 	"api-360proxy/web/pkg/util"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/unknwon/com"
 	"sort"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/unknwon/com"
 )
 
 // 静态 IP购买列表
@@ -210,8 +211,6 @@ func GetRegion(c *gin.Context) {
 	_, staticInfo := models.GetUserStaticList(uid)
 	packageList := models.GetStaticPackageList()
 
-	buyNum := 0
-
 	countryLists := []models.StaticIpCountryModel{}
 	countryList := models.GetStaticIpCountry() //地区列表
 	for _, v := range countryList {
@@ -221,7 +220,6 @@ func GetRegion(c *gin.Context) {
 	regionList := models.GetStaticRegion() //地区列表
 	stateMapString := map[string]int{}
 	cityArr := map[string][]models.StaticCityModel{}
-	cityInfo := models.StaticCityModel{}
 	for _, v := range regionList {
 		cityStr := strings.ToUpper(v.Country) + "|||" + v.State
 		_, ok := stateMapString[cityStr]
@@ -229,10 +227,11 @@ func GetRegion(c *gin.Context) {
 		if !ok {
 			stateMapString[cityStr] = v.Sort
 		}
-		cityInfo.Code = v.City
-		cityInfo.Name = v.City
-		cityInfo.Sort = v.Sort
-		cityArr[cityStr] = append(cityArr[cityStr], cityInfo)
+		cityArr[cityStr] = append(cityArr[cityStr], models.StaticCityModel{
+			Code: v.City,
+			Name: v.City,
+			Sort: v.Sort,
+		})
 	}
 	stateArr := map[string][]models.StaticStateModel{}
 	for k, v := range stateMapString {
@@ -287,35 +286,38 @@ func GetRegion(c *gin.Context) {
 			cList.Balance = vu.Balance
 			if oks {
 				userStatic[vu.PakId] = append(userStatic[vu.PakId], cList)
+			} else {
+				AddLogs("static_region", fmt.Sprintf("uid=%d pak_id=%d pak_region=%s", uid, vu.PakId, vu.PakRegion))
 			}
-			buyNum = 1
 		}
 	}
 
 	resInfo := []models.ResUserStaticIpRegion{}
 	for _, vp := range packageList {
-		info := models.ResUserStaticIpRegion{}
-		info.Id = vp.Id
-		ipNum, ok := userBalance[vp.Id]
-		if !ok {
-			ipNum = 0
+		info := models.ResUserStaticIpRegion{
+			Id:        vp.Id,
+			PakName:   vp.Name,
+			ExpireDay: vp.Value,
 		}
-		userCountry := []models.ResStaticRegion{}
-		if buyNum == 0 {
-			for _, v := range countryAllList {
-				v.Name = fmt.Sprintf("%s  %s (%d)", v.Code, "Remaining IPs", ipNum)
-				userCountry = append(userCountry, v)
-			}
-		} else {
-			userHas := userStatic[vp.Id]
-			for _, v := range userHas {
-				v.Name = fmt.Sprintf("%s  %s (%d)", v.Code, "Remaining IPs", v.Balance)
-				userCountry = append(userCountry, v)
-			}
-		}
-		info.PakName = vp.Name
-		info.ExpireDay = vp.Value
+		ipNum := userBalance[vp.Id]
 		info.Balance = ipNum
+
+		userCountry := []models.ResStaticRegion{}
+		userHas := userStatic[vp.Id]
+		if len(userHas) == 0 {
+			for _, v := range countryAllList {
+				newV := v
+				newV.Name = fmt.Sprintf("%s  %s (%d)", v.Code, "Remaining IPs", ipNum)
+				userCountry = append(userCountry, newV)
+			}
+			AddLogs("static_region userHas", fmt.Sprintf("uid=%d pak_id=%d ip_num=%d", uid, vp.Id, ipNum))
+		} else {
+			for _, v := range userHas {
+				newV := v
+				newV.Name = fmt.Sprintf("%s  %s (%d)", v.Code, "Remaining IPs", v.Balance)
+				userCountry = append(userCountry, newV)
+			}
+		}
 		info.CountryList = userCountry
 		resInfo = append(resInfo, info)
 	}
