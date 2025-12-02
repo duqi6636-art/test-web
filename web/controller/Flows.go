@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/unknwon/com"
+	"sort"
 	"strings"
 )
 
@@ -194,6 +195,10 @@ func GetUserAccountListAvailable(c *gin.Context) {
 	}
 	uid := userInfo.Id
 	_, accountLists := models.GetUserAvailableAccount(uid)
+	// 主账户靠前
+	sort.SliceStable(accountLists, func(i, j int) bool {
+		return accountLists[i].Master == 1 && accountLists[j].Master != 1
+	})
 
 	data := []models.UserAccountPass{}
 	for _, v := range accountLists {
