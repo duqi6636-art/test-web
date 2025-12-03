@@ -1412,6 +1412,9 @@ func ResUserInfo(session, ip string, info models.Users) models.ResUser {
 	if err == nil && authInfo.ID != 0 {
 		googleAuth = 1
 	}
+	userBal := models.GetUserBalanceByUid(info.Id)
+	accountBalance := userBal.Balance
+
 	inviterCode := ""
 	err, pUser := models.GetUserInviterByMap(map[string]interface{}{"uid": info.Id})
 	level := 1
@@ -1551,7 +1554,8 @@ func ResUserInfo(session, ip string, info models.Users) models.ResUser {
 			FlowExpire:   flowExpire, //流量是否过期
 			IsAct:        isMsg,      //是否活动弹窗
 		},
-		IsNewUser: 0,
+		IsNewUser:   0,
+		UserBalance: accountBalance,
 	}
 	return data
 }

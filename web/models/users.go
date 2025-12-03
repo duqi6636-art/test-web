@@ -47,9 +47,10 @@ type Users struct {
 
 // 用户信息返回信息
 type ResUser struct {
-	Session   string      `json:"session"`
-	User      ResUserInfo `json:"user"`
-	IsNewUser int         `json:"is_new_user"`
+	Session     string      `json:"session"`
+	User        ResUserInfo `json:"user"`
+	IsNewUser   int         `json:"is_new_user"`
+	UserBalance float64     `json:"user_balance"`
 }
 
 // 用户信息返回信息
