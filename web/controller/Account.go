@@ -2,6 +2,7 @@ package controller
 
 import (
 	"api-360proxy/pkg/ipdat"
+	"api-360proxy/web/constants"
 	"api-360proxy/web/e"
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/setting"
@@ -10,18 +11,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
-	googleidtokenverifier "github.com/movsb/google-idtoken-verifier"
-	"github.com/mssola/user_agent"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
 	"io/ioutil"
 	"math"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
+	googleidtokenverifier "github.com/movsb/google-idtoken-verifier"
+	"github.com/mssola/user_agent"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/github"
 )
 
 func LoginVerify(c *gin.Context) {
@@ -29,6 +31,12 @@ func LoginVerify(c *gin.Context) {
 	ip := c.ClientIP()
 	if email == "" {
 		JsonReturn(c, e.ERROR, "__T_EMAIL_IS_MUST", nil)
+		return
+	}
+
+	switchVal := strings.TrimSpace(models.GetConfigVal(constants.ConfigKeyLoginCaptchaEnable))
+	if switchVal == "1" {
+		JsonReturn(c, e.SUCCESS, "__T_SUCCESS", gin.H{"needCaptcha": false, "result": "switch_off", "reasonCount": 0})
 		return
 	}
 
@@ -1424,6 +1432,9 @@ func ResUserInfo(session, ip string, info models.Users) models.ResUser {
 	if err == nil && authInfo.ID != 0 {
 		googleAuth = 1
 	}
+	userBal := models.GetUserBalanceByUid(info.Id)
+	accountBalance := userBal.Balance
+
 	inviterCode := ""
 	err, pUser := models.GetUserInviterByMap(map[string]interface{}{"uid": info.Id})
 	level := 1
@@ -1563,7 +1574,8 @@ func ResUserInfo(session, ip string, info models.Users) models.ResUser {
 			FlowExpire:   flowExpire, //流量是否过期
 			IsAct:        isMsg,      //是否活动弹窗
 		},
-		IsNewUser: 0,
+		IsNewUser:   0,
+		UserBalance: accountBalance,
 	}
 	return data
 }
