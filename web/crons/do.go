@@ -22,11 +22,11 @@ func GoCron() {
 			UnlimitedEarlyWarning() // 不限量邮件预警
 		})
 
-		_ = c.AddFunc("0 */5 * * * *", func() { // 每1分钟执行一次
+		_ = c.AddFunc("0 */5 * * * *", func() { // 每5分钟执行一次
 			StaticRegionStatusWarning()
 		})
 
-		_ = c.AddFunc("0 * * * * *", func() { //每分钟的第0秒执行
+		_ = c.AddFunc("0 */3 * * * *", func() { //每3分钟的第0秒执行
 			DoAutoRenew() // 用户自动续费
 		})
 	}

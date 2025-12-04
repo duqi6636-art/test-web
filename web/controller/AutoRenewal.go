@@ -6,9 +6,10 @@ import (
 	"api-360proxy/web/pkg/util"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"strconv"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 // GetAutoRenewConfig 获取自动续费配置信息
@@ -526,12 +527,6 @@ func GetStaticConfLists(c *gin.Context) {
 		country = strings.ToUpper(country)
 	}
 
-	offlineIps := models.GetStaticOfflineIps() //下线IP列表
-	offlineIpList := []string{}
-	for _, ipModel := range offlineIps {
-		offlineIpList = append(offlineIpList, ipModel.Ip)
-	}
-
 	confList := models.GetConfBalanceRenewList("renew", "static") //配置信息
 	confMap := map[int]string{}
 	for _, conf := range confList {
@@ -562,7 +557,23 @@ func GetStaticConfLists(c *gin.Context) {
 	// 获取用户提取静态未过期的IP
 	_, usedList := models.GetIpStaticIpBy(uid, ip, "1", "", country)
 
-	//nowTime := util.GetNowInt()
+	// 新版IP资源状态
+	ipStatusArr := []string{}
+	for _, v := range usedList {
+		ipStatusArr = append(ipStatusArr, v.Ip)
+	}
+	offlineIps := []string{}
+	if len(ipStatusArr) > 0 {
+		stRes, stMsg, lists := StaticZtStatus(ipStatusArr)
+		fmt.Println(stMsg)
+		if stRes == true {
+			for _, v := range lists {
+				if v.Status == 3 {
+					offlineIps = append(offlineIps, v.Ip)
+				}
+			}
+		}
+	}
 
 	logData := []models.ResAutoRenewStaticDetailModel{}
 	for _, v := range usedList {
@@ -571,7 +582,7 @@ func GetStaticConfLists(c *gin.Context) {
 
 		idStr := util.ItoS(v.Id)
 		// 检查当前 IP 是否在 offlineIps 列表中
-		if util.InArrayString(v.Ip, offlineIpList) {
+		if util.InArrayString(v.Ip, offlineIps) {
 			is_expire = 3 // 已下线
 		}
 		isRenew, valueId, syDay := 0, 0, 0
@@ -603,7 +614,9 @@ func GetStaticConfLists(c *gin.Context) {
 		info.Value = value
 		info.SyDay = syDay
 		info.Name = xfName
-		logData = append(logData, info)
+		if v.Port > 0 {
+			logData = append(logData, info)
+		}
 	}
 
 	resData := map[string]interface{}{
@@ -611,6 +624,18 @@ func GetStaticConfLists(c *gin.Context) {
 	}
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resData)
 	return
+}
+
+type RenewItem struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+}
+type RenewBatchRequest struct {
+	Items   string `form:"items"`
+	ValueID string `form:"value_id"`
+	Day     string `form:"day"`
+	Method  string `form:"method"`
+	Balance string `form:"balance"`
 }
 
 // BatchSetAutoRenewConfig 批量设置自动续费 静态+不限量
@@ -621,27 +646,27 @@ func BatchSetAutoRenewConfig(c *gin.Context) {
 		return
 	}
 	uid := user.Id
+	var req RenewBatchRequest
+	if err := c.ShouldBind(&req); err != nil {
+		JsonReturn(c, e.ERROR, "__T_PARAM_ERROR", nil)
+		return
+	}
 
-	ids := strings.TrimSpace(c.DefaultPostForm("ids", ""))              //批量续费ID 静态id 或者是不限量ID
-	statusStr := strings.TrimSpace(c.DefaultPostForm("status", ""))     //状态  1开启
-	valueIdStr := strings.TrimSpace(c.DefaultPostForm("value_id", ""))  //自动续费ID
-	balanceStr := strings.TrimSpace(c.DefaultPostForm("balance", ""))   //剩余余额值
-	dayStr := strings.TrimSpace(c.DefaultPostForm("day", ""))           //到期前天数
-	method := strings.TrimSpace(c.DefaultPostForm("method", "balance")) //余额类型
-	if ids == "" {
+	// 解析 items JSON
+	var items []RenewItem
+	if err := json.Unmarshal([]byte(req.Items), &items); err != nil {
+		JsonReturn(c, e.ERROR, "__T_PARAM_ERROR", nil)
+		return
+	}
+	if len(items) == 0 {
 		JsonReturn(c, e.ERROR, "__T_PARAM_ERROR--Renew Info", nil)
 		return
 	}
 
-	valueId := util.StoI(valueIdStr)
-	if valueId == 0 {
-		JsonReturn(c, e.ERROR, "__T_CONFIG_INFO_ERROR", nil)
-		return
-	}
-
-	day := util.StoI(dayStr)
-	status := util.StoI(statusStr)
-	balance := util.StoI(balanceStr)
+	day := util.StoI(req.Day)
+	balance := util.StoI(req.Balance)
+	valueId := util.StoI(req.ValueID)
+	method := req.Method
 
 	configInfo := models.GetConfBalanceRenewById(valueId)
 	if configInfo.Id == 0 {
@@ -659,9 +684,9 @@ func BatchSetAutoRenewConfig(c *gin.Context) {
 	}
 	value := configInfo.Value
 
-	idArr := strings.Split(ids, ",")
-	for _, val := range idArr {
-		id := util.StoI(val)
+	for _, val := range items {
+		id := util.StoI(val.ID)
+		status := util.StoI(val.Status)
 		hasInfo := models.GetUserAutoRenewDetail(uid, configInfo.Cate, id)
 
 		var err error
@@ -700,6 +725,9 @@ func BatchSetAutoRenewConfig(c *gin.Context) {
 	upInfo := map[string]interface{}{}
 	upInfo["sy_day"] = day
 	models.EditAutoRenewDetailList(uid, configInfo.Cate, upInfo)
+	models.EditUserAutoRenew(uid, map[string]interface{}{
+		"method": method,
+	})
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", nil)
 	return
 }
