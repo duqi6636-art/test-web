@@ -191,6 +191,17 @@ func WebReg(c *gin.Context) {
 	}
 	// 注册验证 -- start
 	captchaSwitch := strings.TrimSpace(models.GetConfigVal("CaptchaRegisterSwitch")) // 滑块验证注册开关 由原来的开关变成 类型配置  1 滑块验证  2 google人机验证
+	cfSwitch := strings.TrimSpace(models.GetConfigVal("CfAuthSwitch"))
+
+	needCfCaptcha := false
+	if cfSwitch == "1" {
+		if active, _ := models.IsGlobalRegCaptchaActive(); active {
+			needCfCaptcha = true
+		} else {
+			n, _, _ := models.CheckGlobalRegisterCaptchaTrigger("web")
+			needCfCaptcha = n
+		}
+	}
 
 	if captchaSwitch == "1" { // 滑块验证
 		ticket := c.DefaultPostForm("ticket", "")
@@ -219,6 +230,20 @@ func WebReg(c *gin.Context) {
 			return
 		}
 	}
+
+	if needCfCaptcha && captchaSwitch == "3" { //cloudflare 验证
+		cfToken := c.DefaultPostForm("cf_token", "")
+		if cfToken == "" {
+			JsonReturn(c, e.ERROR, "__T_CAPTCHA_FAIL", nil)
+			return
+		}
+		cfRes, cfMsg := ValidateTurnstile(c, cfToken)
+		if !cfRes {
+			JsonReturn(c, e.ERROR, cfMsg, nil)
+			return
+		}
+	}
+
 	// 注册验证 -- end
 
 	// ----------------- 注册限制频率 start -----------------
@@ -313,6 +338,11 @@ func WebReg(c *gin.Context) {
 		JsonReturn(c, -1, sessionRes, nil)
 		return
 	}
+
+	// 解除条件：触发人机后的45分钟窗口内，注册量 <= 最近30天同段平均的1.5倍时，解除人机
+	go func() {
+		models.CheckGlobalRegisterCaptchaRelease(platform)
+	}()
 	// 生成返回数据
 	data := ResUserInfo(sessionRes, ip, user)
 	JsonReturn(c, 0, "__T_REG_SUCCESS", data)

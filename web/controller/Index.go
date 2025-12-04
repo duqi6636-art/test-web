@@ -7,13 +7,14 @@ import (
 	"api-360proxy/web/pkg/util"
 	"bytes"
 	"fmt"
-	"github.com/boombuler/barcode"
-	"github.com/boombuler/barcode/qr"
-	"github.com/gin-gonic/gin"
 	"image/png"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/boombuler/barcode"
+	"github.com/boombuler/barcode/qr"
+	"github.com/gin-gonic/gin"
 )
 
 func Index(c *gin.Context) {
@@ -45,8 +46,24 @@ func CheckIsCn(c *gin.Context) {
 	res["timestamp"] = util.GetNowInt()
 	res["hour_timestamp"] = util.GetTodayHour()
 
-	captchaSwitch := strings.TrimSpace(models.GetConfigVal("CaptchaRegisterSwitch")) // 滑块验证注册开关 由原来的开关变成 类型配置  1 滑块验证  2 google人机验证
-	res["register_captcha"] = util.StoI(captchaSwitch)
+	captchaType := strings.TrimSpace(models.GetConfigVal("CaptchaRegisterSwitch"))
+	cfSwitch := strings.TrimSpace(models.GetConfigVal("CfAuthSwitch"))
+
+	needCfCaptcha := false
+	if captchaType == "3" && cfSwitch == "1" {
+		if active, _ := models.IsGlobalRegCaptchaActive(); active {
+			needCfCaptcha = true
+		} else {
+			n, _, _ := models.CheckGlobalRegisterCaptchaTrigger("web")
+			needCfCaptcha = n
+		}
+	}
+
+	if needCfCaptcha {
+		res["register_captcha"] = 3
+	} else {
+		res["register_captcha"] = util.StoI(captchaType)
+	}
 	JsonReturn(c, 0, "__T_SUCCESS", res)
 	return
 }

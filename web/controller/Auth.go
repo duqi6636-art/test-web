@@ -13,10 +13,12 @@ import (
 	"github.com/tencentcloud/tencentcloud-sdk-go-intl-en/tencentcloud/common/profile"
 	"github.com/tencentcloud/tencentcloud-sdk-go-intl-en/tencentcloud/common/regions"
 	"github.com/unknwon/com"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type ResultInfo struct {
@@ -249,4 +251,70 @@ func HttpPostFormHeader(postUrl string, param map[string]string, header map[stri
 		return err, ""
 	}
 	return nil, string(body)
+}
+
+var (
+	httpClient = &http.Client{Timeout: 10 * time.Second}
+	cfSecret   = ""
+)
+
+type TurnValResponse struct {
+	Success     bool     `json:"success"`
+	ErrorCodes  []string `json:"error-codes"`
+	ChallengeTS string   `json:"challenge_ts,omitempty"`
+	Hostname    string   `json:"hostname,omitempty"`
+	Action      string   `json:"action,omitempty"`
+	CDATA       string   `json:"cdata,omitempty"`
+}
+
+func ValidateTurnstile(c *gin.Context, cfToken string) (bool, string) {
+	secret := models.GetConfigVal("cloudflare_turnstile_secret")
+	if secret == "" {
+		secret = cfToken
+	}
+
+	form := url.Values{}
+	form.Set("secret", secret)
+	form.Set("response", cfToken)
+
+	ip := c.ClientIP()
+	if ip != "" {
+		form.Set("remoteip", ip)
+	}
+
+	req, err := http.NewRequest("POST",
+		"https://challenges.cloudflare.com/turnstile/v0/siteverify",
+		strings.NewReader(form.Encode()),
+	)
+	if err != nil {
+		return false, "failed to create request"
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; AppServer/1.0)")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Sprintf("request error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Sprintf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, "failed to read response"
+	}
+
+	var result TurnValResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return false, "invalid JSON response"
+	}
+
+	if !result.Success {
+		return false, fmt.Sprintf("turnstile validation failed: %v", result.ErrorCodes)
+	}
+	return true, ""
 }
