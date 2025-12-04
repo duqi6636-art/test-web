@@ -469,6 +469,14 @@ func GetPackageUnlimitedListBy(packageId int) (data []PackageUnlimitedModel) {
 	return
 }
 
+// 获取不限量配置价格
+func PackageUnlimitedListBy(packageId int, cate string) (data []PackageUnlimitedModel) {
+	dbs := db.Table("cm_package_unlimited").Where("package_id =?", packageId).Where("cate =?", cate).Where("status =?", 1)
+	dbs.Order("sort desc")
+	dbs.Find(&data)
+	return
+}
+
 // 套餐
 type UnlimitedPackageListModel struct {
 	Id            int                   `json:"id"`

@@ -98,4 +98,19 @@ func centerRouter(router *gin.Engine) {
 	docApi := router.Group("/center/docs")
 	docApi.POST("/info", controller.GetDocApiUserInfo)     //获取信息
 	docApi.POST("/reset_key", controller.RefreshDocApiKey) //重置信息
+
+	// 余额自动续费相关
+	ar := router.Group("/center/auto_renew")
+	ar.POST("/get_config", controller.GetAutoRenewConfig) // 获取配置信息
+	ar.POST("/set_config", controller.SetAutoRenewConfig) // 添加/编辑详细配置信息
+	ar.POST("/set_switch", controller.SetAutoRenewSwitch) // 设置总开关配置
+
+	ar.POST("/set_static_method", controller.SetStaticAutoRenewSort)  // 设置静态扣费顺序配置
+	ar.POST("/get_static_config", controller.GetStaticConfLists)      // 获取静态配置列表
+	ar.POST("/batch_set_config", controller.BatchSetAutoRenewConfig)  // 批量设置自动续费配置详情信息
+	ar.POST("/get_unlimited_config", controller.GetUnlimitedConfList) // 获取不限量配置列表
+
+	// 扣款顺序相关
+	ar.POST("/order/get", controller.GetAutoRenewOrder) // 获取扣款顺序配置
+	ar.POST("/order/set", controller.SetAutoRenewOrder) // 设置扣款顺序配置
 }
