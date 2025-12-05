@@ -607,8 +607,8 @@ func GetStaticConfLists(c *gin.Context) {
 		info.State = v.State
 		info.City = v.City
 		info.IsExpire = is_expire
-		info.ExpireTime = util.GetTimeByLang(v.ExpireTime, lang)
-		info.CreateTime = util.GetTimeByLang(v.CreateTime, lang)
+		info.ExpireTime = util.GetTimeHISByLang(v.ExpireTime, lang)
+		info.CreateTime = util.GetTimeHISByLang(v.CreateTime, lang)
 		info.IsRenew = isRenew
 		info.ValueId = valueId
 		info.Value = value
