@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var googleKey = "360Proxy"
+var googleKey = "CherryProxy"
 
 // google 验证器
 // @BasePath /api/v1
@@ -409,11 +409,11 @@ func UnBindEmailAuth(c *gin.Context) {
 	errC, codeInfo := models.CheckVerifyByCode(code, email, vtype)
 	codeId := codeInfo.ID
 	if errC != nil || codeId == 0 {
-		JsonReturn(c, -1, "__T_VERIFY_ERROR", map[string]string{"class_id": "code"})
+		JsonReturn(c, -1, "__T_VERIFY_ERROR", map[string]string{"class_id": "code1"})
 		return
 	}
 	if codeInfo.Ip != c.ClientIP() {
-		JsonReturn(c, -1, "__T_VERIFY_ERROR", map[string]string{"class_id": "code"})
+		JsonReturn(c, -1, "__T_VERIFY_ERROR", map[string]string{"class_id": "code2"})
 		return
 	}
 	resCode, msg, user := DealUser(c) //处理用户信息
