@@ -1,6 +1,7 @@
 package crons
 
 import (
+	"api-360proxy/web/controller"
 	"api-360proxy/web/models"
 	"api-360proxy/web/pkg/util"
 	emailSender "api-360proxy/web/service/email"
@@ -365,26 +366,34 @@ func executeStaticRenew(uid int, cate string, userConfig models.UserAutoRenewMod
 				}
 				result = "insufficient"
 			} else {
-				if kfType == 1 { //静态余额扣费
-					// 更新用户余额(余额充值的钱)
-					// 更新余额（对应的IP余额）
-					result = "static"
-					res := models.DealUserStaticRecharge(uid, confInfo.PakId, nowTime, value, detail.Country, detail)
-					if res == nil {
-						newBalance := userBalance - 1
-						userStaticBalance[strHas] = newBalance //更新map[]存储信息
-						result = "success_static"
+				renOk := true
+				err_l, ipLog := models.GetIpStaticIpById(detail.ExId)
+				if err_l == nil && ipLog.Id > 0 && ipLog.IsNew == 1 {
+					durationTime := detail.ExpireDay
+					rOk, _ := controller.StaticZtOpenRenew(ipLog.Uid, durationTime, ipLog.Ip, ipLog.OrderId)
+					if rOk == false {
+						result = "renew_fail"
+						renOk = false
 					}
-				} else { // 余额扣费
-					// 更新用户余额(余额充值的钱)
-					// 更新IP有效期
-					res := models.DealUserBalanceStatic(uid, value, kfMoney, detail.Country, nowTime, detail)
-					result = "balance"
-					if res == nil {
-						balanceNew := userBalanceMoney - kfMoney
-						eee := models.AddUserBalanceLog(uid, 3, balanceNew, userBalanceMoney, confInfo.Cate, value, 1, -1, nowTime, "")
-						fmt.Println("add user balance log", eee)
-						result = "success_balance"
+				}
+				if renOk {
+					if kfType == 1 {
+						result = "static"
+						res := models.DealUserStaticRecharge(uid, confInfo.PakId, nowTime, value, detail.Country, detail)
+						if res == nil {
+							newBalance := userBalance - 1
+							userStaticBalance[strHas] = newBalance
+							result = "success_static"
+						}
+					} else {
+						res := models.DealUserBalanceStatic(uid, value, kfMoney, detail.Country, nowTime, detail)
+						result = "balance"
+						if res == nil {
+							balanceNew := userBalanceMoney - kfMoney
+							eee := models.AddUserBalanceLog(uid, 3, balanceNew, userBalanceMoney, confInfo.Cate, value, 1, -1, nowTime, "")
+							fmt.Println("add user balance log", eee)
+							result = "success_balance"
+						}
 					}
 				}
 			}
