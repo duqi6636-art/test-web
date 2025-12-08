@@ -65,7 +65,11 @@ func webRouter(router *gin.Engine) {
 	web.POST("/auth/bing_auth", controller.VerifyCodeBind)     // 绑定信息
 	web.POST("/auth/unbind_auth", controller.VerifyCodeUnBind) // 解绑信息
 
-	web.POST("/auth/get_info", controller.GetUserAuthInfo)     // 用户是否需要验证
+	web.POST("/auth/get_info", controller.GetUserAuthInfo) // 用户是否需要验证
+	web.POST("/auth/prompt_dismiss", controller.SecurityPromptDismiss)
+	web.POST("/auth/prompt_need", controller.SecurityPromptNeed)
+	web.POST("/auth/user_prompt_need", controller.UserPromptNeed)
+	web.POST("/auth/user_prompt_dismiss", controller.UserPromptDismiss)
 	web.POST("/auth/verify_email", controller.VerifyEmailCode) //  验证邮箱
 	web.POST("/auth/bind_email", controller.BindEmailAuth)     // 绑定邮箱
 	web.POST("/auth/unbind_email", controller.UnBindEmailAuth) // 解绑邮箱

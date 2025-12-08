@@ -569,6 +569,97 @@ func GetUserAuthInfo(c *gin.Context) {
 	return
 }
 
+func SecurityPromptDismiss(c *gin.Context) {
+	resCode, msg, user := DealUser(c)
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	now := util.GetNowInt()
+	info := models.IncUserSecurityPromptDismiss(user.Id, now)
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", map[string]interface{}{"dismiss_count": info.DismissCount, "suppressed": info.Suppressed})
+	return
+}
+
+// 安全弹窗是否需要展示
+
+func SecurityPromptNeed(c *gin.Context) {
+	resCode, msg, user := DealUser(c)
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	err, userInfo := models.GetUserById(user.Id)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_SESSION_ERROR", nil)
+		return
+	}
+	need := 0
+	hasAuth := 0
+	authList, _ := models.GetAuthByUid(user.Id)
+	for _, v := range authList {
+		cate := strings.ToLower(v.Cate)
+		if (cate == "email" || cate == "google_auth") && v.IsOpen == 1 {
+			hasAuth = 1
+			break
+		}
+	}
+	if hasAuth == 0 && (userInfo.PayMoney >= 1000 || userInfo.IsPay == "1") {
+		sp := models.GetUserSecurityPrompt(user.Id)
+		if sp.Suppressed == 0 {
+			need = 1
+		}
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", map[string]int{"need": need})
+	return
+}
+
+func UserPromptNeed(c *gin.Context) {
+	resCode, msg, user := DealUser(c)
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	err, userInfo := models.GetUserById(user.Id)
+	if err != nil {
+		JsonReturn(c, e.ERROR, "__T_SESSION_ERROR", nil)
+		return
+	}
+	hasAuth := 0
+	isNew := 0
+	need := 0
+	authList, _ := models.GetAuthByUid(user.Id)
+	for _, v := range authList {
+		cate := strings.ToLower(v.Cate)
+		if (cate == "email" || cate == "google_auth") && v.IsOpen == 1 {
+			hasAuth = 1
+			break
+		}
+	}
+	regTime := models.GetConfigV("TwoStepVerRegTime")
+	if userInfo.CreateTime >= util.StoI(regTime) {
+		isNew = 1
+	}
+	sp := models.GetUserNewPrompt(user.Id)
+	if hasAuth == 0 && isNew == 1 && sp.Suppressed == 0 {
+		need = 1
+	}
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", map[string]int{"need": need, "has_auth": hasAuth, "is_new_user": isNew, "dismiss_count": sp.DismissCount, "suppressed": sp.Suppressed})
+	return
+}
+
+func UserPromptDismiss(c *gin.Context) {
+	resCode, msg, user := DealUser(c)
+	if resCode != e.SUCCESS {
+		JsonReturn(c, resCode, msg, nil)
+		return
+	}
+	now := util.GetNowInt()
+	info := models.IncUserNewPromptDismiss(user.Id, now)
+	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", map[string]interface{}{"dismiss_count": info.DismissCount, "suppressed": info.Suppressed})
+	return
+}
+
 func SafeDevice(c *gin.Context) {
 	lang := strings.ToLower(c.DefaultPostForm("lang", "en")) //语言
 	resCode, msg, user := DealUser(c)                        //处理用户信息
