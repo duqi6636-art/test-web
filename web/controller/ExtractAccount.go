@@ -371,6 +371,10 @@ func GetCountryDomainList(c *gin.Context) {
 
 	// 获取所有国家列表
 	allCountryList := models.GetAllCountryV2("")
+	if mType == "unlimited" {
+		allCountryList = models.GetAllFlowDayCountry("")
+
+	}
 	// 获取所有国家端口列表
 	countryPortList := models.GetPortsByCountry()
 	// 获取默认国家端口
