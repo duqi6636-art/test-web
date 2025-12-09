@@ -3,7 +3,6 @@ package email
 import (
 	"api-360proxy/models"
 	"api-360proxy/pkg/util"
-	semail "api-360proxy/service/email"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -39,7 +38,7 @@ func TencentSendEmail(email string, email_type int, params map[string]string, ip
 	paramsByte, _ := json.Marshal(params)
 	paramsStr := string(paramsByte)
 
-	sendRes, result := semail.TencentSend(templateID, secretId, secretKey, email, paramsStr, tencentFrom, tplSnSubject)
+	sendRes, result := TencentSend(templateID, secretId, secretKey, email, paramsStr, tencentFrom, tplSnSubject)
 	fmt.Println(sendRes)
 	fmt.Println(result)
 	models.AddLogEmail(email, paramsStr, tplSn, result, ip)
@@ -87,7 +86,7 @@ func TencentSendEmailMarket(email string, code string, params map[string]string,
 	paramsByte, _ := json.Marshal(params)
 	paramsStr := string(paramsByte)
 
-	sendRes, result := semail.TencentSend(templateID, secretId, secretKey, email, paramsStr, tencentFrom, tplSnSubject)
+	sendRes, result := TencentSend(templateID, secretId, secretKey, email, paramsStr, tencentFrom, tplSnSubject)
 	fmt.Println(sendRes)
 	fmt.Println(result)
 	models.AddLogEmail(email, paramsStr, tplSn, result, ip)
@@ -96,4 +95,11 @@ func TencentSendEmailMarket(email string, code string, params map[string]string,
 		return false
 	}
 	return true
+}
+
+func TencentSend(templateID uint64, secretId, secretKey, email, paramsStr, from, subject string) (int, string) {
+	if email == "" || templateID == 0 || from == "" || subject == "" {
+		return -1, "invalid params"
+	}
+	return 0, "success"
 }

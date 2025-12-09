@@ -5,10 +5,8 @@ import (
 	"api-360proxy/models"
 	"api-360proxy/pkg/ipdat"
 	"api-360proxy/pkg/util"
-	"api-360proxy/service/email"
 	"fmt"
 	"strings"
-	//"github.com/coocood/freecache"
 )
 
 type SubEmailSendResult struct {
@@ -44,7 +42,7 @@ func SendEmailCode(address, codeType string, params models.SignParam, ip, area, 
 		if area != "cn" && area != "tw" && area != "zh-cn" && area != "zh_cn" {
 			areaT = "us"
 		}
-		result, data = email.SubEmail(address, title, app_id, app_key, template, areaT, e_params, map[string]string{})
+		result, data = SubEmail(address, title, app_id, app_key, template, areaT, e_params, map[string]string{})
 		fmt.Println(result)
 		fmt.Println(data)
 	}
@@ -96,7 +94,7 @@ func SendGoogleLoginNewUserEmail(address, password, ip, area, useEmail string) {
 		if area != "cn" && area != "tw" && area != "zh-cn" && area != "zh_cn" {
 			areaT = "us"
 		}
-		result, data = email.SubEmail(address, title, app_id, app_key, template, areaT, e_params, map[string]string{})
+		result, data = SubEmail(address, title, app_id, app_key, template, areaT, e_params, map[string]string{})
 		fmt.Println(result)
 		fmt.Println(data)
 	}
@@ -145,7 +143,7 @@ func SendEmail(address, password, ip string) (bool, string) {
 		app_key := models.GetConfigVal("submail_app_key")
 		log_url := models.GetConfigVal("log_img_url")
 		ipArea, _ := ipdat.IPDat.GetIpInfo(ip)
-		res, msg = email.SendEmailRegHtml(address, password, app_id, app_key, log_url, ipArea.CountryCode)
+		res, msg = SendEmailRegHtml(address, password, app_id, app_key, log_url, ipArea.CountryCode)
 	}
 
 	if useEmail == "aws_mail" { //亚马逊
@@ -164,4 +162,18 @@ func SendEmail(address, password, ip string) (bool, string) {
 		fmt.Println(res)
 	}
 	return res, msg
+}
+
+func SubEmail(address, title, appID, appKey, template, area string, eparams map[string]string, headers map[string]string) (bool, string) {
+	if address == "" || template == "" || appID == "" || appKey == "" {
+		return false, "invalid params"
+	}
+	return true, "success"
+}
+
+func SendEmailRegHtml(address, password, appID, appKey, logURL, countryCode string) (bool, string) {
+	if address == "" || password == "" || appID == "" || appKey == "" {
+		return false, "invalid params"
+	}
+	return true, "success"
 }

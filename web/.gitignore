@@ -19,6 +19,20 @@ Thumbs.db
 .env.*
 logs/
 
+.idea
+/.idea
 go.mod
 go.sum
-.idea
+/conf/app.ini
+/conf/auth.ini
+/conf/client.ini
+/download/
+/runtime/logs/
+/auth/authmain
+/client/clientmain
+/pay/360pay
+/warning/warning
+/web/webmain
+auth/runtime/
+conf/
+html/

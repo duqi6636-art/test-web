@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+// 获取凌晨时间戳
+
+func Lingchen() int {
+	formatLayout := "2006-01-02"
+	today := time.Now().Format(formatLayout)
+	t, _ := time.ParseInLocation(formatLayout, today, time.Local)
+	return int(t.Unix())
+}
+
 // 获取当前时间戳
 func GetTime(t string) string {
 	now_time := time.Now().UnixNano()/1e6 + 120*1000

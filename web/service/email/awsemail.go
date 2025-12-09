@@ -3,7 +3,6 @@ package email
 import (
 	"api-360proxy/models"
 	"api-360proxy/pkg/util"
-	semail "api-360proxy/service/email"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -40,6 +39,42 @@ type AwsSendReq struct {
 	Msg       string      `json:"msg"`
 	Ret       interface{} `json:"ret"`
 	Timestamp int         `json:"timestamp"`
+}
+
+// 发送邮件
+
+func AwsSend(email, tpl_param, token, tpl_sn, AccSn, form string) (int, string, string) {
+	//发送邮件
+	getAwsSend := AwsSendReq{}
+
+	reqMap := map[string]string{
+		"tpl_sn":    tpl_sn,
+		"tpl_param": tpl_param,
+		"acc_sn":    AccSn,
+		"token":     token,
+		"to":        email,
+		"from":      form,
+		"from_name": "360Proxy",
+	}
+	getAwsSendApiResult := HttpPostForm("http://api.martianinc.co:5705/mail/smtp/send", reqMap)
+
+	if getAwsSendApiResult == "" {
+		return -1, "err", getAwsSendApiResult
+	}
+
+	err := json.Unmarshal([]byte(getAwsSendApiResult), &getAwsSend)
+	if err != nil {
+		return -1, err.Error(), getAwsSendApiResult
+	}
+	//fmt.Println(getAwsSend)
+	if getAwsSend.Code == 2 {
+		//token过期
+		return -2, "token err", getAwsSendApiResult
+	}
+	if getAwsSend.Code != 0 {
+		return -3, getAwsSend.Msg, getAwsSendApiResult
+	}
+	return 0, "ok", getAwsSendApiResult
 }
 
 func AwsSendEmail(email string, email_type int, vars map[string]string, ip string) bool {
@@ -94,7 +129,7 @@ func AwsSendEmail(email string, email_type int, vars map[string]string, ip strin
 	}
 	vs, _ := json.Marshal(vars)
 	AccSn := models.GetConfigV("AWS_AccSn")
-	sendRes, msg, result := semail.AwsSend(email, string(vs), token, tplSn, AccSn, from)
+	sendRes, msg, result := AwsSend(email, string(vs), token, tplSn, AccSn, from)
 	fmt.Println(sendRes)
 	fmt.Println(msg)
 	models.AddLogEmail(email, string(vs), tplSn, result, ip)
@@ -147,7 +182,7 @@ func AwsSendEmailMarket(email, code string, vars map[string]string, ip string) b
 	vs, _ := json.Marshal(vars)
 	AccSn := models.GetConfigVal("AWS_AccSn")
 	//from := models.GetConfigVal("AWS_From")
-	sendRes, msg, result := semail.AwsSend(email, string(vs), token, tplSn, AccSn, from)
+	sendRes, msg, result := AwsSend(email, string(vs), token, tplSn, AccSn, from)
 	fmt.Println(sendRes)
 	fmt.Println(msg)
 	models.AddLogEmail(email, string(vs), tplSn, result, ip)
