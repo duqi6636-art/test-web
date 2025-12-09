@@ -1,7 +1,7 @@
 package models
 
 import (
-	"api-360proxy/web/pkg/util"
+	"api-360proxy/pkg/util"
 	"time"
 )
 
@@ -79,7 +79,6 @@ func createUserIpChangeLogTable(tableName string) {
 	StatisticsDb.Exec(createUserIpChangeLogTableSql)
 }
 
-
 // 动态长效
 type DynamicIspModel struct {
 	Id         int    `json:"id"`
@@ -96,7 +95,7 @@ type DynamicIspModel struct {
 }
 
 // 用户流量使用记录
-func AddDynamicIspLog(uid,accountId int, username string, value, preValue, useValue int64, userIp,cate string, mark int) (err error) {
+func AddDynamicIspLog(uid, accountId int, username string, value, preValue, useValue int64, userIp, cate string, mark int) (err error) {
 	log := DynamicIspModel{
 		Uid:        uid,
 		AccountId:  accountId,
@@ -118,7 +117,7 @@ func AddDynamicIspLog(uid,accountId int, username string, value, preValue, useVa
 	return
 }
 
-//创建表
+// 创建表
 func createDynamicIspLogTable(tableName string) {
 	createTables := `CREATE TABLE ` + tableName + `(
 		id int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
@@ -140,7 +139,6 @@ func createDynamicIspLogTable(tableName string) {
 	StatisticsDb.Exec(createTables)
 }
 
-
 // 不限量
 type UnlimitedModel struct {
 	Id         int    `json:"id"`
@@ -155,8 +153,9 @@ type UnlimitedModel struct {
 	Cate       string `json:"cate"` //类型 pay购买 cdk 兑换，score积分等
 	CreateTime int    `json:"create_time"`
 }
+
 // 用户不限量使用记录
-func AddUnlimitedModel(uid,accountId int, username string, value, preValue, useValue int64, userIp,cate string, mark int) (err error) {
+func AddUnlimitedModel(uid, accountId int, username string, value, preValue, useValue int64, userIp, cate string, mark int) (err error) {
 	log := UnlimitedModel{
 		Uid:        uid,
 		AccountId:  accountId,
@@ -177,7 +176,7 @@ func AddUnlimitedModel(uid,accountId int, username string, value, preValue, useV
 	return
 }
 
-//创建表
+// 创建表
 func createUnlimitedTable(tableName string) {
 	createTables := `CREATE TABLE ` + tableName + `(
 		id int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',

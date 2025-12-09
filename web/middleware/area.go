@@ -1,10 +1,10 @@
 package middleware
 
 import (
+	"api-360proxy/controller"
+	"api-360proxy/models"
 	"api-360proxy/pkg/ipdat"
-	"api-360proxy/web/controller"
-	"api-360proxy/web/models"
-	"api-360proxy/web/pkg/util"
+	"api-360proxy/pkg/util"
 	"github.com/gin-gonic/gin"
 	"strings"
 )
@@ -12,26 +12,26 @@ import (
 func AreaMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clientIp := c.ClientIP()
-		ipInfo ,_:= ipdat.IPDat.GetIpInfo(clientIp)
+		ipInfo, _ := ipdat.IPDat.GetIpInfo(clientIp)
 		var whiteIpRes = false
 		whiteIpInfo := models.GetWhiteIpInfoMap(map[string]interface{}{"ip": clientIp})
 		if whiteIpInfo.Id != 0 {
 			whiteIpRes = true
 		}
 
-		if whiteIpRes == false && ipInfo.Country == "中国"{
-			if ipInfo.City == ""{
+		if whiteIpRes == false && ipInfo.Country == "中国" {
+			if ipInfo.City == "" {
 				c.Abort()
 				controller.JsonReturn(c, 1000, "Due to policy, this service is not avaiable in mainland China.", nil)
 			}
-			if ipInfo.City == "香港"  || ipInfo.City == "台湾" || ipInfo.City == "澳门"{
+			if ipInfo.City == "香港" || ipInfo.City == "台湾" || ipInfo.City == "澳门" {
 
-			}else{
+			} else {
 				nowTime := util.GetNowInt()
 				models.CreateLimitIp(models.LimitIp{
-					Ip				:clientIp,
-					CreateTime		:nowTime,
-					CreateTimeShow	:util.GetTimeStr(nowTime, "Y-m-d H:i:s"),
+					Ip:             clientIp,
+					CreateTime:     nowTime,
+					CreateTimeShow: util.GetTimeStr(nowTime, "Y-m-d H:i:s"),
 				})
 				c.Abort()
 				controller.JsonReturn(c, 1000, "Due to policy, this service is not avaiable in mainland China.", nil)
@@ -72,4 +72,3 @@ func GetLanguage(c *gin.Context) string {
 	}
 	return lan
 }
-

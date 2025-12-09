@@ -1,10 +1,10 @@
 package controller
 
 import (
+	"api-360proxy/e"
+	"api-360proxy/models"
 	"api-360proxy/pkg/ipdat"
-	"api-360proxy/web/e"
-	"api-360proxy/web/models"
-	"api-360proxy/web/pkg/util"
+	"api-360proxy/pkg/util"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"strconv"

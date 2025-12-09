@@ -1,7 +1,7 @@
 package routers
 
 import (
-	proxyManageController "api-360proxy/web/controller/proxy_manager"
+	proxyManageController "api-360proxy/controller/proxy_manager"
 	"github.com/gin-gonic/gin"
 )
 

@@ -1,7 +1,7 @@
 package models
 
 import (
-	"api-360proxy/web/constants"
+	"api-360proxy/constants"
 	"fmt"
 	"log"
 	"strconv"

@@ -1,6 +1,6 @@
 package models
 
-import "api-360proxy/web/pkg/util"
+import "api-360proxy/pkg/util"
 
 type ResNoticeV1 struct {
 	Id         int    `json:"id"`

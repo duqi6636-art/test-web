@@ -1,6 +1,6 @@
 package models
 
-import "api-360proxy/web/pkg/util"
+import "api-360proxy/pkg/util"
 
 type CmUsersAccountHistoryPassword struct {
 	Id        int    `gorm:"column:id;primary_key;AUTO_INCREMENT;NOT NULL"`

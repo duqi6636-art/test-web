@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"api-360proxy/web/models"
+	"api-360proxy/models"
 	"github.com/gin-gonic/gin"
 )
 

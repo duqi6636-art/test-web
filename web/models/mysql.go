@@ -1,7 +1,7 @@
 package models
 
 import (
-	"api-360proxy/web/pkg/setting"
+	"api-360proxy/pkg/setting"
 	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

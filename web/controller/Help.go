@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"api-360proxy/web/models"
-	"api-360proxy/web/pkg/util"
+	"api-360proxy/models"
+	"api-360proxy/pkg/util"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"math"
@@ -267,7 +267,6 @@ func ViewArticle(c *gin.Context) {
 	return
 }
 
-
 // 常见问题阅读数
 // @BasePath /api/v1
 // @Summary 常见问题-获取阅读数
@@ -304,6 +303,7 @@ func GetViewVideo(c *gin.Context) {
 	JsonReturn(c, 0, "__T_SUCCESS", res)
 	return
 }
+
 // 常见问题阅读数
 // @BasePath /api/v1
 // @Summary 常见问题-获取阅读数
@@ -340,6 +340,7 @@ func GetViewFAQ(c *gin.Context) {
 	JsonReturn(c, 0, "__T_SUCCESS", res)
 	return
 }
+
 // 时间戳转 英文日期
 func Time2DateEn(t int) string {
 	now_time := time.Now()

@@ -1,8 +1,8 @@
 package crons
 
 import (
-	"api-360proxy/web/models"
-	emailSender "api-360proxy/web/service/email"
+	"api-360proxy/models"
+	emailSender "api-360proxy/service/email"
 	"fmt"
 	"time"
 )

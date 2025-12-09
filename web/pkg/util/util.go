@@ -344,3 +344,32 @@ func GenerateRandomString(length int) string {
 
 	return string(randomStr)
 }
+
+// Post 请求 httpPostForm(带请求头)
+
+func HttpPostFormHeader(postUrl string, param map[string]string, header map[string]interface{}) (err error, result string) {
+	data := make(url.Values)
+	for k, v := range param {
+		data[k] = []string{v}
+	}
+	req, err := http.NewRequest("POST", postUrl, strings.NewReader(data.Encode()))
+	if err != nil {
+		return err, ""
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if len(header) > 0 {
+		for k, v := range header {
+			req.Header.Set(k, v.(string))
+		}
+	}
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return err, ""
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err, ""
+	}
+	return nil, string(body)
+}

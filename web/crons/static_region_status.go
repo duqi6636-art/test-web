@@ -1,8 +1,8 @@
 package crons
 
 import (
-	"api-360proxy/web/controller"
-	"api-360proxy/web/models"
+	"api-360proxy/controller"
+	"api-360proxy/models"
 )
 
 func StaticRegionStatusWarning() {

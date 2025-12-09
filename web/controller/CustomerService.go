@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"api-360proxy/web/e"
+	"api-360proxy/e"
 	"github.com/gin-gonic/gin"
 	"time"
 )

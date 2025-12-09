@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"api-360proxy/web/e"
-	"api-360proxy/web/models"
-	"api-360proxy/web/pkg/util"
-	"api-360proxy/web/service/onfido"
-	"api-360proxy/web/service/tencent"
+	"api-360proxy/e"
+	"api-360proxy/models"
+	"api-360proxy/pkg/util"
+	"api-360proxy/service/onfido"
+	"api-360proxy/service/tencent"
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"

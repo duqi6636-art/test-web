@@ -1,12 +1,12 @@
 package main
 
 import (
+	"api-360proxy/crons"
+	"api-360proxy/db/clickhousedb"
+	"api-360proxy/models"
 	"api-360proxy/pkg/ipdat"
-	"api-360proxy/web/crons"
-	"api-360proxy/web/db/clickhousedb"
-	"api-360proxy/web/models"
-	"api-360proxy/web/pkg/setting"
-	"api-360proxy/web/routers"
+	"api-360proxy/pkg/setting"
+	"api-360proxy/routers"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"

@@ -1,7 +1,7 @@
 package models
 
 import (
-	"api-360proxy/web/pkg/util"
+	"api-360proxy/pkg/util"
 	"time"
 )
 

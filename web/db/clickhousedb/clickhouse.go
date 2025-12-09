@@ -1,7 +1,7 @@
 package clickhousedb
 
 import (
-	"api-360proxy/web/pkg/setting"
+	"api-360proxy/pkg/setting"
 	"fmt"
 	"gorm.io/driver/clickhouse"
 	"gorm.io/gorm"

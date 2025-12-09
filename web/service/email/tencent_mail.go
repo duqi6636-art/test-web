@@ -1,9 +1,9 @@
 package email
 
 import (
+	"api-360proxy/models"
+	"api-360proxy/pkg/util"
 	semail "api-360proxy/service/email"
-	"api-360proxy/web/models"
-	"api-360proxy/web/pkg/util"
 	"encoding/json"
 	"fmt"
 	"strings"

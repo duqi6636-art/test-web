@@ -1,14 +1,14 @@
 package controller
 
 import (
-	"api-360proxy/web/models"
-	"api-360proxy/web/pkg/util"
+	"api-360proxy/models"
+	"api-360proxy/pkg/util"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-/// 刷新所有用户的会员等级
+// / 刷新所有用户的会员等级
 func FreshUserMemberLevel(c *gin.Context) {
 
 	// 查询所有消费金额高于会员1的用户
@@ -22,13 +22,13 @@ func FreshUserMemberLevel(c *gin.Context) {
 	// 编译用户如果没在会员列表里面就插入
 	for _, user := range users {
 
-			//// 查询用户会员当前等级
-			level := models.GetMemberLevelByMoney(user.PayMoney)
-			if level.Id != 0 {
+		//// 查询用户会员当前等级
+		level := models.GetMemberLevelByMoney(user.PayMoney)
+		if level.Id != 0 {
 
-				str := fmt.Sprintf("('%s',%d,%d,'%s','%s',%f,%d,%d,%d,%d)", level.Name, level.Id, user.Id, user.Email, user.Username, user.PayMoney, user.PayNumber, 0, util.GetNowInt(), util.GetNowInt())
-				valueArgs = append(valueArgs, str)
-			}
+			str := fmt.Sprintf("('%s',%d,%d,'%s','%s',%f,%d,%d,%d,%d)", level.Name, level.Id, user.Id, user.Email, user.Username, user.PayMoney, user.PayNumber, 0, util.GetNowInt(), util.GetNowInt())
+			valueArgs = append(valueArgs, str)
+		}
 	}
 
 	if len(valueArgs) > 0 {
@@ -38,7 +38,6 @@ func FreshUserMemberLevel(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{})
 		}
 	}
-
 
 	JsonReturn(c, 0, "success", nil)
 	return

@@ -2,10 +2,10 @@ package email
 
 // 赛邮
 import (
+	"api-360proxy/models"
 	"api-360proxy/pkg/ipdat"
+	"api-360proxy/pkg/util"
 	"api-360proxy/service/email"
-	"api-360proxy/web/models"
-	"api-360proxy/web/pkg/util"
 	"fmt"
 	"strings"
 	//"github.com/coocood/freecache"

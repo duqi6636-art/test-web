@@ -1,7 +1,7 @@
 package crons
 
 import (
-	"api-360proxy/web/pkg/setting"
+	"api-360proxy/pkg/setting"
 	"github.com/robfig/cron"
 )
 

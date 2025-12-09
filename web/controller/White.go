@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"api-360proxy/web/e"
-	"api-360proxy/web/models"
-	"api-360proxy/web/pkg/util"
+	"api-360proxy/e"
+	"api-360proxy/models"
+	"api-360proxy/pkg/util"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	emailSender "api-360proxy/web/service/email"
+	emailSender "api-360proxy/service/email"
 	"github.com/gin-gonic/gin"
 )
 

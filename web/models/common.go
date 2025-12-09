@@ -1,8 +1,8 @@
 package models
 
 import (
-	"api-360proxy/web/pkg/setting"
-	"api-360proxy/web/pkg/util"
+	"api-360proxy/pkg/setting"
+	"api-360proxy/pkg/util"
 	"fmt"
 	"github.com/coocood/freecache"
 	"github.com/garyburd/redigo/redis"

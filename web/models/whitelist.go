@@ -1,8 +1,7 @@
 package models
 
 import (
-	"api-360proxy/pay/models"
-	"api-360proxy/web/pkg/util"
+	"api-360proxy/pkg/util"
 )
 
 type CmUserWhitelistIp struct {
@@ -274,7 +273,7 @@ func GetUserWhitelistIpCountLimitByFlowType(uid int, flowType int) int {
 	if info.ID > 0 {
 		return info.Num
 	}
-	defaulut := models.GetConfigV("unlimited_port_white_count")
+	defaulut := GetConfigV("unlimited_port_white_count")
 	if defaulut == "" {
 		defaulut = "5"
 	}

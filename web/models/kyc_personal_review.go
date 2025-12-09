@@ -1,6 +1,6 @@
 package models
 
-import "api-360proxy/web/pkg/util"
+import "api-360proxy/pkg/util"
 
 // KycManualReview 人工审核记录表
 type KycManualReview struct {

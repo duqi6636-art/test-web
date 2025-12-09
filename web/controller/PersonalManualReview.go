@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"api-360proxy/web/e"
-	"api-360proxy/web/models"
-	"api-360proxy/web/pkg/util"
-	"api-360proxy/web/service/email"
+	"api-360proxy/e"
+	"api-360proxy/models"
+	"api-360proxy/pkg/util"
+	"api-360proxy/service/email"
 	"bytes"
 	"crypto/md5"
 	"crypto/sha1"

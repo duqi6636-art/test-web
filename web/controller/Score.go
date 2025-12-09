@@ -1,10 +1,10 @@
 package controller
 
 import (
+	"api-360proxy/e"
+	"api-360proxy/models"
 	"api-360proxy/pkg/ipdat"
-	"api-360proxy/web/e"
-	"api-360proxy/web/models"
-	"api-360proxy/web/pkg/util"
+	"api-360proxy/pkg/util"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -203,7 +203,6 @@ func ExScoreFlowDay(c *gin.Context) {
 	JsonReturn(c, e.SUCCESS, "__T_SUCCESS", resInfo)
 	return
 }
-
 
 // 获取积分记录
 // @BasePath /api/v1

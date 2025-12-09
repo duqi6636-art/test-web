@@ -1,9 +1,9 @@
 package controller
 
 import (
+	"api-360proxy/e"
+	"api-360proxy/models"
 	"api-360proxy/pkg/util"
-	"api-360proxy/web/e"
-	"api-360proxy/web/models"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"math"

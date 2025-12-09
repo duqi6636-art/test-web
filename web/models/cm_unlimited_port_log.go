@@ -1,6 +1,6 @@
 package models
 
-import "api-360proxy/web/pkg/util"
+import "api-360proxy/pkg/util"
 
 // CmUnlimitedPortLog undefined
 type CmUnlimitedPortLog struct {
